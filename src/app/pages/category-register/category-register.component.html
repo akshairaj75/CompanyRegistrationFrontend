@@ -1,0 +1,591 @@
+<div class="category-app-container">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-logo-icon">
+        <i class="bi bi-tags-fill"></i>
+      </div>
+      <div class="brand-info">
+        <h1 class="brand-title">CategoryRegistry<span class="brand-badge">PRO</span></h1>
+        <p class="brand-subtitle">Spring Boot &bull; Angular Enterprise Suite</p>
+      </div>
+    </div>
+
+    <!-- App Module Switcher (Companies <-> Categories <-> Brands <-> Products) -->
+    <div class="module-switcher">
+      <a routerLink="/companies" class="module-link" title="Manage Registered Companies">
+        <i class="bi bi-buildings"></i>
+        <span>Companies</span>
+      </a>
+      <a routerLink="/categories" class="module-link active" title="Manage Product Categories">
+        <i class="bi bi-tags"></i>
+        <span>Categories</span>
+      </a>
+      <a routerLink="/brands" class="module-link" title="Manage Product Brands">
+        <i class="bi bi-patch-check"></i>
+        <span>Brands</span>
+      </a>
+      <a routerLink="/products" class="module-link" title="Manage Products">
+        <i class="bi bi-box-seam"></i>
+        <span>Products</span>
+      </a>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" aria-label="Category Views">
+      <!-- Register Category Tab -->
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'register' && !editingCategoryId()"
+        (click)="switchToRegister()"
+        id="btn-cat-register"
+        title="Go to Category Registration"
+      >
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Add Category</span>
+      </button>
+
+      <!-- Edit Category Tab (shown only while editing) -->
+      @if (editingCategoryId()) {
+        <div class="edit-tab-pill-wrap">
+          <button 
+            type="button" 
+            class="nav-tab-btn active-edit-tab" 
+            [class.active]="activeTab() === 'register' && !!editingCategoryId()"
+            (click)="activeTab.set('register')"
+            id="btn-cat-edit"
+            title="Current Edit Mode"
+          >
+            <i class="bi bi-pencil-square"></i>
+            <span>Edit #{{ editingCategoryId() }}</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn-close-edit-tab" 
+            (click)="switchToRegister()"
+            title="Exit edit mode and add new category"
+            aria-label="Exit edit mode"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Directory Tab -->
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'directory'"
+        (click)="activeTab.set('directory')"
+        id="btn-cat-directory"
+      >
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <span>Directory</span>
+        <span class="count-pill">{{ categories().length }}</span>
+      </button>
+    </nav>
+
+    <!-- Backend Status Chip -->
+    <div class="backend-chip" [title]="'Spring Boot REST API: ' + environment.apiUrl">
+      <span class="pulse-dot"></span>
+      <span class="backend-label">{{ environment.production ? 'API Production' : 'API Port 8080' }}</span>
+    </div>
+  </header>
+
+  <!-- Feedback Alert Banner -->
+  @if (feedback()) {
+    <div class="feedback-toast" [class.feedback-success]="feedback()?.type === 'success'" [class.feedback-error]="feedback()?.type === 'error'">
+      <div class="feedback-icon">
+        @if (feedback()?.type === 'success') {
+          <i class="bi bi-check-circle-fill"></i>
+        } @else {
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        }
+      </div>
+      <div class="feedback-content">
+        <strong class="feedback-title">{{ feedback()?.title }}</strong>
+        <p class="feedback-msg">{{ feedback()?.message }}</p>
+      </div>
+      <button type="button" class="feedback-close" (click)="closeFeedback()" aria-label="Close Notification">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  <!-- TAB 1: REGISTRATION / EDIT FORM & LIVE PREVIEW -->
+  @if (activeTab() === 'register') {
+    <main class="page-content">
+      <!-- Left Column: Form Section -->
+      <section class="form-section">
+        
+        <!-- Header Banner (Dynamic for Create vs Edit) -->
+        <div class="section-header">
+          <div class="header-icon-wrap" [class.edit-mode-icon]="!!editingCategoryId()">
+            @if (editingCategoryId()) {
+              <i class="bi bi-pencil-square"></i>
+            } @else {
+              <i class="bi bi-tag-fill"></i>
+            }
+          </div>
+          <div class="header-content-flex">
+            <div>
+              <div class="header-title-row">
+                <h2 class="section-title">
+                  {{ editingCategoryId() ? 'Update Category' : 'Create New Category' }}
+                </h2>
+                @if (editingCategoryId()) {
+                  <span class="badge-edit-mode">Editing ID #{{ editingCategoryId() }}</span>
+                }
+              </div>
+              <p class="section-desc">
+                {{ editingCategoryId() ? 'Update the category name and brand image representation.' : 'Define product classification categories for your catalog.' }}
+              </p>
+            </div>
+
+            @if (editingCategoryId()) {
+              <button type="button" class="btn-new-reg-header" (click)="switchToRegister()" title="Switch to new category form">
+                <i class="bi bi-plus-circle-fill"></i> Create New Category
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (editingCategoryId()) {
+          <div class="editing-banner">
+            <div class="editing-banner-content">
+              <i class="bi bi-info-circle-fill"></i>
+              <span>You are editing category #{{ editingCategoryId() }}. Need to create a new category instead?</span>
+            </div>
+            <button type="button" class="btn-cancel-edit-banner" (click)="switchToRegister()">
+              <i class="bi bi-plus-lg"></i> Switch to Add Category
+            </button>
+          </div>
+        }
+
+        <form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="registration-form" novalidate>
+          
+          <!-- Category Details Card -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">01</span>
+              <div>
+                <h3 class="card-title">Category Identity</h3>
+                <p class="card-subtitle">Official name and classification designation</p>
+              </div>
+            </div>
+
+            <!-- Category Name -->
+            <div class="form-group" [class.has-error]="isInvalid('name')">
+              <label for="categoryName" class="form-label">
+                Category Name <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrap">
+                <i class="bi bi-tag input-icon"></i>
+                <input 
+                  type="text" 
+                  id="categoryName" 
+                  formControlName="name" 
+                  class="form-control" 
+                  placeholder="e.g. Industrial Electronics, Enterprise Software, Logistics"
+                />
+              </div>
+              @if (isInvalid('name')) {
+                <span class="field-error">
+                  <i class="bi bi-info-circle"></i> Category name is required (min 2 characters)
+                </span>
+              }
+            </div>
+          </div>
+
+          <!-- Category Image Upload Card -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">02</span>
+              <div>
+                <h3 class="card-title">Category Icon & Banner</h3>
+                <p class="card-subtitle">Upload a visual thumbnail or banner image for this category (JPG, PNG, WEBP, GIF)</p>
+              </div>
+            </div>
+
+            <!-- Drag & Drop Zone -->
+            <div 
+              class="upload-dropzone" 
+              [class.drag-over]="isDragOver()"
+              [class.has-file]="!!selectedFile() || !!filePreviewUrl()"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+              (click)="fileInput.click()"
+            >
+              <input 
+                #fileInput 
+                type="file" 
+                class="hidden-file-input" 
+                (change)="onFileSelected($event)" 
+                accept=".jpg,.jpeg,.png,.webp,.gif"
+              />
+
+              @if (!selectedFile() && !filePreviewUrl()) {
+                <div class="dropzone-content">
+                  <div class="upload-icon-pulse">
+                    <i class="bi bi-image-fill"></i>
+                  </div>
+                  <h4 class="upload-prompt">Drop your category banner or icon here</h4>
+                  <p class="upload-hint">or <span class="browse-link">browse images</span> from your device</p>
+                  <div class="supported-formats">
+                    <span class="format-tag">PNG</span>
+                    <span class="format-tag">JPG</span>
+                    <span class="format-tag">WEBP</span>
+                    <span class="format-tag">GIF</span>
+                    <span class="format-limit">Max 20MB</span>
+                  </div>
+                </div>
+              } @else {
+                <div class="file-preview-card" (click)="$event.stopPropagation()">
+                  <div class="preview-img-container">
+                    <img [src]="filePreviewUrl()" alt="Category preview" class="preview-img" />
+                  </div>
+
+                  <div class="file-details">
+                    <span class="file-name">
+                      {{ selectedFile()?.name || 'Category Thumbnail' }}
+                    </span>
+                    @if (selectedFile()) {
+                      <span class="file-size">{{ (selectedFile()!.size / 1024) | number:'1.0-1' }} KB</span>
+                      <span class="file-success-badge"><i class="bi bi-check-circle-fill"></i> Ready to upload</span>
+                    } @else {
+                      <span class="file-success-badge current-file-badge">
+                        <i class="bi bi-cloud-check-fill"></i> Currently saved on file
+                      </span>
+                    }
+                  </div>
+
+                  <button 
+                    type="button" 
+                    class="btn-remove-file" 
+                    (click)="removeFile($event)" 
+                    title="Remove or replace image"
+                    aria-label="Remove uploaded image"
+                  >
+                    <i class="bi bi-trash3-fill"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            @if (editingCategoryId()) {
+              <button 
+                type="button" 
+                class="btn-secondary" 
+                (click)="cancelEdit()"
+                [disabled]="isSubmitting()"
+              >
+                <i class="bi bi-x-circle"></i> Cancel Edit
+              </button>
+            } @else {
+              <button 
+                type="button" 
+                class="btn-secondary" 
+                (click)="resetForm()"
+                [disabled]="isSubmitting()"
+              >
+                <i class="bi bi-arrow-counterclockwise"></i> Reset Form
+              </button>
+            }
+
+            <button 
+              type="submit" 
+              class="btn-primary" 
+              [disabled]="isSubmitting()"
+              id="btn-submit-category"
+            >
+              @if (isSubmitting()) {
+                <span class="spinner-border" role="status" aria-hidden="true"></span>
+                <span>{{ editingCategoryId() ? 'Updating Category...' : 'Creating Category...' }}</span>
+              } @else {
+                @if (editingCategoryId()) {
+                  <i class="bi bi-check2-all"></i>
+                  <span>Update Category</span>
+                } @else {
+                  <i class="bi bi-plus-circle"></i>
+                  <span>Create Category</span>
+                }
+              }
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Right Column: Live Category Showcase Preview -->
+      <aside class="preview-sidebar">
+        <div class="preview-sticky">
+          <div class="preview-header">
+            <span class="preview-tag">
+              <i class="bi bi-eye-fill"></i> Live Preview
+            </span>
+            <span class="preview-hint">Catalog Card Appearance</span>
+          </div>
+
+          <!-- Category Live Visual Card -->
+          <div class="category-preview-card">
+            <div class="category-preview-media">
+              @if (filePreviewUrl()) {
+                <img [src]="filePreviewUrl()" alt="Category Banner" class="category-preview-img" />
+              } @else {
+                <div class="category-placeholder-backdrop">
+                  <i class="bi bi-tags"></i>
+                </div>
+              }
+              <div class="category-preview-overlay">
+                <span class="category-badge-chip">
+                  <i class="bi bi-folder-check"></i> CATALOG
+                </span>
+                <span class="category-id-chip">
+                  #{{ editingCategoryId() || 'NEW' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="category-preview-body">
+              <h3 class="category-preview-name">
+                {{ categoryForm.get('name')?.value || 'Category Name' }}
+              </h3>
+              <p class="category-preview-sub">
+                Enterprise Classification &bull; Ready for Product Association
+              </p>
+            </div>
+
+            <div class="category-preview-footer">
+              <span class="cat-system-label">SPRING BOOT ENTITY: Category</span>
+              <span class="cat-status-dot"><i class="bi bi-check-circle-fill"></i> ACTIVE</span>
+            </div>
+          </div>
+
+          <!-- Architecture & Schema Info Card -->
+          <div class="schema-info-card">
+            <h4 class="schema-card-title">
+              <i class="bi bi-diagram-3-fill"></i> Category Schema Relations
+            </h4>
+            <p class="schema-card-text">
+              Categories group multiple <strong>Products</strong> together under the Spring Boot JPA architecture. Stored in MySQL with media handled via <code>FileStorageService</code>.
+            </p>
+            <div class="schema-badges">
+              <span class="schema-badge"><i class="bi bi-database-check"></i> MySQL (categories)</span>
+              <span class="schema-badge"><i class="bi bi-images"></i> Uploads: /categories</span>
+              <span class="schema-badge"><i class="bi bi-box-seam"></i> Product Mapping</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  }
+
+  <!-- TAB 2: CATEGORY DIRECTORY (VIEW, EDIT, DELETE) -->
+  @if (activeTab() === 'directory') {
+    <section class="directory-section">
+      <div class="directory-header">
+        <div>
+          <h2 class="section-title">Categories Directory</h2>
+          <p class="section-desc">Explore, inspect, edit, and delete product categories in the database.</p>
+        </div>
+        <div class="directory-actions">
+          <div class="search-box">
+            <i class="bi bi-search search-icon"></i>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Search categories by name or ID..."
+              [value]="searchQuery()" 
+              (input)="onSearchChange($event)"
+            />
+          </div>
+          <button type="button" class="btn-refresh" (click)="fetchCategories()" title="Refresh database records">
+            <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
+          </button>
+          <button type="button" class="btn-primary-sm" (click)="cancelEdit(); activeTab.set('register')">
+            <i class="bi bi-plus-lg"></i> New Category
+          </button>
+        </div>
+      </div>
+
+      <!-- Categories Grid / List -->
+      @if (isLoadingList()) {
+        <div class="loading-state">
+          <div class="spinner-border large-spinner"></div>
+          <p>Querying categories from Spring Boot API...</p>
+        </div>
+      } @else if (filteredCategories.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-wrap">
+            <i class="bi bi-tags"></i>
+          </div>
+          <h3>No Categories Found</h3>
+          <p>No categories match your search or none have been created yet.</p>
+          <button type="button" class="btn-primary mt-3" (click)="cancelEdit(); activeTab.set('register')">
+            <i class="bi bi-plus-lg"></i> Create First Category
+          </button>
+        </div>
+      } @else {
+        <div class="categories-grid">
+          @for (category of filteredCategories; track category.id) {
+            <div class="category-card-item" (click)="openCategoryDetail(category)">
+              <div class="cat-card-media">
+                @if (category.categoryImage) {
+                  <img [src]="categoryService.getFileUrl(category.categoryImage)" alt="{{ category.name }}" class="cat-card-img" />
+                } @else {
+                  <div class="cat-fallback-banner">
+                    <i class="bi bi-tag-fill"></i>
+                  </div>
+                }
+                <span class="cat-id-badge">ID #{{ category.id }}</span>
+              </div>
+
+              <div class="cat-card-body">
+                <h3 class="cat-card-name">{{ category.name }}</h3>
+                <span class="cat-card-desc">Active Catalog Category</span>
+              </div>
+
+              <!-- Action Bar on each card: View, Edit, Delete -->
+              <div class="card-item-footer" (click)="$event.stopPropagation()">
+                <div class="card-actions-group full-width-actions">
+                  <!-- View Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-view" 
+                    (click)="openCategoryDetail(category)" 
+                    title="View Category Details"
+                  >
+                    <i class="bi bi-eye"></i> View
+                  </button>
+
+                  <!-- Edit Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-edit" 
+                    (click)="startEdit(category, $event)" 
+                    title="Edit Category Record"
+                  >
+                    <i class="bi bi-pencil"></i> Edit
+                  </button>
+
+                  <!-- Delete Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-delete" 
+                    (click)="promptDelete(category, $event)" 
+                    title="Delete Category"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  <!-- View Category Detail Modal -->
+  @if (selectedCategory()) {
+    <div class="modal-backdrop" (click)="closeCategoryDetail()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-pretitle">Category Detail &bull; ID #{{ selectedCategory()?.id }}</span>
+            <h3 class="modal-title">{{ selectedCategory()?.name }}</h3>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeCategoryDetail()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-meta-bar">
+            <div class="meta-item">
+              <span class="meta-label">Category ID</span>
+              <span class="meta-value">#{{ selectedCategory()?.id }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Category Name</span>
+              <span class="meta-value">{{ selectedCategory()?.name }}</span>
+            </div>
+          </div>
+
+          @if (selectedCategory()?.categoryImage) {
+            <div class="info-block mt-3">
+              <label class="info-label"><i class="bi bi-image"></i> Category Banner / Image</label>
+              <div class="attachment-preview-box">
+                <img [src]="categoryService.getFileUrl(selectedCategory()?.categoryImage)" alt="{{ selectedCategory()?.name }}" class="modal-category-img" />
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer modal-footer-actions">
+          <div class="modal-left-actions">
+            <button 
+              type="button" 
+              class="btn-danger-outline" 
+              (click)="promptDelete(selectedCategory()!)"
+            >
+              <i class="bi bi-trash3"></i> Delete
+            </button>
+            <button 
+              type="button" 
+              class="btn-edit-action" 
+              (click)="startEdit(selectedCategory()!)"
+            >
+              <i class="bi bi-pencil-square"></i> Edit
+            </button>
+          </div>
+          <button type="button" class="btn-secondary" (click)="closeCategoryDetail()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Delete Confirmation Modal Dialog -->
+  @if (categoryToDelete()) {
+    <div class="modal-backdrop" (click)="cancelDelete()">
+      <div class="modal-card delete-dialog-card" (click)="$event.stopPropagation()">
+        <div class="delete-icon-wrapper">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h3 class="delete-dialog-title">Delete Category?</h3>
+        <p class="delete-dialog-text">
+          Are you sure you want to permanently delete category <strong>"{{ categoryToDelete()?.name }}"</strong> (ID #{{ categoryToDelete()?.id }})? This action cannot be undone.
+        </p>
+
+        <div class="delete-dialog-actions">
+          <button 
+            type="button" 
+            class="btn-secondary" 
+            (click)="cancelDelete()"
+            [disabled]="isDeleting()"
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            class="btn-danger" 
+            (click)="confirmDelete()"
+            [disabled]="isDeleting()"
+          >
+            @if (isDeleting()) {
+              <span class="spinner-border" role="status" aria-hidden="true"></span>
+              <span>Deleting...</span>
+            } @else {
+              <i class="bi bi-trash3-fill"></i>
+              <span>Yes, Delete Category</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

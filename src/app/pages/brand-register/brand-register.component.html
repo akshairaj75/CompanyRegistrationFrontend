@@ -1,0 +1,741 @@
+<div class="brand-app-container">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-logo-icon">
+        <i class="bi bi-patch-check-fill"></i>
+      </div>
+      <div class="brand-info">
+        <h1 class="brand-title">BrandRegistry<span class="brand-badge">PRO</span></h1>
+        <p class="brand-subtitle">Spring Boot &bull; Angular Enterprise Suite</p>
+      </div>
+    </div>
+
+    <!-- App Module Switcher (Companies <-> Categories <-> Brands <-> Products) -->
+    <div class="module-switcher">
+      <a routerLink="/companies" class="module-link" title="Manage Registered Companies">
+        <i class="bi bi-buildings"></i>
+        <span>Companies</span>
+      </a>
+      <a routerLink="/categories" class="module-link" title="Manage Product Categories">
+        <i class="bi bi-tags"></i>
+        <span>Categories</span>
+      </a>
+      <a routerLink="/brands" class="module-link active" title="Manage Product Brands">
+        <i class="bi bi-patch-check"></i>
+        <span>Brands</span>
+      </a>
+      <a routerLink="/products" class="module-link" title="Manage Products">
+        <i class="bi bi-box-seam"></i>
+        <span>Products</span>
+      </a>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" aria-label="Brand Views">
+      <!-- Register Brand Tab -->
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'register' && !editingBrandId()"
+        (click)="switchToRegister()"
+        id="btn-brand-register"
+        title="Go to Brand Registration"
+      >
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Add Brand</span>
+      </button>
+
+      <!-- Edit Brand Tab (shown only while editing) -->
+      @if (editingBrandId()) {
+        <div class="edit-tab-pill-wrap">
+          <button 
+            type="button" 
+            class="nav-tab-btn active-edit-tab" 
+            [class.active]="activeTab() === 'register' && !!editingBrandId()"
+            (click)="activeTab.set('register')"
+            id="btn-brand-edit"
+            title="Current Edit Mode"
+          >
+            <i class="bi bi-pencil-square"></i>
+            <span>Edit #{{ editingBrandId() }}</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn-close-edit-tab" 
+            (click)="switchToRegister()"
+            title="Exit edit mode and add new brand"
+            aria-label="Exit edit mode"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Directory Tab -->
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'directory'"
+        (click)="activeTab.set('directory')"
+        id="btn-brand-directory"
+      >
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <span>Directory</span>
+        <span class="count-pill">{{ brands().length }}</span>
+      </button>
+    </nav>
+
+    <!-- Backend Status Chip -->
+    <div class="backend-chip" [title]="'Spring Boot REST API: ' + environment.apiUrl">
+      <span class="pulse-dot"></span>
+      <span class="backend-label">{{ environment.production ? 'API Production' : 'API Port 8080' }}</span>
+    </div>
+  </header>
+
+  <!-- Feedback Alert Banner -->
+  @if (feedback()) {
+    <div class="feedback-toast" [class.feedback-success]="feedback()?.type === 'success'" [class.feedback-error]="feedback()?.type === 'error'">
+      <div class="feedback-icon">
+        @if (feedback()?.type === 'success') {
+          <i class="bi bi-check-circle-fill"></i>
+        } @else {
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        }
+      </div>
+      <div class="feedback-content">
+        <strong class="feedback-title">{{ feedback()?.title }}</strong>
+        <p class="feedback-msg">{{ feedback()?.message }}</p>
+      </div>
+      <button type="button" class="btn-close-feedback" (click)="closeFeedback()" aria-label="Close notification">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+    <!-- ============================================== -->
+    <!-- TAB 1: BRAND REGISTRATION / EDIT VIEW -->
+    <!-- ============================================== -->
+    @if (activeTab() === 'register') {
+      <div class="register-view-layout">
+        <!-- LEFT: Form Section -->
+        <section class="form-section">
+          <!-- Section Header Banner -->
+          <div class="section-header">
+            <div class="header-icon-wrap" [class.edit-mode-icon]="!!editingBrandId()">
+              @if (editingBrandId()) {
+                <i class="bi bi-pencil-square"></i>
+              } @else {
+                <i class="bi bi-patch-plus-fill"></i>
+              }
+            </div>
+            <div class="header-content-flex">
+              <div>
+                <div class="header-title-row">
+                  <h2 class="section-title">
+                    {{ editingBrandId() ? 'Update Brand Record' : 'Brand Registration' }}
+                  </h2>
+                  @if (editingBrandId()) {
+                    <span class="badge-edit-mode">Editing ID #{{ editingBrandId() }}</span>
+                  }
+                </div>
+                <p class="section-desc">
+                  {{ editingBrandId() ? 'Modify brand identity, toggle featured promotion, or update brand logo.' : 'Register a new brand into the centralized enterprise catalog.' }}
+                </p>
+              </div>
+
+              @if (editingBrandId()) {
+                <button type="button" class="btn-new-reg-header" (click)="switchToRegister()" title="Switch to clean brand registration">
+                  <i class="bi bi-plus-circle-fill"></i> Register New Brand
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Edit Mode Notice Banner -->
+          @if (editingBrandId()) {
+            <div class="editing-banner">
+              <div class="editing-banner-content">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>You are editing brand #{{ editingBrandId() }}. Need to add a new brand instead?</span>
+              </div>
+              <button type="button" class="btn-cancel-edit-banner" (click)="switchToRegister()">
+                <i class="bi bi-plus-lg"></i> Switch to Add Brand
+              </button>
+            </div>
+          }
+
+          <!-- Form Body -->
+          <form [formGroup]="brandForm" (ngSubmit)="onSubmit()" class="brand-form" novalidate>
+            <!-- Step 1: Brand Identity Card -->
+            <div class="form-card">
+              <div class="card-legend">
+                <span class="step-num">01</span>
+                <div>
+                  <h3 class="card-legend-title">Brand Identity</h3>
+                  <p class="card-legend-subtitle">Official registered enterprise brand naming</p>
+                </div>
+              </div>
+
+              <!-- Brand Name Input -->
+              <div class="form-group" [class.has-error]="isInvalid('brandName')">
+                <label for="brandName" class="form-label">
+                  Brand Name <span class="required-star">*</span>
+                </label>
+                <div class="input-wrapper">
+                  <i class="bi bi-tag-fill input-icon"></i>
+                  <input
+                    id="brandName"
+                    type="text"
+                    class="form-control"
+                    placeholder="e.g. Apple, Nike, Samsung, Sony..."
+                    formControlName="brandName"
+                    maxlength="150"
+                    autocomplete="off"
+                  />
+                </div>
+                @if (isInvalid('brandName')) {
+                  <span class="field-error">
+                    <i class="bi bi-exclamation-circle"></i> Brand name is required (minimum 2 characters, max 150).
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Step 2: Promotion & Visual Asset Card -->
+            <div class="form-card">
+              <div class="card-legend">
+                <span class="step-num">02</span>
+                <div>
+                  <h3 class="card-legend-title">Promotion & Visual Asset</h3>
+                  <p class="card-legend-subtitle">Showcase badge promotion and official logo upload</p>
+                </div>
+              </div>
+
+              <!-- Featured Brand Toggle Switch Card -->
+              <div class="featured-toggle-card" [class.featured-active]="brandForm.get('isFeatured')?.value">
+                <div class="toggle-info">
+                  <div class="toggle-icon-wrap">
+                    <i class="bi bi-star-fill"></i>
+                  </div>
+                  <div class="toggle-text">
+                    <label for="isFeatured" class="toggle-title">Featured Brand Promotion</label>
+                    <p class="toggle-desc">
+                      Highlight this brand with a verified golden showcase badge and prioritize in top brand carousels.
+                    </p>
+                  </div>
+                </div>
+                <label class="switch" for="isFeatured">
+                  <input type="checkbox" id="isFeatured" formControlName="isFeatured" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <!-- Brand Logo Upload Section -->
+              <div class="form-group mt-3">
+                <label class="form-label">
+                  Brand Logo <span class="optional-pill">Optional</span>
+                </label>
+
+                <!-- Drag & Drop Zone -->
+                <div
+                  class="file-dropzone"
+                  [class.drag-over]="isDragOver()"
+                  [class.has-file]="!!filePreviewUrl()"
+                  (dragover)="onDragOver($event)"
+                  (dragleave)="onDragLeave($event)"
+                  (drop)="onDrop($event)"
+                  (click)="fileInput.click()"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Upload Brand Logo"
+                >
+                  <input
+                    #fileInput
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                    (change)="onFileSelected($event)"
+                    style="display: none"
+                  />
+
+                  @if (!filePreviewUrl()) {
+                    <div class="dropzone-empty">
+                      <div class="dropzone-icon">
+                        <i class="bi bi-cloud-arrow-up-fill"></i>
+                      </div>
+                      <div class="dropzone-text">
+                        <p class="dropzone-main">Drag & Drop brand logo here, or <span class="browse-link">Browse</span></p>
+                        <p class="dropzone-hint">Supports PNG, SVG, JPG, WEBP or GIF (Max 20MB)</p>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="dropzone-preview-wrap">
+                      <div class="logo-preview-box">
+                        <img [src]="filePreviewUrl()" alt="Brand logo preview" class="logo-preview-img" />
+                      </div>
+                      <div class="preview-info">
+                        <span class="preview-filename">
+                          {{ selectedFile() ? selectedFile()?.name : 'Existing Brand Logo' }}
+                        </span>
+                        <span class="preview-hint">Click or drop image to replace</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn-remove-logo"
+                        (click)="removeFile($event)"
+                        title="Remove logo"
+                        aria-label="Remove logo"
+                      >
+                        <i class="bi bi-trash3-fill"></i>
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Action Buttons Card -->
+            <div class="form-actions-card">
+              <button
+                type="submit"
+                class="btn-submit"
+                [disabled]="isSubmitting()"
+                id="btn-submit-brand"
+              >
+                @if (isSubmitting()) {
+                  <span class="spinner"></span>
+                  <span>{{ editingBrandId() ? 'Updating Brand...' : 'Registering Brand...' }}</span>
+                } @else {
+                  <i class="bi" [class.bi-check-circle-fill]="!editingBrandId()" [class.bi-arrow-repeat]="!!editingBrandId()"></i>
+                  <span>{{ editingBrandId() ? 'Save Changes' : 'Register Brand' }}</span>
+                }
+              </button>
+
+              @if (editingBrandId()) {
+                <button
+                  type="button"
+                  class="btn-cancel"
+                  (click)="cancelEdit()"
+                  [disabled]="isSubmitting()"
+                >
+                  <i class="bi bi-x-circle"></i>
+                  <span>Cancel Edit</span>
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="btn-reset"
+                  (click)="resetForm()"
+                  [disabled]="isSubmitting()"
+                >
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                  <span>Reset Form</span>
+                </button>
+              }
+            </div>
+          </form>
+        </section>
+
+        <!-- RIGHT: Interactive Brand Showcase Preview Column -->
+        <aside class="preview-column">
+          <div class="card preview-card-sticky">
+            <div class="card-header preview-header">
+              <div class="header-icon-badge preview-badge">
+                <i class="bi bi-palette-fill"></i>
+              </div>
+              <div>
+                <h2 class="card-title">Live Brand Showcase</h2>
+                <p class="card-subtitle">Real-time mock of catalog presentation</p>
+              </div>
+            </div>
+
+            <div class="brand-preview-canvas">
+              <div class="brand-showcase-tile" [class.featured-glow]="brandForm.get('isFeatured')?.value">
+                <!-- Featured Ribbon / Badge -->
+                @if (brandForm.get('isFeatured')?.value) {
+                  <div class="featured-ribbon">
+                    <i class="bi bi-star-fill"></i> FEATURED BRAND
+                  </div>
+                }
+
+                <!-- Brand Logo / Avatar -->
+                <div class="showcase-logo-container">
+                  @if (filePreviewUrl()) {
+                    <img [src]="filePreviewUrl()" alt="Brand Preview" class="showcase-logo-img" />
+                  } @else {
+                    <div class="showcase-logo-placeholder">
+                      <span>{{ getInitials(brandForm.get('brandName')?.value) }}</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Brand Title -->
+                <h3 class="showcase-brand-name">
+                  {{ brandForm.get('brandName')?.value || 'Your Brand Name' }}
+                </h3>
+
+                <!-- Verification Badge -->
+                <div class="showcase-verification">
+                  <i class="bi bi-patch-check-fill verified-icon"></i>
+                  <span>Enterprise Verified Partner</span>
+                </div>
+
+                <!-- Mock Brand Stats -->
+                <div class="showcase-stats">
+                  <div class="stat-item">
+                    <span class="stat-value">Active</span>
+                    <span class="stat-label">Status</span>
+                  </div>
+                  <div class="stat-divider"></div>
+                  <div class="stat-item">
+                    <span class="stat-value">{{ editingBrandId() ? '#' + editingBrandId() : 'Draft' }}</span>
+                    <span class="stat-label">Catalog ID</span>
+                  </div>
+                  <div class="stat-divider"></div>
+                  <div class="stat-item">
+                    <span class="stat-value">{{ brandForm.get('isFeatured')?.value ? 'Yes' : 'No' }}</span>
+                    <span class="stat-label">Featured</span>
+                  </div>
+                </div>
+
+                <!-- Live Preview Footnote -->
+                <div class="showcase-footer">
+                  <i class="bi bi-info-circle"></i>
+                  <span>Preview synchronizes with form inputs instantly</span>
+                </div>
+              </div>
+
+              <!-- Quick Directory Jump Card -->
+              <div class="quick-directory-card" (click)="activeTab.set('directory')">
+                <div class="quick-dir-icon">
+                  <i class="bi bi-collection-play-fill"></i>
+                </div>
+                <div class="quick-dir-content">
+                  <strong>View All Brands</strong>
+                  <span>{{ brands().length }} brand{{ brands().length === 1 ? '' : 's' }} registered in system</span>
+                </div>
+                <i class="bi bi-chevron-right quick-dir-arrow"></i>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    }
+
+    <!-- ============================================== -->
+    <!-- TAB 2: BRAND DIRECTORY -->
+    <!-- ============================================== -->
+    @if (activeTab() === 'directory') {
+      <div class="directory-container">
+        <!-- Directory Toolbar -->
+        <div class="directory-toolbar card">
+          <div class="search-filter-section">
+            <div class="search-input-wrapper">
+              <i class="bi bi-search search-icon"></i>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Search brands by name or ID..."
+                [value]="searchQuery()"
+                (input)="onSearchChange($event)"
+              />
+              @if (searchQuery()) {
+                <button type="button" class="btn-clear-search" (click)="searchQuery.set('')">
+                  <i class="bi bi-x"></i>
+                </button>
+              }
+            </div>
+
+            <!-- Filter Chips (All / Featured / Standard) -->
+            <div class="filter-chips">
+              <button
+                type="button"
+                class="chip"
+                [class.active]="filterMode() === 'all'"
+                (click)="setFilterMode('all')"
+              >
+                All Brands ({{ brands().length }})
+              </button>
+              <button
+                type="button"
+                class="chip chip-featured"
+                [class.active]="filterMode() === 'featured'"
+                (click)="setFilterMode('featured')"
+              >
+                <i class="bi bi-star-fill"></i> Featured Only
+              </button>
+              <button
+                type="button"
+                class="chip"
+                [class.active]="filterMode() === 'standard'"
+                (click)="setFilterMode('standard')"
+              >
+                Standard
+              </button>
+            </div>
+          </div>
+
+          <div class="toolbar-actions">
+            <button type="button" class="btn-primary-action" (click)="switchToRegister()">
+              <i class="bi bi-plus-lg"></i>
+              <span>Add New Brand</span>
+            </button>
+            <button
+              type="button"
+              class="btn-refresh"
+              (click)="fetchBrands()"
+              [disabled]="isLoadingList()"
+              title="Refresh Brands List"
+            >
+              <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Directory Grid -->
+        @if (isLoadingList()) {
+          <div class="loading-state card">
+            <div class="spinner-large"></div>
+            <p>Loading brand catalog from Spring Boot...</p>
+          </div>
+        } @else if (filteredBrands.length === 0) {
+          <div class="empty-state card">
+            <div class="empty-icon">
+              <i class="bi bi-patch-question"></i>
+            </div>
+            <h3>No Brands Found</h3>
+            <p>
+              @if (searchQuery() || filterMode() !== 'all') {
+                No brands match your filter criteria. Try clearing filters or search query.
+              } @else {
+                There are no registered brands yet. Register your first brand today!
+              }
+            </p>
+            <button type="button" class="btn-primary-action" (click)="switchToRegister()">
+              <i class="bi bi-plus-lg"></i>
+              <span>Add Brand</span>
+            </button>
+          </div>
+        } @else {
+          <div class="brands-grid">
+            @for (brand of filteredBrands; track brand.id) {
+              <div class="brand-card card" [class.card-featured]="brand.isFeatured || brand.featured">
+                <!-- Card Header with ID and Featured Tag -->
+                <div class="brand-card-top">
+                  <span class="card-id-tag">#{{ brand.id }}</span>
+                  @if (brand.isFeatured || brand.featured) {
+                    <span class="featured-badge-pill" title="Featured Brand">
+                      <i class="bi bi-star-fill"></i> Featured
+                    </span>
+                  }
+                </div>
+
+                <!-- Brand Logo or Monogram -->
+                <div class="brand-card-logo-wrap" (click)="openBrandDetail(brand)">
+                  @if (brand.brandLogo) {
+                    <img
+                      [src]="brandService.getFileUrl(brand.brandLogo)"
+                      [alt]="brand.brandName"
+                      class="brand-card-logo"
+                      loading="lazy"
+                    />
+                  } @else {
+                    <div class="brand-card-monogram">
+                      <span>{{ getInitials(brand.brandName) }}</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Brand Info -->
+                <div class="brand-card-body" (click)="openBrandDetail(brand)">
+                  <h4 class="brand-card-title" [title]="brand.brandName">{{ brand.brandName }}</h4>
+                  <div class="brand-card-status">
+                    <span class="status-indicator"></span>
+                    <span>Catalog Verified</span>
+                  </div>
+                </div>
+
+                <!-- Card Actions -->
+                <div class="brand-card-actions">
+                  <button
+                    type="button"
+                    class="action-btn btn-view"
+                    (click)="openBrandDetail(brand)"
+                    title="View Details"
+                  >
+                    <i class="bi bi-eye"></i>
+                    <span>View</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn btn-edit"
+                    (click)="startEdit(brand, $event)"
+                    title="Edit Brand"
+                  >
+                    <i class="bi bi-pencil"></i>
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn btn-delete"
+                    (click)="promptDelete(brand, $event)"
+                    title="Delete Brand"
+                  >
+                    <i class="bi bi-trash3"></i>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODAL: VIEW BRAND DETAILS -->
+  <!-- ============================================== -->
+  @if (selectedBrand()) {
+    <div class="modal-backdrop" (click)="closeBrandDetail()">
+      <div class="modal-card view-modal" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon-badge">
+              <i class="bi bi-patch-check-fill"></i>
+            </div>
+            <div>
+              <h3 class="modal-title">{{ selectedBrand()?.brandName }}</h3>
+              <span class="modal-subtitle">Brand Record #{{ selectedBrand()?.id }}</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close-modal" (click)="closeBrandDetail()" aria-label="Close dialog">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+          <!-- Big Logo View -->
+          <div class="modal-logo-banner">
+            @if (selectedBrand()?.brandLogo) {
+              <img
+                [src]="brandService.getFileUrl(selectedBrand()?.brandLogo)"
+                [alt]="selectedBrand()?.brandName"
+                class="modal-logo-img"
+              />
+            } @else {
+              <div class="modal-logo-fallback">
+                <span>{{ getInitials(selectedBrand()?.brandName) }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Brand Detail Attributes -->
+          <div class="detail-attributes">
+            <div class="attr-row">
+              <span class="attr-label">Catalog ID:</span>
+              <span class="attr-val">#{{ selectedBrand()?.id }}</span>
+            </div>
+            <div class="attr-row">
+              <span class="attr-label">Brand Name:</span>
+              <span class="attr-val font-bold">{{ selectedBrand()?.brandName }}</span>
+            </div>
+            <div class="attr-row">
+              <span class="attr-label">Featured Status:</span>
+              <span class="attr-val">
+                @if (selectedBrand()?.isFeatured || selectedBrand()?.featured) {
+                  <span class="featured-badge-pill"><i class="bi bi-star-fill"></i> Featured Brand</span>
+                } @else {
+                  <span class="standard-badge-pill">Standard Brand</span>
+                }
+              </span>
+            </div>
+            <div class="attr-row">
+              <span class="attr-label">Logo Asset:</span>
+              <span class="attr-val attr-path">
+                {{ selectedBrand()?.brandLogo ? selectedBrand()?.brandLogo : 'No Logo Uploaded' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn-modal-action btn-modal-edit"
+            (click)="startEdit(selectedBrand()!); closeBrandDetail();"
+          >
+            <i class="bi bi-pencil-square"></i>
+            <span>Edit Brand</span>
+          </button>
+          <button
+            type="button"
+            class="btn-modal-action btn-modal-delete"
+            (click)="promptDelete(selectedBrand()!)"
+          >
+            <i class="bi bi-trash3"></i>
+            <span>Delete</span>
+          </button>
+          <button
+            type="button"
+            class="btn-modal-action btn-modal-close"
+            (click)="closeBrandDetail()"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================== -->
+  <!-- MODAL: DELETE CONFIRMATION -->
+  <!-- ============================================== -->
+  @if (brandToDelete()) {
+    <div class="modal-backdrop" (click)="cancelDelete()">
+      <div class="modal-card delete-modal" (click)="$event.stopPropagation()">
+        <div class="delete-icon-wrap">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h3 class="delete-title">Confirm Brand Deletion</h3>
+        <p class="delete-message">
+          Are you sure you want to permanently delete
+          <strong>"{{ brandToDelete()?.brandName }}"</strong> (Catalog ID #{{ brandToDelete()?.id }})?
+        </p>
+        <p class="delete-warning">
+          <i class="bi bi-info-circle"></i> This operation will purge the brand record and remove its logo file from storage. This action cannot be undone.
+        </p>
+
+        <div class="delete-actions">
+          <button
+            type="button"
+            class="btn-delete-confirm"
+            (click)="confirmDelete()"
+            [disabled]="isDeleting()"
+          >
+            @if (isDeleting()) {
+              <span class="spinner-white"></span>
+              <span>Deleting...</span>
+            } @else {
+              <i class="bi bi-trash3-fill"></i>
+              <span>Delete Permanently</span>
+            }
+          </button>
+          <button
+            type="button"
+            class="btn-delete-cancel"
+            (click)="cancelDelete()"
+            [disabled]="isDeleting()"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

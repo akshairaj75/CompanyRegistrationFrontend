@@ -1,32 +1,36 @@
 export interface CompanyRequest {
   companyName: string;
-  registrationNumber: string;
   email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  website: string;
-  description: string;
+  landline?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
+  description?: string;
   status: string;
   businessCard?: string;
+  contactName?: string;
+  contactDesignation?: string;
+  contactEmail?: string;
+  contactMobileNumber?: string;
 }
 
 export interface CompanyResponse {
   id: number;
   companyName: string;
-  registrationNumber: string;
   email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  website: string;
-  description: string;
+  landline?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
+  description?: string;
   status: string;
   businessCard?: string;
+  contactName?: string;
+  contactDesignation?: string;
+  contactEmail?: string;
+  contactMobileNumber?: string;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,0 +1,874 @@
+<div class="product-app-container">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-logo-icon">
+        <i class="bi bi-box-seam-fill"></i>
+      </div>
+      <div class="brand-info">
+        <h1 class="brand-title">ProductRegistry<span class="brand-badge">PRO</span></h1>
+        <p class="brand-subtitle">Spring Boot &bull; Angular Enterprise Suite</p>
+      </div>
+    </div>
+
+    <!-- App Module Switcher (Companies <-> Categories <-> Brands <-> Products) -->
+    <div class="module-switcher">
+      <a routerLink="/companies" class="module-link" title="Manage Registered Companies">
+        <i class="bi bi-buildings"></i>
+        <span>Companies</span>
+      </a>
+      <a routerLink="/categories" class="module-link" title="Manage Product Categories">
+        <i class="bi bi-tags"></i>
+        <span>Categories</span>
+      </a>
+      <a routerLink="/brands" class="module-link" title="Manage Product Brands">
+        <i class="bi bi-patch-check"></i>
+        <span>Brands</span>
+      </a>
+      <a routerLink="/products" class="module-link active" title="Manage Products">
+        <i class="bi bi-box-seam"></i>
+        <span>Products</span>
+      </a>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" aria-label="Product Views">
+      <!-- Register Product Tab -->
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'register' && !editingProductId()"
+        (click)="switchToRegister()"
+        id="btn-prod-register"
+        title="Go to Product Registration"
+      >
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Add Product</span>
+      </button>
+
+      <!-- Edit Product Tab (shown only while editing) -->
+      @if (editingProductId()) {
+        <div class="edit-tab-pill-wrap">
+          <button 
+            type="button" 
+            class="nav-tab-btn active-edit-tab" 
+            [class.active]="activeTab() === 'register' && !!editingProductId()"
+            (click)="activeTab.set('register')"
+            id="btn-prod-edit"
+            title="Current Edit Mode"
+          >
+            <i class="bi bi-pencil-square"></i>
+            <span>Edit #{{ editingProductId() }}</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn-close-edit-tab" 
+            (click)="switchToRegister()"
+            title="Exit edit mode and add new product"
+            aria-label="Exit edit mode"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Directory Tab -->
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'directory'"
+        (click)="activeTab.set('directory')"
+        id="btn-prod-directory"
+      >
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <span>Directory</span>
+        <span class="count-pill">{{ products().length }}</span>
+      </button>
+    </nav>
+
+    <!-- Backend Status Chip -->
+    <div class="backend-chip" [title]="'Spring Boot REST API: ' + environment.apiUrl">
+      <span class="pulse-dot"></span>
+      <span class="backend-label">{{ environment.production ? 'API Production' : 'API Port 8080' }}</span>
+    </div>
+  </header>
+
+  <!-- Feedback Alert Banner -->
+  @if (feedback()) {
+    <div class="feedback-toast" [class.feedback-success]="feedback()?.type === 'success'" [class.feedback-error]="feedback()?.type === 'error'">
+      <div class="feedback-icon">
+        @if (feedback()?.type === 'success') {
+          <i class="bi bi-check-circle-fill"></i>
+        } @else {
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        }
+      </div>
+      <div class="feedback-content">
+        <strong class="feedback-title">{{ feedback()?.title }}</strong>
+        <p class="feedback-msg">{{ feedback()?.message }}</p>
+      </div>
+      <button type="button" class="btn-close-feedback" (click)="closeFeedback()" aria-label="Close notification">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+    <!-- ============================================== -->
+    <!-- TAB 1: PRODUCT REGISTRATION / EDIT VIEW -->
+    <!-- ============================================== -->
+    @if (activeTab() === 'register') {
+      <div class="register-view-layout">
+        <!-- LEFT: Product Form Section -->
+        <section class="form-section">
+          <!-- Section Header Banner -->
+          <div class="section-header">
+            <div class="header-icon-wrap" [class.edit-mode-icon]="!!editingProductId()">
+              @if (editingProductId()) {
+                <i class="bi bi-pencil-square"></i>
+              } @else {
+                <i class="bi bi-box-arrow-in-down-right"></i>
+              }
+            </div>
+            <div class="header-content-flex">
+              <div>
+                <div class="header-title-row">
+                  <h2 class="section-title">
+                    {{ editingProductId() ? 'Update Product Record' : 'Product Registration' }}
+                  </h2>
+                  @if (editingProductId()) {
+                    <span class="badge-edit-mode">Editing ID #{{ editingProductId() }}</span>
+                  }
+                </div>
+                <p class="section-desc">
+                  {{ editingProductId() ? 'Modify product specifications, category, brand, image, or featured status.' : 'Register a new enterprise product and link it with an existing Category and Brand.' }}
+                </p>
+              </div>
+
+              @if (editingProductId()) {
+                <button type="button" class="btn-new-reg-header" (click)="switchToRegister()" title="Switch to clean product registration">
+                  <i class="bi bi-plus-circle-fill"></i> Register New Product
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Edit Mode Notice Banner -->
+          @if (editingProductId()) {
+            <div class="editing-banner">
+              <div class="editing-banner-content">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>You are currently editing product #{{ editingProductId() }}. Want to add a new product instead?</span>
+              </div>
+              <button type="button" class="btn-cancel-edit-banner" (click)="switchToRegister()">
+                <i class="bi bi-plus-lg"></i> Switch to Add Product
+              </button>
+            </div>
+          }
+
+          <!-- Missing Prerequisites Alert (if no Category or no Brand exists) -->
+          @if (categories().length === 0 || brands().length === 0) {
+            <div class="prereq-alert">
+              <i class="bi bi-exclamation-octagon-fill prereq-icon"></i>
+              <div class="prereq-content">
+                <strong>Prerequisite Setup Required</strong>
+                <p>
+                  Products require both a <strong>Category</strong> and a <strong>Brand</strong>.
+                  @if (categories().length === 0) {
+                    <span> No categories found: <a routerLink="/categories" class="prereq-link">Register a Category</a>.</span>
+                  }
+                  @if (brands().length === 0) {
+                    <span> No brands found: <a routerLink="/brands" class="prereq-link">Register a Brand</a>.</span>
+                  }
+                </p>
+              </div>
+            </div>
+          }
+
+          <!-- Form Body -->
+          <form [formGroup]="productForm" (ngSubmit)="onSubmit()" class="product-form" novalidate>
+            <!-- Step 1: Core Specifications Card -->
+            <div class="form-card">
+              <div class="card-legend">
+                <span class="step-num">01</span>
+                <div>
+                  <h3 class="card-legend-title">Core Specifications</h3>
+                  <p class="card-legend-subtitle">Product title, taxonomy assignment, and details</p>
+                </div>
+              </div>
+
+              <!-- Product Name Input -->
+              <div class="form-group" [class.has-error]="isInvalid('name')">
+                <label for="name" class="form-label">
+                  Product Name <span class="required-star">*</span>
+                </label>
+                <div class="input-wrapper">
+                  <i class="bi bi-box-seam input-icon"></i>
+                  <input
+                    id="name"
+                    type="text"
+                    class="form-control"
+                    placeholder="e.g. MacBook Pro M3, Air Max 90, Galaxy S24 Ultra..."
+                    formControlName="name"
+                    maxlength="200"
+                    autocomplete="off"
+                  />
+                </div>
+                @if (isInvalid('name')) {
+                  <span class="field-error">
+                    <i class="bi bi-exclamation-circle"></i> Product name is required (min 2 characters, max 200).
+                  </span>
+                }
+              </div>
+
+              <!-- Two-Column Row: Category and Brand Selectors -->
+              <div class="form-row-2col">
+                <!-- Category Selector -->
+                <div class="form-group" [class.has-error]="isInvalid('categoryId')">
+                  <label for="categoryId" class="form-label">
+                    Category <span class="required-star">*</span>
+                  </label>
+                  <div class="input-wrapper select-wrapper">
+                    <i class="bi bi-tags input-icon"></i>
+                    <select id="categoryId" class="form-control select-control" formControlName="categoryId">
+                      <option value="" disabled>-- Select Category --</option>
+                      @for (cat of categories(); track cat.id) {
+                        <option [value]="cat.id">{{ cat.name }} (ID #{{ cat.id }})</option>
+                      }
+                    </select>
+                    <i class="bi bi-chevron-down select-chevron"></i>
+                  </div>
+                  @if (isInvalid('categoryId')) {
+                    <span class="field-error">
+                      <i class="bi bi-exclamation-circle"></i> Please select a valid category.
+                    </span>
+                  }
+                </div>
+
+                <!-- Brand Selector -->
+                <div class="form-group" [class.has-error]="isInvalid('brandId')">
+                  <label for="brandId" class="form-label">
+                    Brand <span class="required-star">*</span>
+                  </label>
+                  <div class="input-wrapper select-wrapper">
+                    <i class="bi bi-patch-check input-icon"></i>
+                    <select id="brandId" class="form-control select-control" formControlName="brandId">
+                      <option value="" disabled>-- Select Brand --</option>
+                      @for (b of brands(); track b.id) {
+                        <option [value]="b.id">{{ b.brandName }} (ID #{{ b.id }})</option>
+                      }
+                    </select>
+                    <i class="bi bi-chevron-down select-chevron"></i>
+                  </div>
+                  @if (isInvalid('brandId')) {
+                    <span class="field-error">
+                      <i class="bi bi-exclamation-circle"></i> Please select a valid brand.
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Description Textarea -->
+              <div class="form-group mt-3">
+                <label for="description" class="form-label">
+                  Description <span class="optional-pill">Optional</span>
+                </label>
+                <div class="input-wrapper textarea-wrapper">
+                  <i class="bi bi-card-text input-icon-textarea"></i>
+                  <textarea
+                    id="description"
+                    class="form-control textarea-control"
+                    rows="3"
+                    placeholder="Provide a detailed description of key features, specifications, and warranty..."
+                    formControlName="description"
+                    maxlength="2000"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: Promotion & Visual Asset Card -->
+            <div class="form-card">
+              <div class="card-legend">
+                <span class="step-num">02</span>
+                <div>
+                  <h3 class="card-legend-title">Promotion & Visual Assets</h3>
+                  <p class="card-legend-subtitle">Product showcase badge and catalog image upload</p>
+                </div>
+              </div>
+
+              <!-- Featured Product Toggle Switch Card -->
+              <div class="featured-toggle-card" [class.featured-active]="productForm.get('isFeatured')?.value">
+                <div class="toggle-info">
+                  <div class="toggle-icon-wrap">
+                    <i class="bi bi-stars"></i>
+                  </div>
+                  <div class="toggle-text">
+                    <label for="isFeatured" class="toggle-title">Featured Product Promotion</label>
+                    <p class="toggle-desc">
+                      Highlight this product with a prime badge on homepage hero showcases, top searches, and priority recommendations.
+                    </p>
+                  </div>
+                </div>
+                <label class="switch" for="isFeatured">
+                  <input type="checkbox" id="isFeatured" formControlName="isFeatured" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <!-- Product Image Upload Section -->
+              <div class="form-group mt-3">
+                <label class="form-label">
+                  Product Image <span class="optional-pill">Optional</span>
+                </label>
+
+                <!-- Drag & Drop Zone -->
+                <div
+                  class="file-dropzone"
+                  [class.drag-over]="isDragOver()"
+                  [class.has-file]="!!filePreviewUrl()"
+                  (dragover)="onDragOver($event)"
+                  (dragleave)="onDragLeave($event)"
+                  (drop)="onDrop($event)"
+                  (click)="fileInput.click()"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Upload Product Image"
+                >
+                  <input
+                    #fileInput
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    (change)="onFileSelected($event)"
+                    style="display: none"
+                  />
+
+                  @if (!filePreviewUrl()) {
+                    <div class="dropzone-empty">
+                      <div class="dropzone-icon">
+                        <i class="bi bi-cloud-arrow-up-fill"></i>
+                      </div>
+                      <div class="dropzone-text">
+                        <p class="dropzone-main">Drag & Drop product image here, or <span class="browse-link">Browse</span></p>
+                        <p class="dropzone-hint">Supports JPEG, PNG, WEBP, or GIF (Max 20MB)</p>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="dropzone-preview-wrap">
+                      <div class="image-preview-box">
+                        <img [src]="filePreviewUrl()" alt="Product image preview" class="preview-img" />
+                      </div>
+                      <div class="preview-info">
+                        <span class="preview-filename">
+                          {{ selectedFile() ? selectedFile()?.name : 'Existing Product Image' }}
+                        </span>
+                        <span class="preview-hint">Click or drop new image to replace</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn-remove-image"
+                        (click)="removeFile($event)"
+                        title="Remove image"
+                        aria-label="Remove image"
+                      >
+                        <i class="bi bi-trash3-fill"></i>
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Action Buttons -->
+            <div class="form-actions-card">
+              <button
+                type="submit"
+                class="btn-submit"
+                [disabled]="isSubmitting() || categories().length === 0 || brands().length === 0"
+                id="btn-submit-product"
+              >
+                @if (isSubmitting()) {
+                  <span class="spinner"></span>
+                  <span>{{ editingProductId() ? 'Updating Product...' : 'Registering Product...' }}</span>
+                } @else {
+                  <i class="bi" [class.bi-check-circle-fill]="!editingProductId()" [class.bi-arrow-repeat]="!!editingProductId()"></i>
+                  <span>{{ editingProductId() ? 'Save Changes' : 'Register Product' }}</span>
+                }
+              </button>
+
+              @if (editingProductId()) {
+                <button
+                  type="button"
+                  class="btn-cancel"
+                  (click)="cancelEdit()"
+                  [disabled]="isSubmitting()"
+                >
+                  <i class="bi bi-x-circle"></i>
+                  <span>Cancel Edit</span>
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="btn-reset"
+                  (click)="resetForm()"
+                  [disabled]="isSubmitting()"
+                >
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                  <span>Reset Form</span>
+                </button>
+              }
+            </div>
+          </form>
+        </section>
+
+        <!-- RIGHT: Interactive Product Showcase Preview -->
+        <aside class="preview-column">
+          <div class="card preview-card-sticky">
+            <div class="card-header preview-header">
+              <div class="header-icon-badge preview-badge">
+                <i class="bi bi-eye-fill"></i>
+              </div>
+              <div>
+                <h2 class="card-title">Live Product Showcase</h2>
+                <p class="card-subtitle">Real-time e-commerce preview card</p>
+              </div>
+            </div>
+
+            <div class="product-preview-canvas">
+              <div class="product-showcase-tile" [class.featured-glow]="productForm.get('isFeatured')?.value">
+                <!-- Featured Ribbon / Badge -->
+                @if (productForm.get('isFeatured')?.value) {
+                  <div class="featured-ribbon">
+                    <i class="bi bi-stars"></i> FEATURED PRODUCT
+                  </div>
+                }
+
+                <!-- Image Showcase Box -->
+                <div class="showcase-img-container">
+                  @if (filePreviewUrl()) {
+                    <img [src]="filePreviewUrl()" alt="Product Preview" class="showcase-img" />
+                  } @else {
+                    <div class="showcase-img-placeholder">
+                      <i class="bi bi-box-seam"></i>
+                      <span>Product Image Preview</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Badges: Category & Brand -->
+                <div class="showcase-taxonomy">
+                  <span class="taxonomy-pill cat-pill">
+                    <i class="bi bi-tag-fill"></i>
+                    {{ getCategoryName(productForm.get('categoryId')?.value) || 'Select Category' }}
+                  </span>
+                  <span class="taxonomy-pill brand-pill">
+                    <i class="bi bi-patch-check-fill"></i>
+                    {{ getBrandName(productForm.get('brandId')?.value) || 'Select Brand' }}
+                  </span>
+                </div>
+
+                <!-- Product Title -->
+                <h3 class="showcase-product-name">
+                  {{ productForm.get('name')?.value || 'Your Product Title' }}
+                </h3>
+
+                <!-- Description Preview -->
+                <p class="showcase-desc">
+                  {{ productForm.get('description')?.value || 'Add a description to showcase detailed specifications, benefits, and quality highlights.' }}
+                </p>
+
+                <!-- Stock & Verification Indicator -->
+                <div class="showcase-meta-row">
+                  <div class="in-stock-tag">
+                    <span class="in-stock-dot"></span>
+                    <span>Active & Verified</span>
+                  </div>
+                  <span class="catalog-id-tag">
+                    {{ editingProductId() ? 'ID #' + editingProductId() : 'Draft' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Quick Directory Jump Card -->
+              <div class="quick-directory-card" (click)="activeTab.set('directory')">
+                <div class="quick-dir-icon">
+                  <i class="bi bi-boxes"></i>
+                </div>
+                <div class="quick-dir-content">
+                  <strong>View Product Directory</strong>
+                  <span>{{ products().length }} product{{ products().length === 1 ? '' : 's' }} in catalog</span>
+                </div>
+                <i class="bi bi-chevron-right quick-dir-arrow"></i>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    }
+
+    <!-- ============================================== -->
+    <!-- TAB 2: PRODUCT DIRECTORY -->
+    <!-- ============================================== -->
+    @if (activeTab() === 'directory') {
+      <div class="directory-container">
+        <!-- Directory Toolbar -->
+        <div class="directory-toolbar card">
+          <div class="search-filter-section">
+            <!-- Search bar -->
+            <div class="search-input-wrapper">
+              <i class="bi bi-search search-icon"></i>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Search products by title, category, brand, or ID..."
+                [value]="searchQuery()"
+                (input)="searchQuery.set($any($event.target).value)"
+              />
+              @if (searchQuery()) {
+                <button type="button" class="btn-clear-search" (click)="searchQuery.set('')">
+                  <i class="bi bi-x"></i>
+                </button>
+              }
+            </div>
+
+            <!-- Category Filter Dropdown -->
+            <div class="filter-dropdown-wrap">
+              <select class="filter-select" [value]="filterCategory()" (change)="filterCategory.set($any($event.target).value)">
+                <option value="all">All Categories</option>
+                @for (c of categories(); track c.id) {
+                  <option [value]="c.id">{{ c.name }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Brand Filter Dropdown -->
+            <div class="filter-dropdown-wrap">
+              <select class="filter-select" [value]="filterBrand()" (change)="filterBrand.set($any($event.target).value)">
+                <option value="all">All Brands</option>
+                @for (b of brands(); track b.id) {
+                  <option [value]="b.id">{{ b.brandName }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Featured Mode Chips -->
+            <div class="filter-chips">
+              <button
+                type="button"
+                class="chip"
+                [class.active]="filterFeatured() === 'all'"
+                (click)="filterFeatured.set('all')"
+              >
+                All ({{ products().length }})
+              </button>
+              <button
+                type="button"
+                class="chip chip-featured"
+                [class.active]="filterFeatured() === 'featured'"
+                (click)="filterFeatured.set('featured')"
+              >
+                <i class="bi bi-star-fill"></i> Featured
+              </button>
+              <button
+                type="button"
+                class="chip"
+                [class.active]="filterFeatured() === 'standard'"
+                (click)="filterFeatured.set('standard')"
+              >
+                Standard
+              </button>
+            </div>
+          </div>
+
+          <div class="toolbar-actions">
+            <button type="button" class="btn-primary-action" (click)="switchToRegister()">
+              <i class="bi bi-plus-lg"></i>
+              <span>Add Product</span>
+            </button>
+            <button
+              type="button"
+              class="btn-refresh"
+              (click)="fetchProducts()"
+              [disabled]="isLoadingList()"
+              title="Refresh Products"
+            >
+              <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Directory Content -->
+        @if (isLoadingList()) {
+          <div class="loading-state card">
+            <div class="spinner-large"></div>
+            <p>Loading products from Spring Boot...</p>
+          </div>
+        } @else if (filteredProducts.length === 0) {
+          <div class="empty-state card">
+            <div class="empty-icon">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            <h3>No Products Found</h3>
+            <p>
+              @if (searchQuery() || filterCategory() !== 'all' || filterBrand() !== 'all' || filterFeatured() !== 'all') {
+                No products match the selected filters. Try clearing filters or search terms.
+              } @else {
+                There are no registered products yet. Register your first product now!
+              }
+            </p>
+            <button type="button" class="btn-primary-action" (click)="switchToRegister()">
+              <i class="bi bi-plus-lg"></i>
+              <span>Add Product</span>
+            </button>
+          </div>
+        } @else {
+          <div class="products-grid">
+            @for (product of filteredProducts; track product.id) {
+              <div class="product-card card" [class.card-featured]="product.isFeatured || product.featured">
+                <!-- Top Tags -->
+                <div class="product-card-top">
+                  <span class="card-id-tag">#{{ product.id }}</span>
+                  @if (product.isFeatured || product.featured) {
+                    <span class="featured-badge-pill" title="Featured Product">
+                      <i class="bi bi-stars"></i> Featured
+                    </span>
+                  }
+                </div>
+
+                <!-- Product Image -->
+                <div class="product-card-img-wrap" (click)="openProductDetail(product)">
+                  @if (product.image) {
+                    <img
+                      [src]="productService.getFileUrl(product.image)"
+                      [alt]="product.name"
+                      class="product-card-img"
+                      loading="lazy"
+                    />
+                  } @else {
+                    <div class="product-card-placeholder">
+                      <i class="bi bi-box-seam"></i>
+                    </div>
+                  }
+                </div>
+
+                <!-- Taxonomy Pills -->
+                <div class="product-card-taxonomy" (click)="openProductDetail(product)">
+                  <span class="badge-cat" [title]="'Category: ' + (product.categoryName || getCategoryName(product.categoryId))">
+                    <i class="bi bi-tag-fill"></i>
+                    {{ product.categoryName || getCategoryName(product.categoryId) }}
+                  </span>
+                  <span class="badge-brand" [title]="'Brand: ' + (product.brandName || getBrandName(product.brandId))">
+                    <i class="bi bi-patch-check-fill"></i>
+                    {{ product.brandName || getBrandName(product.brandId) }}
+                  </span>
+                </div>
+
+                <!-- Product Info -->
+                <div class="product-card-body" (click)="openProductDetail(product)">
+                  <h4 class="product-card-title" [title]="product.name">{{ product.name }}</h4>
+                  <p class="product-card-desc">
+                    {{ product.description || 'No description provided.' }}
+                  </p>
+                </div>
+
+                <!-- Card Actions -->
+                <div class="product-card-actions">
+                  <button
+                    type="button"
+                    class="action-btn btn-view"
+                    (click)="openProductDetail(product)"
+                    title="View Details"
+                  >
+                    <i class="bi bi-eye"></i>
+                    <span>View</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn btn-edit"
+                    (click)="startEdit(product, $event)"
+                    title="Edit Product"
+                  >
+                    <i class="bi bi-pencil"></i>
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn btn-delete"
+                    (click)="promptDelete(product, $event)"
+                    title="Delete Product"
+                  >
+                    <i class="bi bi-trash3"></i>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODAL: VIEW PRODUCT DETAILS -->
+  <!-- ============================================== -->
+  @if (selectedProduct()) {
+    <div class="modal-backdrop" (click)="closeProductDetail()">
+      <div class="modal-card view-modal" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon-badge">
+              <i class="bi bi-box-seam-fill"></i>
+            </div>
+            <div>
+              <h3 class="modal-title">{{ selectedProduct()?.name }}</h3>
+              <span class="modal-subtitle">Product Catalog Record #{{ selectedProduct()?.id }}</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close-modal" (click)="closeProductDetail()" aria-label="Close dialog">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+          <!-- Big Image Display -->
+          <div class="modal-image-banner">
+            @if (selectedProduct()?.image) {
+              <img
+                [src]="productService.getFileUrl(selectedProduct()?.image)"
+                [alt]="selectedProduct()?.name"
+                class="modal-product-img"
+              />
+            } @else {
+              <div class="modal-img-fallback">
+                <i class="bi bi-box-seam"></i>
+              </div>
+            }
+          </div>
+
+          <!-- Product Attributes -->
+          <div class="detail-attributes">
+            <div class="attr-row">
+              <span class="attr-label">Catalog ID:</span>
+              <span class="attr-val">#{{ selectedProduct()?.id }}</span>
+            </div>
+            <div class="attr-row">
+              <span class="attr-label">Product Name:</span>
+              <span class="attr-val font-bold">{{ selectedProduct()?.name }}</span>
+            </div>
+            <div class="attr-row">
+              <span class="attr-label">Category:</span>
+              <span class="attr-val">
+                <span class="badge-cat">
+                  <i class="bi bi-tag-fill"></i>
+                  {{ selectedProduct()?.categoryName || getCategoryName(selectedProduct()?.categoryId) }}
+                </span>
+              </span>
+            </div>
+            <div class="attr-row">
+              <span class="attr-label">Brand:</span>
+              <span class="attr-val">
+                <span class="badge-brand">
+                  <i class="bi bi-patch-check-fill"></i>
+                  {{ selectedProduct()?.brandName || getBrandName(selectedProduct()?.brandId) }}
+                </span>
+              </span>
+            </div>
+            <div class="attr-row">
+              <span class="attr-label">Promotion Status:</span>
+              <span class="attr-val">
+                @if (selectedProduct()?.isFeatured || selectedProduct()?.featured) {
+                  <span class="featured-badge-pill"><i class="bi bi-stars"></i> Featured Product</span>
+                } @else {
+                  <span class="standard-badge-pill">Standard Catalog</span>
+                }
+              </span>
+            </div>
+            @if (selectedProduct()?.description) {
+              <div class="attr-desc-block">
+                <span class="attr-label">Description:</span>
+                <p class="attr-desc-text">{{ selectedProduct()?.description }}</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn-modal-action btn-modal-edit"
+            (click)="startEdit(selectedProduct()!); closeProductDetail();"
+          >
+            <i class="bi bi-pencil-square"></i>
+            <span>Edit Product</span>
+          </button>
+          <button
+            type="button"
+            class="btn-modal-action btn-modal-delete"
+            (click)="promptDelete(selectedProduct()!)"
+          >
+            <i class="bi bi-trash3"></i>
+            <span>Delete</span>
+          </button>
+          <button
+            type="button"
+            class="btn-modal-action btn-modal-close"
+            (click)="closeProductDetail()"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================== -->
+  <!-- MODAL: DELETE CONFIRMATION -->
+  <!-- ============================================== -->
+  @if (productToDelete()) {
+    <div class="modal-backdrop" (click)="cancelDelete()">
+      <div class="modal-card delete-modal" (click)="$event.stopPropagation()">
+        <div class="delete-icon-wrap">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h3 class="delete-title">Confirm Product Deletion</h3>
+        <p class="delete-message">
+          Are you sure you want to permanently delete
+          <strong>"{{ productToDelete()?.name }}"</strong> (Catalog ID #{{ productToDelete()?.id }})?
+        </p>
+        <p class="delete-warning">
+          <i class="bi bi-info-circle"></i> This operation will delete the product catalog record and purge its uploaded image file. This action cannot be undone.
+        </p>
+
+        <div class="delete-actions">
+          <button
+            type="button"
+            class="btn-delete-confirm"
+            (click)="confirmDelete()"
+            [disabled]="isDeleting()"
+          >
+            @if (isDeleting()) {
+              <span class="spinner-white"></span>
+              <span>Deleting...</span>
+            } @else {
+              <i class="bi bi-trash3-fill"></i>
+              <span>Delete Permanently</span>
+            }
+          </button>
+          <button
+            type="button"
+            class="btn-delete-cancel"
+            (click)="cancelDelete()"
+            [disabled]="isDeleting()"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

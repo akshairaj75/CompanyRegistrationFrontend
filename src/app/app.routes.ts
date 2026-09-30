@@ -1,19 +1,37 @@
 import { Routes } from '@angular/router';
 import { CompanyRegisterComponent } from './pages/company-register/company-register.component';
+import { CategoryRegisterComponent } from './pages/category-register/category-register.component';
+import { BrandRegisterComponent } from './pages/brand-register/brand-register.component';
+import { ProductRegisterComponent } from './pages/product-register/product-register.component';
 
 export const routes: Routes = [
   {
     path: '',
-    component: CompanyRegisterComponent,
-    title: 'Company Registration | CorpRegistry PRO'
+    redirectTo: 'companies',
+    pathMatch: 'full'
   },
   {
-    path: 'register',
+    path: 'companies',
     component: CompanyRegisterComponent,
-    title: 'Company Registration | CorpRegistry PRO'
+    title: 'Company Management | CorpRegistry PRO'
+  },
+  {
+    path: 'categories',
+    component: CategoryRegisterComponent,
+    title: 'Category Management | CategoryRegistry PRO'
+  },
+  {
+    path: 'brands',
+    component: BrandRegisterComponent,
+    title: 'Brand Management | BrandRegistry PRO'
+  },
+  {
+    path: 'products',
+    component: ProductRegisterComponent,
+    title: 'Product Management | ProductRegistry PRO'
   },
   {
     path: '**',
-    redirectTo: ''
+    redirectTo: 'companies'
   }
 ];

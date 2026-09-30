@@ -11,19 +11,68 @@
       </div>
     </div>
 
+    <!-- App Module Switcher (Companies <-> Categories <-> Brands <-> Products) -->
+    <div class="module-switcher">
+      <a routerLink="/companies" class="module-link active" title="Manage Registered Companies">
+        <i class="bi bi-buildings"></i>
+        <span>Companies</span>
+      </a>
+      <a routerLink="/categories" class="module-link" title="Manage Product Categories">
+        <i class="bi bi-tags"></i>
+        <span>Categories</span>
+      </a>
+      <a routerLink="/brands" class="module-link" title="Manage Product Brands">
+        <i class="bi bi-patch-check"></i>
+        <span>Brands</span>
+      </a>
+      <a routerLink="/products" class="module-link" title="Manage Products">
+        <i class="bi bi-box-seam"></i>
+        <span>Products</span>
+      </a>
+    </div>
+
     <!-- Navigation Tabs -->
     <nav class="nav-tabs" aria-label="Registration Views">
+      <!-- Register Company Tab (ALWAYS visible & clickable) -->
       <button 
         type="button" 
         class="nav-tab-btn" 
-        [class.active]="activeTab() === 'register'"
-        (click)="activeTab.set('register')"
+        [class.active]="activeTab() === 'register' && !editingCompanyId()"
+        (click)="switchToRegister()"
         id="btn-nav-register"
+        title="Go to Company Registration"
       >
         <i class="bi bi-plus-circle-fill"></i>
         <span>Register Company</span>
       </button>
 
+      <!-- Edit Company Tab (shown only while editing) -->
+      @if (editingCompanyId()) {
+        <div class="edit-tab-pill-wrap">
+          <button 
+            type="button" 
+            class="nav-tab-btn active-edit-tab" 
+            [class.active]="activeTab() === 'register' && !!editingCompanyId()"
+            (click)="activeTab.set('register')"
+            id="btn-nav-edit"
+            title="Current Edit Mode"
+          >
+            <i class="bi bi-pencil-square"></i>
+            <span>Edit #{{ editingCompanyId() }}</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn-close-edit-tab" 
+            (click)="switchToRegister()"
+            title="Exit edit mode and register new company"
+            aria-label="Exit edit mode"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Directory Tab -->
       <button 
         type="button" 
         class="nav-tab-btn" 
@@ -64,77 +113,88 @@
     </div>
   }
 
-  <!-- TAB 1: REGISTRATION FORM & LIVE PREVIEW -->
+  <!-- TAB 1: REGISTRATION / EDIT FORM & LIVE PREVIEW -->
   @if (activeTab() === 'register') {
     <main class="page-content">
-      <!-- Left Column: Registration Form -->
+      <!-- Left Column: Form Section -->
       <section class="form-section">
+        
+        <!-- Header Banner (Dynamic for Create vs Edit) -->
         <div class="section-header">
-          <div class="header-icon-wrap">
-            <i class="bi bi-file-earmark-text-fill"></i>
+          <div class="header-icon-wrap" [class.edit-mode-icon]="!!editingCompanyId()">
+            @if (editingCompanyId()) {
+              <i class="bi bi-pencil-square"></i>
+            } @else {
+              <i class="bi bi-file-earmark-text-fill"></i>
+            }
           </div>
-          <div>
-            <h2 class="section-title">Company Registration</h2>
-            <p class="section-desc">Register your enterprise with official legal records and brand credentials.</p>
+          <div class="header-content-flex">
+            <div>
+              <div class="header-title-row">
+                <h2 class="section-title">
+                  {{ editingCompanyId() ? 'Update Company Record' : 'Company Registration' }}
+                </h2>
+                @if (editingCompanyId()) {
+                  <span class="badge-edit-mode">Editing ID #{{ editingCompanyId() }}</span>
+                }
+              </div>
+              <p class="section-desc">
+                {{ editingCompanyId() ? 'Modify and update official details for this registered entity.' : 'Register your enterprise with official legal records and key personnel contacts.' }}
+              </p>
+            </div>
+
+            @if (editingCompanyId()) {
+              <button type="button" class="btn-new-reg-header" (click)="switchToRegister()" title="Switch to clean company registration form">
+                <i class="bi bi-plus-circle-fill"></i> Register New Company
+              </button>
+            }
           </div>
         </div>
 
+        @if (editingCompanyId()) {
+          <div class="editing-banner">
+            <div class="editing-banner-content">
+              <i class="bi bi-info-circle-fill"></i>
+              <span>You are editing company #{{ editingCompanyId() }}. Need to register a new company instead?</span>
+            </div>
+            <button type="button" class="btn-cancel-edit-banner" (click)="switchToRegister()">
+              <i class="bi bi-plus-lg"></i> Switch to Register Page
+            </button>
+          </div>
+        }
+
         <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" class="registration-form" novalidate>
           
-          <!-- Section 1: Legal Entity Info -->
+          <!-- Section 1: Corporate Identity -->
           <div class="form-card">
             <div class="card-legend">
               <span class="step-num">01</span>
               <div>
                 <h3 class="card-title">Corporate Information</h3>
-                <p class="card-subtitle">Official registered identity & legal status</p>
+                <p class="card-subtitle">Official registered enterprise identity & operational status</p>
               </div>
             </div>
 
-            <div class="form-grid-2">
-              <!-- Company Name -->
-              <div class="form-group" [class.has-error]="isInvalid('companyName')">
-                <label for="companyName" class="form-label">
-                  Company Name <span class="required-mark">*</span>
-                </label>
-                <div class="input-wrap">
-                  <i class="bi bi-building input-icon"></i>
-                  <input 
-                    type="text" 
-                    id="companyName" 
-                    formControlName="companyName" 
-                    class="form-control" 
-                    placeholder="e.g. Apex Global Technologies Inc."
-                  />
-                </div>
-                @if (isInvalid('companyName')) {
-                  <span class="field-error">
-                    <i class="bi bi-info-circle"></i> Valid company name is required (min 2 characters)
-                  </span>
-                }
+            <!-- Company Name -->
+            <div class="form-group" [class.has-error]="isInvalid('companyName')">
+              <label for="companyName" class="form-label">
+                Company Name <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrap">
+                <i class="bi bi-building input-icon"></i>
+                <input 
+                  type="text" 
+                  id="companyName" 
+                  formControlName="companyName" 
+                  class="form-control" 
+                  placeholder="e.g. Apex Global Technologies Inc."
+                />
               </div>
-
-              <!-- Registration Number -->
-              <div class="form-group" [class.has-error]="isInvalid('registrationNumber')">
-                <label for="registrationNumber" class="form-label">
-                  Registration / Tax ID <span class="required-mark">*</span>
-                </label>
-                <div class="input-wrap">
-                  <i class="bi bi-hash input-icon"></i>
-                  <input 
-                    type="text" 
-                    id="registrationNumber" 
-                    formControlName="registrationNumber" 
-                    class="form-control" 
-                    placeholder="e.g. REG-2026-US-8910"
-                  />
-                </div>
-                @if (isInvalid('registrationNumber')) {
-                  <span class="field-error">
-                    <i class="bi bi-info-circle"></i> Official registration number is required
-                  </span>
-                }
-              </div>
+              @if (isInvalid('companyName')) {
+                <span class="field-error">
+                  <i class="bi bi-info-circle"></i> Valid company name is required (min 2 characters)
+                </span>
+              }
             </div>
 
             <!-- Status Selector -->
@@ -160,13 +220,93 @@
             </div>
           </div>
 
-          <!-- Section 2: Contact & Digital Presence -->
+          <!-- Section 2: Primary Contact Person -->
           <div class="form-card">
             <div class="card-legend">
               <span class="step-num">02</span>
               <div>
-                <h3 class="card-title">Contact & Digital Presence</h3>
-                <p class="card-subtitle">Official communication channels and web portal</p>
+                <h3 class="card-title">Contact Person & Representative</h3>
+                <p class="card-subtitle">Key executive or point-of-contact details for this enterprise</p>
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <!-- Contact Name -->
+              <div class="form-group">
+                <label for="contactName" class="form-label">Contact Person Name</label>
+                <div class="input-wrap">
+                  <i class="bi bi-person-badge input-icon"></i>
+                  <input 
+                    type="text" 
+                    id="contactName" 
+                    formControlName="contactName" 
+                    class="form-control" 
+                    placeholder="e.g. Sarah Jenkins"
+                  />
+                </div>
+              </div>
+
+              <!-- Contact Designation -->
+              <div class="form-group">
+                <label for="contactDesignation" class="form-label">Designation / Role</label>
+                <div class="input-wrap">
+                  <i class="bi bi-briefcase input-icon"></i>
+                  <input 
+                    type="text" 
+                    id="contactDesignation" 
+                    formControlName="contactDesignation" 
+                    class="form-control" 
+                    placeholder="e.g. Managing Director / CTO"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid-2 mt-3">
+              <!-- Contact Email -->
+              <div class="form-group" [class.has-error]="isInvalid('contactEmail')">
+                <label for="contactEmail" class="form-label">Contact Person Email</label>
+                <div class="input-wrap">
+                  <i class="bi bi-envelope input-icon"></i>
+                  <input 
+                    type="email" 
+                    id="contactEmail" 
+                    formControlName="contactEmail" 
+                    class="form-control" 
+                    placeholder="sarah.jenkins@company.com"
+                  />
+                </div>
+                @if (isInvalid('contactEmail')) {
+                  <span class="field-error">
+                    <i class="bi bi-info-circle"></i> Please enter a valid email address
+                  </span>
+                }
+              </div>
+
+              <!-- Contact Mobile Number -->
+              <div class="form-group">
+                <label for="contactMobileNumber" class="form-label">Mobile Number</label>
+                <div class="input-wrap">
+                  <i class="bi bi-phone input-icon"></i>
+                  <input 
+                    type="tel" 
+                    id="contactMobileNumber" 
+                    formControlName="contactMobileNumber" 
+                    class="form-control" 
+                    placeholder="+1 (555) 987-6543"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Corporate Communication -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">03</span>
+              <div>
+                <h3 class="card-title">Corporate Communication & Web</h3>
+                <p class="card-subtitle">Official company-wide channels and public web portal</p>
               </div>
             </div>
 
@@ -193,15 +333,15 @@
                 }
               </div>
 
-              <!-- Phone Number -->
+              <!-- Landline -->
               <div class="form-group">
-                <label for="phone" class="form-label">Phone Number</label>
+                <label for="landline" class="form-label">Landline Number</label>
                 <div class="input-wrap">
-                  <i class="bi bi-telephone input-icon"></i>
+                  <i class="bi bi-telephone-inbound input-icon"></i>
                   <input 
                     type="tel" 
-                    id="phone" 
-                    formControlName="phone" 
+                    id="landline" 
+                    formControlName="landline" 
                     class="form-control" 
                     placeholder="+1 (555) 019-2834"
                   />
@@ -225,13 +365,13 @@
             </div>
           </div>
 
-          <!-- Section 3: Headquarters Address -->
+          <!-- Section 4: Headquarters Address -->
           <div class="form-card">
             <div class="card-legend">
-              <span class="step-num">03</span>
+              <span class="step-num">04</span>
               <div>
                 <h3 class="card-title">Corporate Headquarters</h3>
-                <p class="card-subtitle">Registered office address and location jurisdiction</p>
+                <p class="card-subtitle">Registered office address and country jurisdiction</p>
               </div>
             </div>
 
@@ -249,7 +389,7 @@
               </div>
             </div>
 
-            <div class="form-grid-3 mt-3">
+            <div class="form-grid-2 mt-3">
               <!-- City -->
               <div class="form-group">
                 <label for="city" class="form-label">City</label>
@@ -259,18 +399,6 @@
                   formControlName="city" 
                   class="form-control" 
                   placeholder="San Francisco"
-                />
-              </div>
-
-              <!-- State / Province -->
-              <div class="form-group">
-                <label for="state" class="form-label">State / Province</label>
-                <input 
-                  type="text" 
-                  id="state" 
-                  formControlName="state" 
-                  class="form-control" 
-                  placeholder="California"
                 />
               </div>
 
@@ -288,10 +416,10 @@
             </div>
           </div>
 
-          <!-- Section 4: Brand Asset & Business Card Upload -->
+          <!-- Section 5: Brand Asset & Business Card Upload -->
           <div class="form-card">
             <div class="card-legend">
-              <span class="step-num">04</span>
+              <span class="step-num">05</span>
               <div>
                 <h3 class="card-title">Business Card & Brand Asset</h3>
                 <p class="card-subtitle">Upload company logo, digital visiting card, or certificate (JPEG, PNG, WEBP, PDF)</p>
@@ -302,7 +430,7 @@
             <div 
               class="upload-dropzone" 
               [class.drag-over]="isDragOver()"
-              [class.has-file]="!!selectedFile()"
+              [class.has-file]="!!selectedFile() || !!filePreviewUrl()"
               (dragover)="onDragOver($event)"
               (dragleave)="onDragLeave($event)"
               (drop)="onDrop($event)"
@@ -316,7 +444,7 @@
                 accept=".jpg,.jpeg,.png,.webp,.gif,.pdf"
               />
 
-              @if (!selectedFile()) {
+              @if (!selectedFile() && !filePreviewUrl()) {
                 <div class="dropzone-content">
                   <div class="upload-icon-pulse">
                     <i class="bi bi-cloud-arrow-up-fill"></i>
@@ -345,16 +473,24 @@
                   }
 
                   <div class="file-details">
-                    <span class="file-name">{{ selectedFile()?.name }}</span>
-                    <span class="file-size">{{ (selectedFile()!.size / 1024) | number:'1.0-1' }} KB</span>
-                    <span class="file-success-badge"><i class="bi bi-check-circle-fill"></i> Ready to upload</span>
+                    <span class="file-name">
+                      {{ selectedFile()?.name || 'Attached Business Card / Logo' }}
+                    </span>
+                    @if (selectedFile()) {
+                      <span class="file-size">{{ (selectedFile()!.size / 1024) | number:'1.0-1' }} KB</span>
+                      <span class="file-success-badge"><i class="bi bi-check-circle-fill"></i> Ready to upload</span>
+                    } @else {
+                      <span class="file-success-badge current-file-badge">
+                        <i class="bi bi-cloud-check-fill"></i> Currently saved on file
+                      </span>
+                    }
                   </div>
 
                   <button 
                     type="button" 
                     class="btn-remove-file" 
                     (click)="removeFile($event)" 
-                    title="Remove file"
+                    title="Remove or replace file"
                     aria-label="Remove uploaded file"
                   >
                     <i class="bi bi-trash3-fill"></i>
@@ -364,10 +500,10 @@
             </div>
           </div>
 
-          <!-- Section 5: Overview & Description -->
+          <!-- Section 6: Overview & Description -->
           <div class="form-card">
             <div class="card-legend">
-              <span class="step-num">05</span>
+              <span class="step-num">06</span>
               <div>
                 <h3 class="card-title">Corporate Overview & Profile</h3>
                 <p class="card-subtitle">Summary of company activities, mission, and scope</p>
@@ -391,14 +527,25 @@
 
           <!-- Form Actions -->
           <div class="form-actions">
-            <button 
-              type="button" 
-              class="btn-secondary" 
-              (click)="resetForm()"
-              [disabled]="isSubmitting()"
-            >
-              <i class="bi bi-arrow-counterclockwise"></i> Reset Form
-            </button>
+            @if (editingCompanyId()) {
+              <button 
+                type="button" 
+                class="btn-secondary" 
+                (click)="cancelEdit()"
+                [disabled]="isSubmitting()"
+              >
+                <i class="bi bi-x-circle"></i> Cancel Edit
+              </button>
+            } @else {
+              <button 
+                type="button" 
+                class="btn-secondary" 
+                (click)="resetForm()"
+                [disabled]="isSubmitting()"
+              >
+                <i class="bi bi-arrow-counterclockwise"></i> Reset Form
+              </button>
+            }
 
             <button 
               type="submit" 
@@ -408,10 +555,15 @@
             >
               @if (isSubmitting()) {
                 <span class="spinner-border" role="status" aria-hidden="true"></span>
-                <span>Registering Entity...</span>
+                <span>{{ editingCompanyId() ? 'Saving Changes...' : 'Registering Entity...' }}</span>
               } @else {
-                <i class="bi bi-check2-circle"></i>
-                <span>Complete Company Registration</span>
+                @if (editingCompanyId()) {
+                  <i class="bi bi-check2-all"></i>
+                  <span>Update Company Details</span>
+                } @else {
+                  <i class="bi bi-check2-circle"></i>
+                  <span>Complete Company Registration</span>
+                }
               }
             </button>
           </div>
@@ -425,7 +577,7 @@
             <span class="preview-tag">
               <i class="bi bi-eye-fill"></i> Live Preview
             </span>
-            <span class="preview-hint">Real-time digital badge</span>
+            <span class="preview-hint">Real-time enterprise card</span>
           </div>
 
           <!-- Business Card Element -->
@@ -445,9 +597,14 @@
                   <h4 class="card-company-name">
                     {{ companyForm.get('companyName')?.value || 'Your Company Name' }}
                   </h4>
-                  <span class="card-reg-no">
-                    {{ companyForm.get('registrationNumber')?.value || 'REG-PENDING' }}
-                  </span>
+                  @if (companyForm.get('contactName')?.value) {
+                    <span class="card-contact-name">
+                      <i class="bi bi-person-fill"></i> {{ companyForm.get('contactName')?.value }}
+                      @if (companyForm.get('contactDesignation')?.value) {
+                        &bull; {{ companyForm.get('contactDesignation')?.value }}
+                      }
+                    </span>
+                  }
                 </div>
               </div>
 
@@ -458,14 +615,38 @@
 
             <!-- Card Middle details -->
             <div class="card-body-details">
+              <!-- Contact person details if present -->
+              @if (companyForm.get('contactMobileNumber')?.value || companyForm.get('contactEmail')?.value) {
+                <div class="preview-contact-box">
+                  <span class="contact-box-title">Key Contact</span>
+                  @if (companyForm.get('contactMobileNumber')?.value) {
+                    <div class="detail-row">
+                      <i class="bi bi-phone"></i>
+                      <span>{{ companyForm.get('contactMobileNumber')?.value }}</span>
+                    </div>
+                  }
+                  @if (companyForm.get('contactEmail')?.value) {
+                    <div class="detail-row">
+                      <i class="bi bi-envelope-at"></i>
+                      <span class="text-truncate">{{ companyForm.get('contactEmail')?.value }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Corporate Channels -->
               <div class="detail-row">
                 <i class="bi bi-envelope"></i>
-                <span class="text-truncate">{{ companyForm.get('email')?.value || 'email@company.com' }}</span>
+                <span class="text-truncate">{{ companyForm.get('email')?.value || 'contact@company.com' }}</span>
               </div>
-              <div class="detail-row">
-                <i class="bi bi-telephone"></i>
-                <span>{{ companyForm.get('phone')?.value || '+1 (000) 000-0000' }}</span>
-              </div>
+
+              @if (companyForm.get('landline')?.value) {
+                <div class="detail-row">
+                  <i class="bi bi-telephone-inbound"></i>
+                  <span>{{ companyForm.get('landline')?.value }}</span>
+                </div>
+              }
+
               <div class="detail-row">
                 <i class="bi bi-geo-alt"></i>
                 <span class="text-truncate">
@@ -476,6 +657,7 @@
                   }
                 </span>
               </div>
+
               @if (companyForm.get('website')?.value) {
                 <div class="detail-row">
                   <i class="bi bi-link-45deg"></i>
@@ -497,18 +679,18 @@
             </div>
           </div>
 
-          <!-- Database Architecture Quick Stats -->
+          <!-- Integration Quick Stats -->
           <div class="schema-info-card">
             <h4 class="schema-card-title">
               <i class="bi bi-diagram-3-fill"></i> Enterprise Integration
             </h4>
             <p class="schema-card-text">
-              Upon submission, this entity will be persisted in MySQL via Spring Data JPA with support for relational <strong>Brands</strong> and <strong>Products</strong> associations.
+              Persisted in MySQL via Spring Data JPA with support for relational <strong>Brands</strong> and <strong>Products</strong> associations.
             </p>
             <div class="schema-badges">
               <span class="schema-badge"><i class="bi bi-database-check"></i> MySQL JPA</span>
               <span class="schema-badge"><i class="bi bi-file-earmark-arrow-up"></i> File Storage</span>
-              <span class="schema-badge"><i class="bi bi-link"></i> ManyToMany Ready</span>
+              <span class="schema-badge"><i class="bi bi-telephone"></i> Landline & Mobile</span>
             </div>
           </div>
         </div>
@@ -516,13 +698,13 @@
     </main>
   }
 
-  <!-- TAB 2: COMPANY DIRECTORY -->
+  <!-- TAB 2: COMPANY DIRECTORY (VIEW, EDIT, DELETE) -->
   @if (activeTab() === 'directory') {
     <section class="directory-section">
       <div class="directory-header">
         <div>
           <h2 class="section-title">Registered Companies Directory</h2>
-          <p class="section-desc">Manage, explore, and inspect companies currently recorded in the database.</p>
+          <p class="section-desc">Manage, view, edit, and delete company records in the system.</p>
         </div>
         <div class="directory-actions">
           <div class="search-box">
@@ -530,13 +712,16 @@
             <input 
               type="text" 
               class="search-input" 
-              placeholder="Search companies by name, reg #, city..."
+              placeholder="Search by company name, contact, city..."
               [value]="searchQuery()" 
               (input)="onSearchChange($event)"
             />
           </div>
           <button type="button" class="btn-refresh" (click)="fetchCompanies()" title="Refresh database records">
             <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
+          </button>
+          <button type="button" class="btn-primary-sm" (click)="cancelEdit(); activeTab.set('register')">
+            <i class="bi bi-plus-lg"></i> New Company
           </button>
         </div>
       </div>
@@ -554,7 +739,7 @@
           </div>
           <h3>No Companies Found</h3>
           <p>No records match your criteria or none have been registered yet.</p>
-          <button type="button" class="btn-primary mt-3" (click)="activeTab.set('register')">
+          <button type="button" class="btn-primary mt-3" (click)="cancelEdit(); activeTab.set('register')">
             <i class="bi bi-plus-lg"></i> Register New Company
           </button>
         </div>
@@ -574,7 +759,11 @@
                 </div>
                 <div class="card-header-titles">
                   <h3 class="card-item-title">{{ company.companyName }}</h3>
-                  <span class="card-item-reg"># {{ company.registrationNumber }}</span>
+                  @if (company.contactName) {
+                    <span class="card-item-contact">
+                      <i class="bi bi-person"></i> {{ company.contactName }}
+                    </span>
+                  }
                 </div>
                 <span class="card-status-badge mini" [ngClass]="company.status.toLowerCase()">
                   {{ company.status }}
@@ -590,19 +779,55 @@
                   <i class="bi bi-envelope"></i>
                   <span>{{ company.email || 'N/A' }}</span>
                 </div>
+                @if (company.landline) {
+                  <div class="detail-chip">
+                    <i class="bi bi-telephone-inbound"></i>
+                    <span>{{ company.landline }}</span>
+                  </div>
+                }
                 <div class="detail-chip">
                   <i class="bi bi-geo-alt"></i>
                   <span>{{ company.city ? company.city + ', ' : '' }}{{ company.country || 'Global' }}</span>
                 </div>
               </div>
 
-              <div class="card-item-footer">
+              <!-- Action Bar on each card: View, Edit, Delete -->
+              <div class="card-item-footer" (click)="$event.stopPropagation()">
                 <span class="card-created-date">
-                  <i class="bi bi-calendar3"></i> ID: #{{ company.id }}
+                  <i class="bi bi-hash"></i> ID: {{ company.id }}
                 </span>
-                <button type="button" class="btn-inspect" (click)="openCompanyDetail(company); $event.stopPropagation()">
-                  Inspect <i class="bi bi-chevron-right"></i>
-                </button>
+                
+                <div class="card-actions-group">
+                  <!-- View Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-view" 
+                    (click)="openCompanyDetail(company)" 
+                    title="View Company Details"
+                  >
+                    <i class="bi bi-eye"></i> View
+                  </button>
+
+                  <!-- Edit Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-edit" 
+                    (click)="startEdit(company, $event)" 
+                    title="Edit Company Record"
+                  >
+                    <i class="bi bi-pencil"></i> Edit
+                  </button>
+
+                  <!-- Delete Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-delete" 
+                    (click)="promptDelete(company, $event)" 
+                    title="Delete Company"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
               </div>
             </div>
           }
@@ -611,13 +836,13 @@
     </section>
   }
 
-  <!-- Company Detail Modal -->
+  <!-- View Company Detail Modal -->
   @if (selectedCompany()) {
     <div class="modal-backdrop" (click)="closeCompanyDetail()">
       <div class="modal-card" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <div class="modal-title-group">
-            <span class="modal-pretitle">Company Detail &bull; ID #{{ selectedCompany()?.id }}</span>
+            <span class="modal-pretitle">Enterprise Profile &bull; ID #{{ selectedCompany()?.id }}</span>
             <h3 class="modal-title">{{ selectedCompany()?.companyName }}</h3>
           </div>
           <button type="button" class="modal-close-btn" (click)="closeCompanyDetail()">
@@ -627,10 +852,6 @@
 
         <div class="modal-body">
           <div class="modal-meta-bar">
-            <div class="meta-item">
-              <span class="meta-label">Registration No.</span>
-              <span class="meta-value">{{ selectedCompany()?.registrationNumber }}</span>
-            </div>
             <div class="meta-item">
               <span class="meta-label">Status</span>
               <span class="card-status-badge mini" [ngClass]="selectedCompany()?.status?.toLowerCase()">
@@ -642,8 +863,25 @@
               <span class="meta-value">{{ selectedCompany()?.email }}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Phone</span>
-              <span class="meta-value">{{ selectedCompany()?.phone || 'Not Specified' }}</span>
+              <span class="meta-label">Landline</span>
+              <span class="meta-value">{{ selectedCompany()?.landline || 'Not Specified' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Contact Person</span>
+              <span class="meta-value">
+                {{ selectedCompany()?.contactName || 'N/A' }}
+                @if (selectedCompany()?.contactDesignation) {
+                  ({{ selectedCompany()?.contactDesignation }})
+                }
+              </span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Contact Mobile</span>
+              <span class="meta-value">{{ selectedCompany()?.contactMobileNumber || 'N/A' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Contact Email</span>
+              <span class="meta-value">{{ selectedCompany()?.contactEmail || 'N/A' }}</span>
             </div>
           </div>
 
@@ -653,7 +891,6 @@
               <p class="info-text">{{ selectedCompany()?.address || 'N/A' }}</p>
               <p class="info-subtext">
                 {{ selectedCompany()?.city ? selectedCompany()?.city + ', ' : '' }}
-                {{ selectedCompany()?.state ? selectedCompany()?.state + ', ' : '' }}
                 {{ selectedCompany()?.country }}
               </p>
             </div>
@@ -693,8 +930,64 @@
           }
         </div>
 
-        <div class="modal-footer">
+        <div class="modal-footer modal-footer-actions">
+          <div class="modal-left-actions">
+            <button 
+              type="button" 
+              class="btn-danger-outline" 
+              (click)="promptDelete(selectedCompany()!)"
+            >
+              <i class="bi bi-trash3"></i> Delete
+            </button>
+            <button 
+              type="button" 
+              class="btn-edit-action" 
+              (click)="startEdit(selectedCompany()!)"
+            >
+              <i class="bi bi-pencil-square"></i> Edit
+            </button>
+          </div>
           <button type="button" class="btn-secondary" (click)="closeCompanyDetail()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Delete Confirmation Modal Dialog -->
+  @if (companyToDelete()) {
+    <div class="modal-backdrop" (click)="cancelDelete()">
+      <div class="modal-card delete-dialog-card" (click)="$event.stopPropagation()">
+        <div class="delete-icon-wrapper">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h3 class="delete-dialog-title">Delete Company Record?</h3>
+        <p class="delete-dialog-text">
+          Are you sure you want to permanently delete <strong>"{{ companyToDelete()?.companyName }}"</strong> (ID #{{ companyToDelete()?.id }})? This action cannot be undone.
+        </p>
+
+        <div class="delete-dialog-actions">
+          <button 
+            type="button" 
+            class="btn-secondary" 
+            (click)="cancelDelete()"
+            [disabled]="isDeleting()"
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            class="btn-danger" 
+            (click)="confirmDelete()"
+            [disabled]="isDeleting()"
+          >
+            @if (isDeleting()) {
+              <span class="spinner-border" role="status" aria-hidden="true"></span>
+              <span>Deleting...</span>
+            } @else {
+              <i class="bi bi-trash3-fill"></i>
+              <span>Yes, Delete Company</span>
+            }
+          </button>
         </div>
       </div>
     </div>

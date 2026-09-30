@@ -57,6 +57,13 @@ export class CompanyService {
   }
 
   /**
+   * Delete a company by ID
+   */
+  deleteCompany(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/delete/${id}`);
+  }
+
+  /**
    * Formats the business card / file URL if stored path is relative
    */
   getFileUrl(path?: string): string {

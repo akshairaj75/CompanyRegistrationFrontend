@@ -5,10 +5,12 @@ import { CompanyService } from '../../core/services/company';
 import { CompanyRequest, CompanyResponse } from '../../core/models/company.model';
 import { environment } from '../../../environments/environment';
 
+import { RouterLink } from '@angular/router';
+
 @Component({
   selector: 'app-company-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './company-register.component.html',
   styleUrl: './company-register.component.css'
 })
@@ -23,6 +25,13 @@ export class CompanyRegisterComponent implements OnInit {
   readonly activeTab = signal<'register' | 'directory'>('register');
   readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
+  // Edit State
+  readonly editingCompanyId = signal<number | null>(null);
+
+  // Delete Confirmation State
+  readonly companyToDelete = signal<CompanyResponse | null>(null);
+  readonly isDeleting = signal<boolean>(false);
+
   // File Upload State
   readonly selectedFile = signal<File | null>(null);
   readonly filePreviewUrl = signal<string | null>(null);
@@ -33,22 +42,24 @@ export class CompanyRegisterComponent implements OnInit {
   readonly companies = signal<CompanyResponse[]>([]);
   readonly searchQuery = signal<string>('');
 
-  // Selected Company for detail modal
+  // Selected Company for View Modal
   readonly selectedCompany = signal<CompanyResponse | null>(null);
 
   // Form Definition
   companyForm: FormGroup = this.fb.group({
     companyName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]],
-    registrationNumber: ['', [Validators.required, Validators.maxLength(100)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
-    phone: ['', [Validators.maxLength(30)]],
+    landline: ['', [Validators.maxLength(30)]],
     address: ['', [Validators.maxLength(255)]],
     city: ['', [Validators.maxLength(100)]],
-    state: ['', [Validators.maxLength(100)]],
     country: ['United States', [Validators.maxLength(100)]],
     website: ['', [Validators.maxLength(255)]],
     description: ['', [Validators.maxLength(1000)]],
-    status: ['ACTIVE', [Validators.required]]
+    status: ['ACTIVE', [Validators.required]],
+    contactName: ['', [Validators.maxLength(150)]],
+    contactDesignation: ['', [Validators.maxLength(100)]],
+    contactEmail: ['', [Validators.email, Validators.maxLength(150)]],
+    contactMobileNumber: ['', [Validators.maxLength(30)]]
   });
 
   ngOnInit(): void {
@@ -69,7 +80,7 @@ export class CompanyRegisterComponent implements OnInit {
     });
   }
 
-  // File Drag & Drop & Selection Handlers
+  // --- File Drag & Drop & Selection Handlers ---
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
@@ -143,7 +154,7 @@ export class CompanyRegisterComponent implements OnInit {
     this.isPdfFile.set(false);
   }
 
-  // Form Submission
+  // --- Form Submission (Create or Update) ---
   onSubmit(): void {
     if (this.companyForm.invalid) {
       this.companyForm.markAllAsTouched();
@@ -161,57 +172,189 @@ export class CompanyRegisterComponent implements OnInit {
     const formValues = this.companyForm.value;
     const requestData: CompanyRequest = {
       companyName: formValues.companyName.trim(),
-      registrationNumber: formValues.registrationNumber.trim(),
       email: formValues.email.trim(),
-      phone: formValues.phone ? formValues.phone.trim() : '',
+      landline: formValues.landline ? formValues.landline.trim() : '',
       address: formValues.address ? formValues.address.trim() : '',
       city: formValues.city ? formValues.city.trim() : '',
-      state: formValues.state ? formValues.state.trim() : '',
       country: formValues.country ? formValues.country.trim() : '',
       website: formValues.website ? formValues.website.trim() : '',
       description: formValues.description ? formValues.description.trim() : '',
-      status: formValues.status || 'ACTIVE'
+      status: formValues.status || 'ACTIVE',
+      contactName: formValues.contactName ? formValues.contactName.trim() : '',
+      contactDesignation: formValues.contactDesignation ? formValues.contactDesignation.trim() : '',
+      contactEmail: formValues.contactEmail ? formValues.contactEmail.trim() : '',
+      contactMobileNumber: formValues.contactMobileNumber ? formValues.contactMobileNumber.trim() : ''
     };
 
     const fileToUpload = this.selectedFile();
+    const editId = this.editingCompanyId();
 
-    this.companyService.createCompany(requestData, fileToUpload).subscribe({
-      next: (response) => {
-        this.isSubmitting.set(false);
+    if (editId) {
+      // Update existing company
+      this.companyService.updateCompany(editId, requestData, fileToUpload).subscribe({
+        next: (response) => {
+          this.isSubmitting.set(false);
+          this.feedback.set({
+            type: 'success',
+            title: 'Company Updated Successfully!',
+            message: `Changes for "${response.companyName}" (ID #${response.id}) have been saved.`
+          });
+          this.editingCompanyId.set(null);
+          this.resetForm();
+          this.fetchCompanies();
+          this.activeTab.set('directory');
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          console.error('Update failed:', err);
+          const errMsg = err?.error?.message || err?.message || 'Server error occurred during company update.';
+          this.feedback.set({
+            type: 'error',
+            title: 'Update Failed',
+            message: errMsg
+          });
+        }
+      });
+    } else {
+      // Create new company
+      this.companyService.createCompany(requestData, fileToUpload).subscribe({
+        next: (response) => {
+          this.isSubmitting.set(false);
+          this.feedback.set({
+            type: 'success',
+            title: 'Company Registered Successfully!',
+            message: `"${response.companyName}" has been established with ID #${response.id}.`
+          });
+          this.resetForm();
+          this.fetchCompanies();
+          this.activeTab.set('directory');
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          console.error('Registration failed:', err);
+          const errMsg = err?.error?.message || err?.message || 'Server error occurred during company creation.';
+          this.feedback.set({
+            type: 'error',
+            title: 'Registration Failed',
+            message: `${errMsg}. Ensure the Spring Boot backend is active at port 8080.`
+          });
+        }
+      });
+    }
+  }
+
+  // --- Edit Actions ---
+  startEdit(company: CompanyResponse, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.editingCompanyId.set(company.id);
+
+    this.companyForm.patchValue({
+      companyName: company.companyName || '',
+      email: company.email || '',
+      landline: company.landline || '',
+      address: company.address || '',
+      city: company.city || '',
+      country: company.country || 'United States',
+      website: company.website || '',
+      description: company.description || '',
+      status: company.status || 'ACTIVE',
+      contactName: company.contactName || '',
+      contactDesignation: company.contactDesignation || '',
+      contactEmail: company.contactEmail || '',
+      contactMobileNumber: company.contactMobileNumber || ''
+    });
+
+    this.selectedFile.set(null);
+    if (company.businessCard) {
+      if (company.businessCard.endsWith('.pdf')) {
+        this.isPdfFile.set(true);
+        this.filePreviewUrl.set(null);
+      } else {
+        this.isPdfFile.set(false);
+        this.filePreviewUrl.set(this.companyService.getFileUrl(company.businessCard));
+      }
+    } else {
+      this.isPdfFile.set(false);
+      this.filePreviewUrl.set(null);
+    }
+
+    if (this.selectedCompany()) {
+      this.closeCompanyDetail();
+    }
+
+    this.activeTab.set('register');
+  }
+
+  cancelEdit(): void {
+    this.editingCompanyId.set(null);
+    this.resetForm();
+  }
+
+  switchToRegister(): void {
+    this.cancelEdit();
+    this.activeTab.set('register');
+  }
+
+  // --- Delete Actions ---
+  promptDelete(company: CompanyResponse, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.companyToDelete.set(company);
+  }
+
+  cancelDelete(): void {
+    this.companyToDelete.set(null);
+  }
+
+  confirmDelete(): void {
+    const toDelete = this.companyToDelete();
+    if (!toDelete) return;
+
+    this.isDeleting.set(true);
+    this.companyService.deleteCompany(toDelete.id).subscribe({
+      next: () => {
+        this.isDeleting.set(false);
         this.feedback.set({
           type: 'success',
-          title: 'Company Registered Successfully!',
-          message: `"${response.companyName}" has been established with ID #${response.id}.`
+          title: 'Company Deleted',
+          message: `"${toDelete.companyName}" has been successfully deleted.`
         });
-        this.resetForm();
+        if (this.selectedCompany()?.id === toDelete.id) {
+          this.closeCompanyDetail();
+        }
+        if (this.editingCompanyId() === toDelete.id) {
+          this.cancelEdit();
+        }
+        this.companyToDelete.set(null);
         this.fetchCompanies();
       },
       error: (err) => {
-        this.isSubmitting.set(false);
-        console.error('Registration failed:', err);
-        const errMsg = err?.error?.message || err?.message || 'Server error occurred during company creation.';
+        this.isDeleting.set(false);
+        console.error('Delete failed:', err);
         this.feedback.set({
           type: 'error',
-          title: 'Registration Failed',
-          message: `${errMsg}. Ensure the Spring Boot backend is active at port 8080.`
+          title: 'Delete Failed',
+          message: 'Could not delete the company record. Please verify server connection.'
         });
       }
     });
   }
 
+  // --- Form Reset & Navigation ---
   resetForm(): void {
     this.companyForm.reset({
       companyName: '',
-      registrationNumber: '',
       email: '',
-      phone: '',
+      landline: '',
       address: '',
       city: '',
-      state: '',
       country: 'United States',
       website: '',
       description: '',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      contactName: '',
+      contactDesignation: '',
+      contactEmail: '',
+      contactMobileNumber: ''
     });
     this.removeFile();
   }
@@ -220,6 +363,7 @@ export class CompanyRegisterComponent implements OnInit {
     this.feedback.set(null);
   }
 
+  // --- View Detail Modal ---
   openCompanyDetail(comp: CompanyResponse): void {
     this.selectedCompany.set(comp);
   }
@@ -234,7 +378,8 @@ export class CompanyRegisterComponent implements OnInit {
     if (!query) return this.companies();
     return this.companies().filter(c => 
       c.companyName?.toLowerCase().includes(query) ||
-      c.registrationNumber?.toLowerCase().includes(query) ||
+      c.contactName?.toLowerCase().includes(query) ||
+      c.contactEmail?.toLowerCase().includes(query) ||
       c.email?.toLowerCase().includes(query) ||
       c.city?.toLowerCase().includes(query) ||
       c.country?.toLowerCase().includes(query)
