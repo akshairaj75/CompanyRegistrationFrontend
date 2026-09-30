@@ -6,8 +6,8 @@
         <i class="bi bi-box-seam-fill"></i>
       </div>
       <div class="brand-info">
-        <h1 class="brand-title">ProductRegistry<span class="brand-badge">PRO</span></h1>
-        <p class="brand-subtitle">Spring Boot &bull; Angular Enterprise Suite</p>
+        <h1 class="brand-title">Product Portal</h1>
+        <p class="brand-subtitle">Enterprise Directory & Catalog System</p>
       </div>
     </div>
 
@@ -86,10 +86,10 @@
       </button>
     </nav>
 
-    <!-- Backend Status Chip -->
-    <div class="backend-chip" [title]="'Spring Boot REST API: ' + environment.apiUrl">
+    <!-- System Status Chip -->
+    <div class="backend-chip" title="System Operational">
       <span class="pulse-dot"></span>
-      <span class="backend-label">{{ environment.production ? 'API Production' : 'API Port 8080' }}</span>
+      <span class="backend-label">System Online</span>
     </div>
   </header>
 
@@ -602,7 +602,7 @@
         @if (isLoadingList()) {
           <div class="loading-state card">
             <div class="spinner-large"></div>
-            <p>Loading products from Spring Boot...</p>
+            <p>Loading product catalog...</p>
           </div>
         } @else if (filteredProducts.length === 0) {
           <div class="empty-state card">

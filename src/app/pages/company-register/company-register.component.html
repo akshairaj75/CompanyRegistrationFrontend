@@ -6,8 +6,8 @@
         <i class="bi bi-buildings-fill"></i>
       </div>
       <div class="brand-info">
-        <h1 class="brand-title">CorpRegistry<span class="brand-badge">PRO</span></h1>
-        <p class="brand-subtitle">Spring Boot &bull; Angular Enterprise Suite</p>
+        <h1 class="brand-title">Company Portal</h1>
+        <p class="brand-subtitle">Enterprise Directory & Catalog System</p>
       </div>
     </div>
 
@@ -86,10 +86,10 @@
       </button>
     </nav>
 
-    <!-- Backend Status Chip -->
-    <div class="backend-chip" [title]="'Spring Boot REST API: ' + environment.apiUrl">
+    <!-- System Status Chip -->
+    <div class="backend-chip" title="System Operational">
       <span class="pulse-dot"></span>
-      <span class="backend-label">{{ environment.production ? 'API Production' : 'API Port 8080' }}</span>
+      <span class="backend-label">System Online</span>
     </div>
   </header>
 
@@ -794,18 +794,18 @@
             </div>
           </div>
 
-          <!-- Integration Quick Stats -->
+          <!-- Enterprise Directory Stats Card -->
           <div class="schema-info-card">
             <h4 class="schema-card-title">
-              <i class="bi bi-diagram-3-fill"></i> Enterprise Integration
+              <i class="bi bi-shield-check"></i> Enterprise Directory
             </h4>
             <p class="schema-card-text">
-              Persisted in MySQL via Spring Data JPA with support for relational <strong>Brands</strong> and <strong>Products</strong> associations.
+              Centralized corporate registry with verified records, linked partner <strong>Brands</strong>, and verified personnel contacts.
             </p>
             <div class="schema-badges">
-              <span class="schema-badge"><i class="bi bi-database-check"></i> MySQL JPA</span>
-              <span class="schema-badge"><i class="bi bi-file-earmark-arrow-up"></i> File Storage</span>
-              <span class="schema-badge"><i class="bi bi-telephone"></i> Landline & Mobile</span>
+              <span class="schema-badge"><i class="bi bi-check-circle-fill"></i> Verified Registry</span>
+              <span class="schema-badge"><i class="bi bi-paperclip"></i> Corporate Assets</span>
+              <span class="schema-badge"><i class="bi bi-telephone"></i> Direct Contacts</span>
             </div>
           </div>
         </div>
@@ -827,7 +827,7 @@
             <input 
               type="text" 
               class="search-input" 
-              placeholder="Search by company name, contact, city..."
+              placeholder="Search by company name, contact, city..." 
               [value]="searchQuery()" 
               (input)="onSearchChange($event)"
             />
@@ -845,7 +845,7 @@
       @if (isLoadingList()) {
         <div class="loading-state">
           <div class="spinner-border large-spinner"></div>
-          <p>Querying registered companies from Spring Boot...</p>
+          <p>Loading registered companies...</p>
         </div>
       } @else if (filteredCompanies.length === 0) {
         <div class="empty-state">

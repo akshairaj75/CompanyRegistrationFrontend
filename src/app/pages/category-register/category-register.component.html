@@ -6,8 +6,8 @@
         <i class="bi bi-tags-fill"></i>
       </div>
       <div class="brand-info">
-        <h1 class="brand-title">CategoryRegistry<span class="brand-badge">PRO</span></h1>
-        <p class="brand-subtitle">Spring Boot &bull; Angular Enterprise Suite</p>
+        <h1 class="brand-title">Category Portal</h1>
+        <p class="brand-subtitle">Enterprise Directory & Catalog System</p>
       </div>
     </div>
 
@@ -86,10 +86,10 @@
       </button>
     </nav>
 
-    <!-- Backend Status Chip -->
-    <div class="backend-chip" [title]="'Spring Boot REST API: ' + environment.apiUrl">
+    <!-- System Status Chip -->
+    <div class="backend-chip" title="System Operational">
       <span class="pulse-dot"></span>
-      <span class="backend-label">{{ environment.production ? 'API Production' : 'API Port 8080' }}</span>
+      <span class="backend-label">System Online</span>
     </div>
   </header>
 
@@ -360,22 +360,22 @@
             </div>
 
             <div class="category-preview-footer">
-              <span class="cat-system-label">SPRING BOOT ENTITY: Category</span>
+              <span class="cat-system-label">CATEGORY IDENTIFIER</span>
               <span class="cat-status-dot"><i class="bi bi-check-circle-fill"></i> ACTIVE</span>
             </div>
           </div>
 
-          <!-- Architecture & Schema Info Card -->
+          <!-- Category Organization Card -->
           <div class="schema-info-card">
             <h4 class="schema-card-title">
-              <i class="bi bi-diagram-3-fill"></i> Category Schema Relations
+              <i class="bi bi-diagram-3-fill"></i> Category Organization
             </h4>
             <p class="schema-card-text">
-              Categories group multiple <strong>Products</strong> together under the Spring Boot JPA architecture. Stored in MySQL with media handled via <code>FileStorageService</code>.
+              Organize your catalog by grouping related <strong>Products</strong> into distinct classifications for seamless navigation.
             </p>
             <div class="schema-badges">
-              <span class="schema-badge"><i class="bi bi-database-check"></i> MySQL (categories)</span>
-              <span class="schema-badge"><i class="bi bi-images"></i> Uploads: /categories</span>
+              <span class="schema-badge"><i class="bi bi-tag-fill"></i> Taxonomy Group</span>
+              <span class="schema-badge"><i class="bi bi-images"></i> Visual Badges</span>
               <span class="schema-badge"><i class="bi bi-box-seam"></i> Product Mapping</span>
             </div>
           </div>
@@ -416,7 +416,7 @@
       @if (isLoadingList()) {
         <div class="loading-state">
           <div class="spinner-border large-spinner"></div>
-          <p>Querying categories from Spring Boot API...</p>
+          <p>Loading categories...</p>
         </div>
       } @else if (filteredCategories.length === 0) {
         <div class="empty-state">

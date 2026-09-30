@@ -294,7 +294,7 @@ export class CompanyRegisterComponent implements OnInit {
           this.feedback.set({
             type: 'error',
             title: 'Registration Failed',
-            message: `${errMsg}. Ensure the Spring Boot backend is active at port 8080.`
+            message: `${errMsg}. Please ensure the server is reachable and try again.`
           });
         }
       });
