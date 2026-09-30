@@ -2,7 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CompanyService } from '../../core/services/company';
+import { BrandService } from '../../core/services/brand';
 import { CompanyRequest, CompanyResponse } from '../../core/models/company.model';
+import { BrandResponse } from '../../core/models/brand.model';
 import { environment } from '../../../environments/environment';
 
 import { RouterLink } from '@angular/router';
@@ -17,6 +19,7 @@ import { RouterLink } from '@angular/router';
 export class CompanyRegisterComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly companyService = inject(CompanyService);
+  readonly brandService = inject(BrandService);
   readonly environment = environment;
 
   // State Signals
@@ -42,6 +45,12 @@ export class CompanyRegisterComponent implements OnInit {
   readonly companies = signal<CompanyResponse[]>([]);
   readonly searchQuery = signal<string>('');
 
+  // Brand Association State (Brands Dealt With)
+  readonly availableBrands = signal<BrandResponse[]>([]);
+  readonly selectedBrandIds = signal<number[]>([]);
+  readonly isLoadingBrands = signal<boolean>(false);
+  readonly brandSearchQuery = signal<string>('');
+
   // Selected Company for View Modal
   readonly selectedCompany = signal<CompanyResponse | null>(null);
 
@@ -64,6 +73,7 @@ export class CompanyRegisterComponent implements OnInit {
 
   ngOnInit(): void {
     this.fetchCompanies();
+    this.fetchBrands();
   }
 
   fetchCompanies(): void {
@@ -78,6 +88,53 @@ export class CompanyRegisterComponent implements OnInit {
         this.isLoadingList.set(false);
       }
     });
+  }
+
+  fetchBrands(): void {
+    this.isLoadingBrands.set(true);
+    this.brandService.getAllBrands().subscribe({
+      next: (data) => {
+        this.availableBrands.set(data || []);
+        this.isLoadingBrands.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load brands:', err);
+        this.isLoadingBrands.set(false);
+      }
+    });
+  }
+
+  // --- Brand Selection Handlers ---
+  toggleBrand(brandId: number): void {
+    const current = this.selectedBrandIds();
+    if (current.includes(brandId)) {
+      this.selectedBrandIds.set(current.filter(id => id !== brandId));
+    } else {
+      this.selectedBrandIds.set([...current, brandId]);
+    }
+  }
+
+  isBrandSelected(brandId: number): boolean {
+    return this.selectedBrandIds().includes(brandId);
+  }
+
+  selectAllBrands(): void {
+    this.selectedBrandIds.set(this.availableBrands().map(b => b.id));
+  }
+
+  clearSelectedBrands(): void {
+    this.selectedBrandIds.set([]);
+  }
+
+  get filteredAvailableBrands(): BrandResponse[] {
+    const query = this.brandSearchQuery().toLowerCase().trim();
+    if (!query) return this.availableBrands();
+    return this.availableBrands().filter(b => b.brandName?.toLowerCase().includes(query));
+  }
+
+  get selectedBrandsList(): BrandResponse[] {
+    const ids = new Set(this.selectedBrandIds());
+    return this.availableBrands().filter(b => ids.has(b.id));
   }
 
   // --- File Drag & Drop & Selection Handlers ---
@@ -183,7 +240,8 @@ export class CompanyRegisterComponent implements OnInit {
       contactName: formValues.contactName ? formValues.contactName.trim() : '',
       contactDesignation: formValues.contactDesignation ? formValues.contactDesignation.trim() : '',
       contactEmail: formValues.contactEmail ? formValues.contactEmail.trim() : '',
-      contactMobileNumber: formValues.contactMobileNumber ? formValues.contactMobileNumber.trim() : ''
+      contactMobileNumber: formValues.contactMobileNumber ? formValues.contactMobileNumber.trim() : '',
+      brandIds: this.selectedBrandIds()
     };
 
     const fileToUpload = this.selectedFile();
@@ -263,6 +321,12 @@ export class CompanyRegisterComponent implements OnInit {
       contactEmail: company.contactEmail || '',
       contactMobileNumber: company.contactMobileNumber || ''
     });
+
+    // Populate selected brands
+    const brandIds = (company.brandIds && company.brandIds.length > 0)
+      ? company.brandIds
+      : (company.brands?.map(b => b.id) || []);
+    this.selectedBrandIds.set(brandIds);
 
     this.selectedFile.set(null);
     if (company.businessCard) {
@@ -356,6 +420,8 @@ export class CompanyRegisterComponent implements OnInit {
       contactEmail: '',
       contactMobileNumber: ''
     });
+    this.selectedBrandIds.set([]);
+    this.brandSearchQuery.set('');
     this.removeFile();
   }
 
@@ -382,7 +448,8 @@ export class CompanyRegisterComponent implements OnInit {
       c.contactEmail?.toLowerCase().includes(query) ||
       c.email?.toLowerCase().includes(query) ||
       c.city?.toLowerCase().includes(query) ||
-      c.country?.toLowerCase().includes(query)
+      c.country?.toLowerCase().includes(query) ||
+      c.brands?.some(b => b.brandName?.toLowerCase().includes(query))
     );
   }
 

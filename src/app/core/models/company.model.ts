@@ -1,3 +1,5 @@
+import { BrandResponse } from './brand.model';
+
 export interface CompanyRequest {
   companyName: string;
   email: string;
@@ -13,6 +15,7 @@ export interface CompanyRequest {
   contactDesignation?: string;
   contactEmail?: string;
   contactMobileNumber?: string;
+  brandIds?: number[];
 }
 
 export interface CompanyResponse {
@@ -33,4 +36,6 @@ export interface CompanyResponse {
   contactMobileNumber?: string;
   createdAt?: string;
   updatedAt?: string;
+  brandIds?: number[];
+  brands?: BrandResponse[];
 }

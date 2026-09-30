@@ -416,10 +416,104 @@
             </div>
           </div>
 
-          <!-- Section 5: Brand Asset & Business Card Upload -->
+          <!-- Section 5: Brands Dealt With -->
           <div class="form-card">
             <div class="card-legend">
               <span class="step-num">05</span>
+              <div>
+                <h3 class="card-title">Brands Dealt With & Partner Dealerships</h3>
+                <p class="card-subtitle">Select the manufacturer brands this enterprise deals with, represents, or distributes</p>
+              </div>
+            </div>
+
+            <!-- Brands Filter and Selection Bar -->
+            <div class="brands-select-bar">
+              <div class="brands-search-wrapper">
+                <i class="bi bi-search brand-search-icon"></i>
+                <input 
+                  type="text" 
+                  class="brand-search-field" 
+                  placeholder="Filter brands by name..." 
+                  [value]="brandSearchQuery()"
+                  (input)="brandSearchQuery.set($any($event.target).value)"
+                />
+                @if (brandSearchQuery()) {
+                  <button type="button" class="btn-clear-brand-search" (click)="brandSearchQuery.set('')">
+                    <i class="bi bi-x-circle-fill"></i>
+                  </button>
+                }
+              </div>
+
+              <div class="brands-select-actions">
+                <span class="brands-selection-count">
+                  <i class="bi bi-check2-circle"></i>
+                  <strong>{{ selectedBrandIds().length }}</strong> of {{ availableBrands().length }} selected
+                </span>
+                <button type="button" class="btn-brand-helper" (click)="selectAllBrands()" [disabled]="availableBrands().length === 0">
+                  Select All
+                </button>
+                <button type="button" class="btn-brand-helper" (click)="clearSelectedBrands()" [disabled]="selectedBrandIds().length === 0">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            @if (isLoadingBrands()) {
+              <div class="brands-status-box">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+                <span>Loading available brands directory...</span>
+              </div>
+            } @else if (availableBrands().length === 0) {
+              <div class="brands-empty-alert">
+                <div class="brands-empty-icon">
+                  <i class="bi bi-award"></i>
+                </div>
+                <div>
+                  <h4>No Brands Available Yet</h4>
+                  <p>Register brands in the system first so companies can select the brands they deal with.</p>
+                  <a routerLink="/brands" class="btn-brand-nav-link">
+                    <i class="bi bi-plus-circle"></i> Register New Brand
+                  </a>
+                </div>
+              </div>
+            } @else {
+              <div class="brands-grid-selector">
+                @for (brand of filteredAvailableBrands; track brand.id) {
+                  <div 
+                    class="brand-choice-card" 
+                    [class.is-selected]="isBrandSelected(brand.id)"
+                    (click)="toggleBrand(brand.id)"
+                  >
+                    <div class="brand-check-box">
+                      <i class="bi bi-check-lg check-icon"></i>
+                    </div>
+
+                    <div class="brand-choice-logo">
+                      @if (brand.brandLogo) {
+                        <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
+                      } @else {
+                        <div class="brand-choice-fallback">
+                          {{ brand.brandName.substring(0, 2).toUpperCase() }}
+                        </div>
+                      }
+                    </div>
+
+                    <div class="brand-choice-info">
+                      <span class="brand-choice-name" [title]="brand.brandName">{{ brand.brandName }}</span>
+                      @if (brand.isFeatured || brand.featured) {
+                        <span class="brand-featured-badge"><i class="bi bi-star-fill"></i> Featured</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Section 6: Brand Asset & Business Card Upload -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">06</span>
               <div>
                 <h3 class="card-title">Business Card & Brand Asset</h3>
                 <p class="card-subtitle">Upload company logo, digital visiting card, or certificate (JPEG, PNG, WEBP, PDF)</p>
@@ -500,10 +594,10 @@
             </div>
           </div>
 
-          <!-- Section 6: Overview & Description -->
+          <!-- Section 7: Overview & Description -->
           <div class="form-card">
             <div class="card-legend">
-              <span class="step-num">06</span>
+              <span class="step-num">07</span>
               <div>
                 <h3 class="card-title">Corporate Overview & Profile</h3>
                 <p class="card-subtitle">Summary of company activities, mission, and scope</p>
@@ -664,6 +758,27 @@
                   <span class="text-truncate text-accent">{{ companyForm.get('website')?.value }}</span>
                 </div>
               }
+
+              <!-- Partner / Dealt Brands Preview -->
+              @if (selectedBrandIds().length > 0) {
+                <div class="preview-brands-container">
+                  <div class="preview-brands-header">
+                    <span class="preview-brands-title">
+                      <i class="bi bi-award-fill"></i> Brands Dealt With ({{ selectedBrandIds().length }})
+                    </span>
+                  </div>
+                  <div class="preview-brand-tags">
+                    @for (b of selectedBrandsList; track b.id) {
+                      <span class="preview-brand-chip">
+                        @if (b.brandLogo) {
+                          <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="preview-brand-chip-img" />
+                        }
+                        <span>{{ b.brandName }}</span>
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
             </div>
 
             <!-- Card Description Preview -->
@@ -791,6 +906,25 @@
                 </div>
               </div>
 
+              <!-- Brands Dealt With in Directory Card -->
+              @if (company.brands && company.brands.length > 0) {
+                <div class="card-brands-row">
+                  <span class="card-brands-label">
+                    <i class="bi bi-award-fill"></i> Brands ({{ company.brands.length }}):
+                  </span>
+                  <div class="card-brands-list">
+                    @for (b of company.brands; track b.id) {
+                      <span class="card-brand-badge" [title]="b.brandName">
+                        @if (b.brandLogo) {
+                          <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="card-brand-badge-img" />
+                        }
+                        <span>{{ b.brandName }}</span>
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+
               <!-- Action Bar on each card: View, Edit, Delete -->
               <div class="card-item-footer" (click)="$event.stopPropagation()">
                 <span class="card-created-date">
@@ -906,6 +1040,34 @@
               }
             </div>
           </div>
+
+          <!-- Brands Dealt With Modal Section -->
+          @if (selectedCompany()?.brands && selectedCompany()!.brands!.length > 0) {
+            <div class="info-block mt-3">
+              <label class="info-label">
+                <i class="bi bi-award-fill"></i> Brands Dealt With ({{ selectedCompany()!.brands!.length }})
+              </label>
+              <div class="modal-brands-grid">
+                @for (brand of selectedCompany()!.brands!; track brand.id) {
+                  <div class="modal-brand-card">
+                    <div class="modal-brand-logo">
+                      @if (brand.brandLogo) {
+                        <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
+                      } @else {
+                        <div class="modal-brand-fallback">{{ brand.brandName.substring(0, 2).toUpperCase() }}</div>
+                      }
+                    </div>
+                    <div class="modal-brand-details">
+                      <span class="modal-brand-name">{{ brand.brandName }}</span>
+                      @if (brand.isFeatured || brand.featured) {
+                        <span class="modal-brand-featured-tag"><i class="bi bi-star-fill"></i> Featured Brand</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
 
           @if (selectedCompany()?.description) {
             <div class="info-block mt-3">
