@@ -1,0 +1,702 @@
+<div class="company-app-container">
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-logo-icon">
+        <i class="bi bi-buildings-fill"></i>
+      </div>
+      <div class="brand-info">
+        <h1 class="brand-title">CorpRegistry<span class="brand-badge">PRO</span></h1>
+        <p class="brand-subtitle">Spring Boot &bull; Angular Enterprise Suite</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" aria-label="Registration Views">
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'register'"
+        (click)="activeTab.set('register')"
+        id="btn-nav-register"
+      >
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Register Company</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="nav-tab-btn" 
+        [class.active]="activeTab() === 'directory'"
+        (click)="activeTab.set('directory')"
+        id="btn-nav-directory"
+      >
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <span>Directory</span>
+        <span class="count-pill">{{ companies().length }}</span>
+      </button>
+    </nav>
+
+    <!-- Backend Status Chip -->
+    <div class="backend-chip" [title]="'Spring Boot REST API: ' + environment.apiUrl">
+      <span class="pulse-dot"></span>
+      <span class="backend-label">{{ environment.production ? 'API Production' : 'API Port 8080' }}</span>
+    </div>
+  </header>
+
+  <!-- Feedback Alert Banner -->
+  @if (feedback()) {
+    <div class="feedback-toast" [class.feedback-success]="feedback()?.type === 'success'" [class.feedback-error]="feedback()?.type === 'error'">
+      <div class="feedback-icon">
+        @if (feedback()?.type === 'success') {
+          <i class="bi bi-check-circle-fill"></i>
+        } @else {
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        }
+      </div>
+      <div class="feedback-content">
+        <strong class="feedback-title">{{ feedback()?.title }}</strong>
+        <p class="feedback-msg">{{ feedback()?.message }}</p>
+      </div>
+      <button type="button" class="feedback-close" (click)="closeFeedback()" aria-label="Close Notification">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  <!-- TAB 1: REGISTRATION FORM & LIVE PREVIEW -->
+  @if (activeTab() === 'register') {
+    <main class="page-content">
+      <!-- Left Column: Registration Form -->
+      <section class="form-section">
+        <div class="section-header">
+          <div class="header-icon-wrap">
+            <i class="bi bi-file-earmark-text-fill"></i>
+          </div>
+          <div>
+            <h2 class="section-title">Company Registration</h2>
+            <p class="section-desc">Register your enterprise with official legal records and brand credentials.</p>
+          </div>
+        </div>
+
+        <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" class="registration-form" novalidate>
+          
+          <!-- Section 1: Legal Entity Info -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">01</span>
+              <div>
+                <h3 class="card-title">Corporate Information</h3>
+                <p class="card-subtitle">Official registered identity & legal status</p>
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <!-- Company Name -->
+              <div class="form-group" [class.has-error]="isInvalid('companyName')">
+                <label for="companyName" class="form-label">
+                  Company Name <span class="required-mark">*</span>
+                </label>
+                <div class="input-wrap">
+                  <i class="bi bi-building input-icon"></i>
+                  <input 
+                    type="text" 
+                    id="companyName" 
+                    formControlName="companyName" 
+                    class="form-control" 
+                    placeholder="e.g. Apex Global Technologies Inc."
+                  />
+                </div>
+                @if (isInvalid('companyName')) {
+                  <span class="field-error">
+                    <i class="bi bi-info-circle"></i> Valid company name is required (min 2 characters)
+                  </span>
+                }
+              </div>
+
+              <!-- Registration Number -->
+              <div class="form-group" [class.has-error]="isInvalid('registrationNumber')">
+                <label for="registrationNumber" class="form-label">
+                  Registration / Tax ID <span class="required-mark">*</span>
+                </label>
+                <div class="input-wrap">
+                  <i class="bi bi-hash input-icon"></i>
+                  <input 
+                    type="text" 
+                    id="registrationNumber" 
+                    formControlName="registrationNumber" 
+                    class="form-control" 
+                    placeholder="e.g. REG-2026-US-8910"
+                  />
+                </div>
+                @if (isInvalid('registrationNumber')) {
+                  <span class="field-error">
+                    <i class="bi bi-info-circle"></i> Official registration number is required
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Status Selector -->
+            <div class="form-group mt-3">
+              <label class="form-label">Company Operational Status</label>
+              <div class="status-options">
+                <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'ACTIVE'">
+                  <input type="radio" formControlName="status" value="ACTIVE" />
+                  <span class="status-bullet active-dot"></span>
+                  <span class="status-title">ACTIVE</span>
+                </label>
+                <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'PENDING'">
+                  <input type="radio" formControlName="status" value="PENDING" />
+                  <span class="status-bullet pending-dot"></span>
+                  <span class="status-title">PENDING</span>
+                </label>
+                <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'INACTIVE'">
+                  <input type="radio" formControlName="status" value="INACTIVE" />
+                  <span class="status-bullet inactive-dot"></span>
+                  <span class="status-title">INACTIVE</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Contact & Digital Presence -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">02</span>
+              <div>
+                <h3 class="card-title">Contact & Digital Presence</h3>
+                <p class="card-subtitle">Official communication channels and web portal</p>
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <!-- Official Email -->
+              <div class="form-group" [class.has-error]="isInvalid('email')">
+                <label for="email" class="form-label">
+                  Corporate Email <span class="required-mark">*</span>
+                </label>
+                <div class="input-wrap">
+                  <i class="bi bi-envelope-at input-icon"></i>
+                  <input 
+                    type="email" 
+                    id="email" 
+                    formControlName="email" 
+                    class="form-control" 
+                    placeholder="contact@enterprise.com"
+                  />
+                </div>
+                @if (isInvalid('email')) {
+                  <span class="field-error">
+                    <i class="bi bi-info-circle"></i> Valid corporate email is required
+                  </span>
+                }
+              </div>
+
+              <!-- Phone Number -->
+              <div class="form-group">
+                <label for="phone" class="form-label">Phone Number</label>
+                <div class="input-wrap">
+                  <i class="bi bi-telephone input-icon"></i>
+                  <input 
+                    type="tel" 
+                    id="phone" 
+                    formControlName="phone" 
+                    class="form-control" 
+                    placeholder="+1 (555) 019-2834"
+                  />
+                </div>
+              </div>
+
+              <!-- Website URL -->
+              <div class="form-group">
+                <label for="website" class="form-label">Official Website</label>
+                <div class="input-wrap">
+                  <i class="bi bi-globe2 input-icon"></i>
+                  <input 
+                    type="url" 
+                    id="website" 
+                    formControlName="website" 
+                    class="form-control" 
+                    placeholder="https://company.example.com"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Headquarters Address -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">03</span>
+              <div>
+                <h3 class="card-title">Corporate Headquarters</h3>
+                <p class="card-subtitle">Registered office address and location jurisdiction</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="address" class="form-label">Street Address</label>
+              <div class="input-wrap">
+                <i class="bi bi-geo-alt input-icon"></i>
+                <input 
+                  type="text" 
+                  id="address" 
+                  formControlName="address" 
+                  class="form-control" 
+                  placeholder="Suite 500, 100 Innovation Way"
+                />
+              </div>
+            </div>
+
+            <div class="form-grid-3 mt-3">
+              <!-- City -->
+              <div class="form-group">
+                <label for="city" class="form-label">City</label>
+                <input 
+                  type="text" 
+                  id="city" 
+                  formControlName="city" 
+                  class="form-control" 
+                  placeholder="San Francisco"
+                />
+              </div>
+
+              <!-- State / Province -->
+              <div class="form-group">
+                <label for="state" class="form-label">State / Province</label>
+                <input 
+                  type="text" 
+                  id="state" 
+                  formControlName="state" 
+                  class="form-control" 
+                  placeholder="California"
+                />
+              </div>
+
+              <!-- Country -->
+              <div class="form-group">
+                <label for="country" class="form-label">Country</label>
+                <input 
+                  type="text" 
+                  id="country" 
+                  formControlName="country" 
+                  class="form-control" 
+                  placeholder="United States"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Brand Asset & Business Card Upload -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">04</span>
+              <div>
+                <h3 class="card-title">Business Card & Brand Asset</h3>
+                <p class="card-subtitle">Upload company logo, digital visiting card, or certificate (JPEG, PNG, WEBP, PDF)</p>
+              </div>
+            </div>
+
+            <!-- Drag & Drop Zone -->
+            <div 
+              class="upload-dropzone" 
+              [class.drag-over]="isDragOver()"
+              [class.has-file]="!!selectedFile()"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+              (click)="fileInput.click()"
+            >
+              <input 
+                #fileInput 
+                type="file" 
+                class="hidden-file-input" 
+                (change)="onFileSelected($event)" 
+                accept=".jpg,.jpeg,.png,.webp,.gif,.pdf"
+              />
+
+              @if (!selectedFile()) {
+                <div class="dropzone-content">
+                  <div class="upload-icon-pulse">
+                    <i class="bi bi-cloud-arrow-up-fill"></i>
+                  </div>
+                  <h4 class="upload-prompt">Drop your business card or company logo here</h4>
+                  <p class="upload-hint">or <span class="browse-link">browse files</span> from your computer</p>
+                  <div class="supported-formats">
+                    <span class="format-tag">PNG</span>
+                    <span class="format-tag">JPG</span>
+                    <span class="format-tag">WEBP</span>
+                    <span class="format-tag">PDF</span>
+                    <span class="format-limit">Max 20MB</span>
+                  </div>
+                </div>
+              } @else {
+                <div class="file-preview-card" (click)="$event.stopPropagation()">
+                  @if (filePreviewUrl()) {
+                    <div class="preview-img-container">
+                      <img [src]="filePreviewUrl()" alt="Business card preview" class="preview-img" />
+                    </div>
+                  } @else {
+                    <div class="pdf-preview-box">
+                      <i class="bi bi-file-earmark-pdf-fill pdf-icon"></i>
+                      <span class="pdf-tag">PDF DOCUMENT</span>
+                    </div>
+                  }
+
+                  <div class="file-details">
+                    <span class="file-name">{{ selectedFile()?.name }}</span>
+                    <span class="file-size">{{ (selectedFile()!.size / 1024) | number:'1.0-1' }} KB</span>
+                    <span class="file-success-badge"><i class="bi bi-check-circle-fill"></i> Ready to upload</span>
+                  </div>
+
+                  <button 
+                    type="button" 
+                    class="btn-remove-file" 
+                    (click)="removeFile($event)" 
+                    title="Remove file"
+                    aria-label="Remove uploaded file"
+                  >
+                    <i class="bi bi-trash3-fill"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Section 5: Overview & Description -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">05</span>
+              <div>
+                <h3 class="card-title">Corporate Overview & Profile</h3>
+                <p class="card-subtitle">Summary of company activities, mission, and scope</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="description" class="form-label">Company Summary</label>
+              <textarea 
+                id="description" 
+                formControlName="description" 
+                rows="4" 
+                class="form-control textarea-control" 
+                placeholder="Briefly describe your company's core business, services, products, and mission..."
+              ></textarea>
+              <div class="char-count">
+                {{ companyForm.get('description')?.value?.length || 0 }} / 1000 characters
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button 
+              type="button" 
+              class="btn-secondary" 
+              (click)="resetForm()"
+              [disabled]="isSubmitting()"
+            >
+              <i class="bi bi-arrow-counterclockwise"></i> Reset Form
+            </button>
+
+            <button 
+              type="submit" 
+              class="btn-primary" 
+              [disabled]="isSubmitting()"
+              id="btn-register-company"
+            >
+              @if (isSubmitting()) {
+                <span class="spinner-border" role="status" aria-hidden="true"></span>
+                <span>Registering Entity...</span>
+              } @else {
+                <i class="bi bi-check2-circle"></i>
+                <span>Complete Company Registration</span>
+              }
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Right Column: Live Enterprise Card Preview -->
+      <aside class="preview-sidebar">
+        <div class="preview-sticky">
+          <div class="preview-header">
+            <span class="preview-tag">
+              <i class="bi bi-eye-fill"></i> Live Preview
+            </span>
+            <span class="preview-hint">Real-time digital badge</span>
+          </div>
+
+          <!-- Business Card Element -->
+          <div class="business-card-display">
+            <div class="card-gloss"></div>
+            
+            <div class="card-top-row">
+              <div class="company-brand-pill">
+                @if (filePreviewUrl()) {
+                  <img [src]="filePreviewUrl()" alt="Company Logo" class="preview-logo-thumb" />
+                } @else {
+                  <div class="preview-logo-placeholder">
+                    <i class="bi bi-building"></i>
+                  </div>
+                }
+                <div class="preview-brand-text">
+                  <h4 class="card-company-name">
+                    {{ companyForm.get('companyName')?.value || 'Your Company Name' }}
+                  </h4>
+                  <span class="card-reg-no">
+                    {{ companyForm.get('registrationNumber')?.value || 'REG-PENDING' }}
+                  </span>
+                </div>
+              </div>
+
+              <span class="card-status-badge" [ngClass]="companyForm.get('status')?.value?.toLowerCase()">
+                {{ companyForm.get('status')?.value || 'ACTIVE' }}
+              </span>
+            </div>
+
+            <!-- Card Middle details -->
+            <div class="card-body-details">
+              <div class="detail-row">
+                <i class="bi bi-envelope"></i>
+                <span class="text-truncate">{{ companyForm.get('email')?.value || 'email@company.com' }}</span>
+              </div>
+              <div class="detail-row">
+                <i class="bi bi-telephone"></i>
+                <span>{{ companyForm.get('phone')?.value || '+1 (000) 000-0000' }}</span>
+              </div>
+              <div class="detail-row">
+                <i class="bi bi-geo-alt"></i>
+                <span class="text-truncate">
+                  @if (companyForm.get('city')?.value || companyForm.get('country')?.value) {
+                    {{ companyForm.get('city')?.value ? companyForm.get('city')?.value + ', ' : '' }}{{ companyForm.get('country')?.value }}
+                  } @else {
+                    Headquarters Location
+                  }
+                </span>
+              </div>
+              @if (companyForm.get('website')?.value) {
+                <div class="detail-row">
+                  <i class="bi bi-link-45deg"></i>
+                  <span class="text-truncate text-accent">{{ companyForm.get('website')?.value }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Card Description Preview -->
+            @if (companyForm.get('description')?.value) {
+              <div class="card-description-preview">
+                <p>{{ companyForm.get('description')?.value }}</p>
+              </div>
+            }
+
+            <div class="card-footer-bar">
+              <span class="card-system-id">CORPORATE PROFILE IDENTIFIER</span>
+              <span class="card-chip-icon"><i class="bi bi-shield-check"></i> VERIFIED</span>
+            </div>
+          </div>
+
+          <!-- Database Architecture Quick Stats -->
+          <div class="schema-info-card">
+            <h4 class="schema-card-title">
+              <i class="bi bi-diagram-3-fill"></i> Enterprise Integration
+            </h4>
+            <p class="schema-card-text">
+              Upon submission, this entity will be persisted in MySQL via Spring Data JPA with support for relational <strong>Brands</strong> and <strong>Products</strong> associations.
+            </p>
+            <div class="schema-badges">
+              <span class="schema-badge"><i class="bi bi-database-check"></i> MySQL JPA</span>
+              <span class="schema-badge"><i class="bi bi-file-earmark-arrow-up"></i> File Storage</span>
+              <span class="schema-badge"><i class="bi bi-link"></i> ManyToMany Ready</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  }
+
+  <!-- TAB 2: COMPANY DIRECTORY -->
+  @if (activeTab() === 'directory') {
+    <section class="directory-section">
+      <div class="directory-header">
+        <div>
+          <h2 class="section-title">Registered Companies Directory</h2>
+          <p class="section-desc">Manage, explore, and inspect companies currently recorded in the database.</p>
+        </div>
+        <div class="directory-actions">
+          <div class="search-box">
+            <i class="bi bi-search search-icon"></i>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Search companies by name, reg #, city..."
+              [value]="searchQuery()" 
+              (input)="onSearchChange($event)"
+            />
+          </div>
+          <button type="button" class="btn-refresh" (click)="fetchCompanies()" title="Refresh database records">
+            <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Companies Grid / List -->
+      @if (isLoadingList()) {
+        <div class="loading-state">
+          <div class="spinner-border large-spinner"></div>
+          <p>Querying registered companies from Spring Boot...</p>
+        </div>
+      } @else if (filteredCompanies.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-wrap">
+            <i class="bi bi-buildings"></i>
+          </div>
+          <h3>No Companies Found</h3>
+          <p>No records match your criteria or none have been registered yet.</p>
+          <button type="button" class="btn-primary mt-3" (click)="activeTab.set('register')">
+            <i class="bi bi-plus-lg"></i> Register New Company
+          </button>
+        </div>
+      } @else {
+        <div class="companies-grid">
+          @for (company of filteredCompanies; track company.id) {
+            <div class="company-card-item" (click)="openCompanyDetail(company)">
+              <div class="card-item-header">
+                <div class="card-avatar">
+                  @if (company.businessCard && !company.businessCard.endsWith('.pdf')) {
+                    <img [src]="companyService.getFileUrl(company.businessCard)" alt="{{ company.companyName }}" />
+                  } @else {
+                    <div class="avatar-fallback">
+                      {{ company.companyName.charAt(0).toUpperCase() }}
+                    </div>
+                  }
+                </div>
+                <div class="card-header-titles">
+                  <h3 class="card-item-title">{{ company.companyName }}</h3>
+                  <span class="card-item-reg"># {{ company.registrationNumber }}</span>
+                </div>
+                <span class="card-status-badge mini" [ngClass]="company.status.toLowerCase()">
+                  {{ company.status }}
+                </span>
+              </div>
+
+              <p class="card-item-desc">
+                {{ company.description ? company.description : 'No corporate summary provided.' }}
+              </p>
+
+              <div class="card-item-details">
+                <div class="detail-chip">
+                  <i class="bi bi-envelope"></i>
+                  <span>{{ company.email || 'N/A' }}</span>
+                </div>
+                <div class="detail-chip">
+                  <i class="bi bi-geo-alt"></i>
+                  <span>{{ company.city ? company.city + ', ' : '' }}{{ company.country || 'Global' }}</span>
+                </div>
+              </div>
+
+              <div class="card-item-footer">
+                <span class="card-created-date">
+                  <i class="bi bi-calendar3"></i> ID: #{{ company.id }}
+                </span>
+                <button type="button" class="btn-inspect" (click)="openCompanyDetail(company); $event.stopPropagation()">
+                  Inspect <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  <!-- Company Detail Modal -->
+  @if (selectedCompany()) {
+    <div class="modal-backdrop" (click)="closeCompanyDetail()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <span class="modal-pretitle">Company Detail &bull; ID #{{ selectedCompany()?.id }}</span>
+            <h3 class="modal-title">{{ selectedCompany()?.companyName }}</h3>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeCompanyDetail()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-meta-bar">
+            <div class="meta-item">
+              <span class="meta-label">Registration No.</span>
+              <span class="meta-value">{{ selectedCompany()?.registrationNumber }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Status</span>
+              <span class="card-status-badge mini" [ngClass]="selectedCompany()?.status?.toLowerCase()">
+                {{ selectedCompany()?.status }}
+              </span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Corporate Email</span>
+              <span class="meta-value">{{ selectedCompany()?.email }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Phone</span>
+              <span class="meta-value">{{ selectedCompany()?.phone || 'Not Specified' }}</span>
+            </div>
+          </div>
+
+          <div class="modal-info-grid">
+            <div class="info-block">
+              <label class="info-label"><i class="bi bi-geo-alt-fill"></i> Registered Address</label>
+              <p class="info-text">{{ selectedCompany()?.address || 'N/A' }}</p>
+              <p class="info-subtext">
+                {{ selectedCompany()?.city ? selectedCompany()?.city + ', ' : '' }}
+                {{ selectedCompany()?.state ? selectedCompany()?.state + ', ' : '' }}
+                {{ selectedCompany()?.country }}
+              </p>
+            </div>
+
+            <div class="info-block">
+              <label class="info-label"><i class="bi bi-globe"></i> Online Presence</label>
+              @if (selectedCompany()?.website) {
+                <a [href]="selectedCompany()?.website" target="_blank" class="web-link">
+                  {{ selectedCompany()?.website }} <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+              } @else {
+                <p class="info-text text-muted">No website provided</p>
+              }
+            </div>
+          </div>
+
+          @if (selectedCompany()?.description) {
+            <div class="info-block mt-3">
+              <label class="info-label"><i class="bi bi-card-text"></i> Description</label>
+              <p class="info-text">{{ selectedCompany()?.description }}</p>
+            </div>
+          }
+
+          @if (selectedCompany()?.businessCard) {
+            <div class="info-block mt-3">
+              <label class="info-label"><i class="bi bi-paperclip"></i> Business Card / Attachment</label>
+              <div class="attachment-preview-box">
+                @if (selectedCompany()?.businessCard?.endsWith('.pdf')) {
+                  <a [href]="companyService.getFileUrl(selectedCompany()?.businessCard)" target="_blank" class="pdf-link-btn">
+                    <i class="bi bi-file-earmark-pdf-fill"></i> View Business Card (PDF Document)
+                  </a>
+                } @else {
+                  <img [src]="companyService.getFileUrl(selectedCompany()?.businessCard)" alt="Company Business Card" class="modal-card-img" />
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeCompanyDetail()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
