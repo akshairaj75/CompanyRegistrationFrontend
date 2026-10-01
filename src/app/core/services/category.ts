@@ -21,6 +21,13 @@ export class CategoryService {
   }
 
   /**
+   * Fetch flat list of categories
+   */
+  getCategories(): Observable<CategoryResponse[]> {
+    return this.getAllCategories();
+  }
+
+  /**
    * Fetch single category by ID
    */
   getCategoryById(id: number): Observable<CategoryResponse> {

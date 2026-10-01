@@ -168,15 +168,15 @@
           }
 
           <!-- Missing Prerequisites Alert (if no Category or no Brand exists) -->
-          @if (categories().length === 0 || brands().length === 0) {
+          @if (parentCategories().length === 0 || brands().length === 0) {
             <div class="prereq-alert">
               <i class="bi bi-exclamation-octagon-fill prereq-icon"></i>
               <div class="prereq-content">
                 <strong>Prerequisite Setup Required</strong>
                 <p>
                   Products require both a <strong>Category</strong> and a <strong>Brand</strong>.
-                  @if (categories().length === 0) {
-                    <span> No categories found: <a routerLink="/categories" class="prereq-link">Register a Category</a>.</span>
+                  @if (parentCategories().length === 0) {
+                    <span> No main categories found: <a routerLink="/categories" class="prereq-link">Register a Category</a>.</span>
                   }
                   @if (brands().length === 0) {
                     <span> No brands found: <a routerLink="/brands" class="prereq-link">Register a Brand</a>.</span>
@@ -194,7 +194,7 @@
                 <span class="step-num">01</span>
                 <div>
                   <h3 class="card-legend-title">Core Specifications</h3>
-                  <p class="card-legend-subtitle">Product title, taxonomy assignment, and details</p>
+                  <p class="card-legend-subtitle">Product title, taxonomy hierarchy assignment, and details</p>
                 </div>
               </div>
 
@@ -222,18 +222,18 @@
                 }
               </div>
 
-              <!-- Two-Column Row: Category and Brand Selectors -->
+              <!-- Two-Column Row: Main Category and Subcategory -->
               <div class="form-row-2col">
-                <!-- Category Selector -->
+                <!-- Main Category Selector -->
                 <div class="form-group" [class.has-error]="isInvalid('categoryId')">
                   <label for="categoryId" class="form-label">
-                    Category <span class="required-star">*</span>
+                    Main Category <span class="required-star">*</span>
                   </label>
                   <div class="input-wrapper select-wrapper">
-                    <i class="bi bi-tags input-icon"></i>
+                    <i class="bi bi-folder2-open input-icon"></i>
                     <select id="categoryId" class="form-control select-control" formControlName="categoryId">
-                      <option value="" disabled>-- Select Category --</option>
-                      @for (cat of categories(); track cat.id) {
+                      <option value="" disabled>-- Select Main Category --</option>
+                      @for (cat of parentCategories(); track cat.id) {
                         <option [value]="cat.id">{{ cat.name }} (ID #{{ cat.id }})</option>
                       }
                     </select>
@@ -246,27 +246,58 @@
                   }
                 </div>
 
-                <!-- Brand Selector -->
-                <div class="form-group" [class.has-error]="isInvalid('brandId')">
-                  <label for="brandId" class="form-label">
-                    Brand <span class="required-star">*</span>
+                <!-- Subcategory Selector -->
+                <div class="form-group" [class.has-error]="isInvalid('subCategoryId')">
+                  <label for="subCategoryId" class="form-label">
+                    Subcategory <span class="optional-pill">Optional</span>
                   </label>
-                  <div class="input-wrapper select-wrapper">
-                    <i class="bi bi-patch-check input-icon"></i>
-                    <select id="brandId" class="form-control select-control" formControlName="brandId">
-                      <option value="" disabled>-- Select Brand --</option>
-                      @for (b of brands(); track b.id) {
-                        <option [value]="b.id">{{ b.brandName }} (ID #{{ b.id }})</option>
+                  <div class="input-wrapper select-wrapper" [class.disabled-select-wrap]="!productForm.get('categoryId')?.value">
+                    <i class="bi bi-diagram-2 input-icon"></i>
+                    <select 
+                      id="subCategoryId" 
+                      class="form-control select-control" 
+                      formControlName="subCategoryId"
+                      [disabled]="!productForm.get('categoryId')?.value"
+                    >
+                      <option value="">-- None (Direct Category) --</option>
+                      @for (sub of availableSubCategories(); track sub.id) {
+                        <option [value]="sub.id">{{ sub.name }} (ID #{{ sub.id }})</option>
                       }
                     </select>
                     <i class="bi bi-chevron-down select-chevron"></i>
                   </div>
-                  @if (isInvalid('brandId')) {
-                    <span class="field-error">
-                      <i class="bi bi-exclamation-circle"></i> Please select a valid brand.
-                    </span>
-                  }
+                  <span class="field-hint">
+                    @if (!productForm.get('categoryId')?.value) {
+                      Select a Main Category first to load subcategories.
+                    } @else if (availableSubCategories().length === 0) {
+                      No subcategories exist for this category.
+                    } @else {
+                      {{ availableSubCategories().length }} subcategor{{ availableSubCategories().length === 1 ? 'y' : 'ies' }} available.
+                    }
+                  </span>
                 </div>
+              </div>
+
+              <!-- Brand Selector -->
+              <div class="form-group mt-3" [class.has-error]="isInvalid('brandId')">
+                <label for="brandId" class="form-label">
+                  Brand <span class="required-star">*</span>
+                </label>
+                <div class="input-wrapper select-wrapper">
+                  <i class="bi bi-patch-check input-icon"></i>
+                  <select id="brandId" class="form-control select-control" formControlName="brandId">
+                    <option value="" disabled>-- Select Brand --</option>
+                    @for (b of brands(); track b.id) {
+                      <option [value]="b.id">{{ b.brandName }} (ID #{{ b.id }})</option>
+                    }
+                  </select>
+                  <i class="bi bi-chevron-down select-chevron"></i>
+                </div>
+                @if (isInvalid('brandId')) {
+                  <span class="field-error">
+                    <i class="bi bi-exclamation-circle"></i> Please select a valid brand.
+                  </span>
+                }
               </div>
 
               <!-- Description Textarea -->
@@ -385,7 +416,7 @@
               <button
                 type="submit"
                 class="btn-submit"
-                [disabled]="isSubmitting() || categories().length === 0 || brands().length === 0"
+                [disabled]="isSubmitting() || parentCategories().length === 0 || brands().length === 0"
                 id="btn-submit-product"
               >
                 @if (isSubmitting()) {
@@ -456,12 +487,18 @@
                   }
                 </div>
 
-                <!-- Badges: Category & Brand -->
+                <!-- Badges: Category, Subcategory & Brand -->
                 <div class="showcase-taxonomy">
                   <span class="taxonomy-pill cat-pill">
-                    <i class="bi bi-tag-fill"></i>
+                    <i class="bi bi-folder-fill"></i>
                     {{ getCategoryName(productForm.get('categoryId')?.value) || 'Select Category' }}
                   </span>
+                  @if (productForm.get('subCategoryId')?.value) {
+                    <span class="taxonomy-pill subcat-pill">
+                      <i class="bi bi-diagram-2-fill"></i>
+                      {{ getSubCategoryName(productForm.get('subCategoryId')?.value) }}
+                    </span>
+                  }
                   <span class="taxonomy-pill brand-pill">
                     <i class="bi bi-patch-check-fill"></i>
                     {{ getBrandName(productForm.get('brandId')?.value) || 'Select Brand' }}
@@ -521,7 +558,7 @@
               <input
                 type="text"
                 class="search-input"
-                placeholder="Search products by title, category, brand, or ID..."
+                placeholder="Search products by title, category, subcategory, brand, or ID..."
                 [value]="searchQuery()"
                 (input)="searchQuery.set($any($event.target).value)"
               />
@@ -534,13 +571,25 @@
 
             <!-- Category Filter Dropdown -->
             <div class="filter-dropdown-wrap">
-              <select class="filter-select" [value]="filterCategory()" (change)="filterCategory.set($any($event.target).value)">
+              <select class="filter-select" [value]="filterCategory()" (change)="filterCategory.set($any($event.target).value); filterSubCategory.set('all')">
                 <option value="all">All Categories</option>
-                @for (c of categories(); track c.id) {
+                @for (c of parentCategories(); track c.id) {
                   <option [value]="c.id">{{ c.name }}</option>
                 }
               </select>
             </div>
+
+            <!-- Subcategory Filter Dropdown -->
+            @if (subCategories().length > 0) {
+              <div class="filter-dropdown-wrap">
+                <select class="filter-select" [value]="filterSubCategory()" (change)="filterSubCategory.set($any($event.target).value)">
+                  <option value="all">All Subcategories</option>
+                  @for (sub of filterSubCategoriesList(); track sub.id) {
+                    <option [value]="sub.id">{{ sub.name }}</option>
+                  }
+                </select>
+              </div>
+            }
 
             <!-- Brand Filter Dropdown -->
             <div class="filter-dropdown-wrap">
@@ -655,9 +704,15 @@
                 <!-- Taxonomy Pills -->
                 <div class="product-card-taxonomy" (click)="openProductDetail(product)">
                   <span class="badge-cat" [title]="'Category: ' + (product.categoryName || getCategoryName(product.categoryId))">
-                    <i class="bi bi-tag-fill"></i>
+                    <i class="bi bi-folder-fill"></i>
                     {{ product.categoryName || getCategoryName(product.categoryId) }}
                   </span>
+                  @if (product.subCategoryName || product.subCategoryId) {
+                    <span class="badge-subcat" [title]="'Subcategory: ' + (product.subCategoryName || getSubCategoryName(product.subCategoryId))">
+                      <i class="bi bi-diagram-2-fill"></i>
+                      {{ product.subCategoryName || getSubCategoryName(product.subCategoryId) }}
+                    </span>
+                  }
                   <span class="badge-brand" [title]="'Brand: ' + (product.brandName || getBrandName(product.brandId))">
                     <i class="bi bi-patch-check-fill"></i>
                     {{ product.brandName || getBrandName(product.brandId) }}
@@ -760,14 +815,25 @@
               <span class="attr-val font-bold">{{ selectedProduct()?.name }}</span>
             </div>
             <div class="attr-row">
-              <span class="attr-label">Category:</span>
+              <span class="attr-label">Main Category:</span>
               <span class="attr-val">
                 <span class="badge-cat">
-                  <i class="bi bi-tag-fill"></i>
+                  <i class="bi bi-folder-fill"></i>
                   {{ selectedProduct()?.categoryName || getCategoryName(selectedProduct()?.categoryId) }}
                 </span>
               </span>
             </div>
+            @if (selectedProduct()?.subCategoryName || selectedProduct()?.subCategoryId) {
+              <div class="attr-row">
+                <span class="attr-label">Subcategory:</span>
+                <span class="attr-val">
+                  <span class="badge-subcat">
+                    <i class="bi bi-diagram-2-fill"></i>
+                    {{ selectedProduct()?.subCategoryName || getSubCategoryName(selectedProduct()?.subCategoryId) }}
+                  </span>
+                </span>
+              </div>
+            }
             <div class="attr-row">
               <span class="attr-label">Brand:</span>
               <span class="attr-val">

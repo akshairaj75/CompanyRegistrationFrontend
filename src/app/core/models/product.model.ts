@@ -6,6 +6,7 @@ export interface ProductRequest {
   featured?: boolean;
   brandId: number;
   categoryId: number;
+  subCategoryId?: number | null;
 }
 
 export interface ProductResponse {
@@ -19,6 +20,8 @@ export interface ProductResponse {
   brandName?: string;
   categoryId: number;
   categoryName?: string;
+  subCategoryId?: number | null;
+  subCategoryName?: string;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -36,16 +36,75 @@ export class CategoryRegisterComponent implements OnInit {
   readonly filePreviewUrl = signal<string | null>(null);
   readonly isDragOver = signal<boolean>(false);
 
-  // Categories List State
+  // Flat Categories Array from Backend
   readonly categories = signal<CategoryResponse[]>([]);
   readonly searchQuery = signal<string>('');
+
+  // 1) parentCategories = categories.filter(c => c.parentId == null)
+  readonly parentCategories = computed(() =>
+    this.categories().filter(c => c.parentId == null)
+  );
+
+  // 2) subCategories = categories.filter(c => c.parentId != null) enriched with parent's name
+  readonly subCategories = computed(() => {
+    const parents = this.parentCategories();
+    return this.categories()
+      .filter(c => c.parentId != null)
+      .map(sub => ({
+        ...sub,
+        parentName: parents.find(p => p.id === sub.parentId)?.name || 'None'
+      }));
+  });
+
+  // UI Display & Filtering: Toggle between 'main' (Main Categories) and 'sub' (Subcategories)
+  readonly categoryViewTab = signal<'main' | 'sub'>('main');
+
+  // Subcategories view parent filter: 'all' or specific parent id
+  readonly selectedParentFilter = signal<string>('all');
+
+  // Available parents for the Create/Edit dropdown (excludes current category being edited)
+  readonly availableParents = computed(() => {
+    const editId = this.editingCategoryId();
+    if (!editId) return this.parentCategories();
+    return this.parentCategories().filter(p => p.id !== editId);
+  });
+
+  // Filtered Main Categories for Directory
+  readonly filteredParentCategories = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    if (!query) return this.parentCategories();
+    return this.parentCategories().filter(c =>
+      c.name?.toLowerCase().includes(query) ||
+      c.id?.toString().includes(query)
+    );
+  });
+
+  // Filtered Subcategories for Directory
+  readonly filteredSubCategories = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const parentFilter = this.selectedParentFilter();
+
+    return this.subCategories().filter(sub => {
+      if (parentFilter !== 'all' && sub.parentId?.toString() !== parentFilter) {
+        return false;
+      }
+      if (query) {
+        const matchesName = sub.name?.toLowerCase().includes(query);
+        const matchesParent = sub.parentName?.toLowerCase().includes(query);
+        const matchesId = sub.id?.toString().includes(query);
+        if (!matchesName && !matchesParent && !matchesId) return false;
+      }
+      return true;
+    });
+  });
 
   // Selected Category for View Modal
   readonly selectedCategory = signal<CategoryResponse | null>(null);
 
-  // Form Definition
+  // Form Definition with parentId
   categoryForm: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]]
+    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]],
+    parentId: ['']
   });
 
   ngOnInit(): void {
@@ -54,7 +113,7 @@ export class CategoryRegisterComponent implements OnInit {
 
   fetchCategories(): void {
     this.isLoadingList.set(true);
-    this.categoryService.getAllCategories().subscribe({
+    this.categoryService.getCategories().subscribe({
       next: (data) => {
         this.categories.set(data || []);
         this.isLoadingList.set(false);
@@ -148,8 +207,10 @@ export class CategoryRegisterComponent implements OnInit {
     this.feedback.set(null);
 
     const formValues = this.categoryForm.value;
+    const parentId = formValues.parentId ? Number(formValues.parentId) : null;
     const requestData: CategoryRequest = {
-      name: formValues.name.trim()
+      name: formValues.name.trim(),
+      parentId: parentId
     };
 
     const fileToUpload = this.selectedFile();
@@ -184,14 +245,18 @@ export class CategoryRegisterComponent implements OnInit {
       this.categoryService.createCategory(requestData, fileToUpload).subscribe({
         next: (response) => {
           this.isSubmitting.set(false);
+          const isSub = response.parentId != null;
           this.feedback.set({
             type: 'success',
-            title: 'Category Registered Successfully!',
+            title: isSub ? 'Subcategory Registered!' : 'Main Category Registered!',
             message: `Category "${response.name}" has been created with ID #${response.id}.`
           });
           this.resetForm();
           this.fetchCategories();
           this.activeTab.set('directory');
+          if (isSub) {
+            this.categoryViewTab.set('sub');
+          }
         },
         error: (err) => {
           this.isSubmitting.set(false);
@@ -213,7 +278,8 @@ export class CategoryRegisterComponent implements OnInit {
     this.editingCategoryId.set(category.id);
 
     this.categoryForm.patchValue({
-      name: category.name || ''
+      name: category.name || '',
+      parentId: category.parentId ? category.parentId : ''
     });
 
     this.selectedFile.set(null);
@@ -227,6 +293,19 @@ export class CategoryRegisterComponent implements OnInit {
       this.closeCategoryDetail();
     }
 
+    this.activeTab.set('register');
+  }
+
+  addSubCategoryForParent(parent: CategoryResponse, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.cancelEdit();
+    this.categoryForm.patchValue({
+      name: '',
+      parentId: parent.id
+    });
+    if (this.selectedCategory()) {
+      this.closeCategoryDetail();
+    }
     this.activeTab.set('register');
   }
 
@@ -287,7 +366,8 @@ export class CategoryRegisterComponent implements OnInit {
   // --- Reset & View Handlers ---
   resetForm(): void {
     this.categoryForm.reset({
-      name: ''
+      name: '',
+      parentId: ''
     });
     this.removeFile();
   }
@@ -304,13 +384,14 @@ export class CategoryRegisterComponent implements OnInit {
     this.selectedCategory.set(null);
   }
 
-  get filteredCategories(): CategoryResponse[] {
-    const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return this.categories();
-    return this.categories().filter(c =>
-      c.name?.toLowerCase().includes(query) ||
-      c.id?.toString().includes(query)
-    );
+  getSubCount(parentId: number): number {
+    return this.subCategories().filter(s => s.parentId === parentId).length;
+  }
+
+  getParentName(parentId?: number | null): string {
+    if (!parentId) return 'None';
+    const parent = this.parentCategories().find(p => p.id === parentId);
+    return parent ? parent.name : 'None';
   }
 
   onSearchChange(event: Event): void {

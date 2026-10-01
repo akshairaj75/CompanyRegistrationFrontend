@@ -139,7 +139,7 @@
                 }
               </div>
               <p class="section-desc">
-                {{ editingCategoryId() ? 'Update the category name and brand image representation.' : 'Define product classification categories for your catalog.' }}
+                {{ editingCategoryId() ? 'Update category name, parent hierarchy, and image representation.' : 'Define main product categories or nested subcategories for your catalog.' }}
               </p>
             </div>
 
@@ -170,9 +170,35 @@
             <div class="card-legend">
               <span class="step-num">01</span>
               <div>
-                <h3 class="card-title">Category Identity</h3>
-                <p class="card-subtitle">Official name and classification designation</p>
+                <h3 class="card-title">Category Identity & Hierarchy</h3>
+                <p class="card-subtitle">Set category name and choose an optional parent category</p>
               </div>
+            </div>
+
+            <!-- Parent Category Dropdown (Populated with parentCategories, with option for None) -->
+            <div class="form-group mb-4">
+              <label for="parentCategorySelect" class="form-label">
+                Parent Category <span class="optional-mark">(Optional)</span>
+              </label>
+              <div class="input-wrap select-wrap">
+                <i class="bi bi-diagram-3 input-icon"></i>
+                <select 
+                  id="parentCategorySelect" 
+                  formControlName="parentId" 
+                  class="form-control select-control"
+                >
+                  <option value="">None (Root / Main Category)</option>
+                  @for (parent of availableParents(); track parent.id) {
+                    <option [value]="parent.id">
+                      {{ parent.name }} (ID #{{ parent.id }})
+                    </option>
+                  }
+                </select>
+                <i class="bi bi-chevron-down select-caret"></i>
+              </div>
+              <span class="field-hint">
+                Select a parent category to create a <strong>Subcategory</strong>, or leave as <strong>None</strong> for a top-level Main Category.
+              </span>
             </div>
 
             <!-- Category Name -->
@@ -187,7 +213,7 @@
                   id="categoryName" 
                   formControlName="name" 
                   class="form-control" 
-                  placeholder="e.g. Industrial Electronics, Enterprise Software, Logistics"
+                  placeholder="e.g. Consumer Electronics, Laptops, Software, Footwear"
                 />
               </div>
               @if (isInvalid('name')) {
@@ -341,9 +367,15 @@
                 </div>
               }
               <div class="category-preview-overlay">
-                <span class="category-badge-chip">
-                  <i class="bi bi-folder-check"></i> CATALOG
-                </span>
+                @if (categoryForm.get('parentId')?.value) {
+                  <span class="category-badge-chip badge-sub-preview">
+                    <i class="bi bi-diagram-2-fill"></i> SUBCATEGORY
+                  </span>
+                } @else {
+                  <span class="category-badge-chip badge-parent-preview">
+                    <i class="bi bi-folder-check"></i> MAIN CATEGORY
+                  </span>
+                }
                 <span class="category-id-chip">
                   #{{ editingCategoryId() || 'NEW' }}
                 </span>
@@ -355,12 +387,18 @@
                 {{ categoryForm.get('name')?.value || 'Category Name' }}
               </h3>
               <p class="category-preview-sub">
-                Enterprise Classification &bull; Ready for Product Association
+                @if (categoryForm.get('parentId')?.value) {
+                  <span>Parent: <strong>{{ getParentName(categoryForm.get('parentId')?.value) }}</strong></span>
+                } @else {
+                  <span>Root Catalog Category &bull; Can contain subcategories</span>
+                }
               </p>
             </div>
 
             <div class="category-preview-footer">
-              <span class="cat-system-label">CATEGORY IDENTIFIER</span>
+              <span class="cat-system-label">
+                {{ categoryForm.get('parentId')?.value ? 'SUBCATEGORY RECORD' : 'MAIN CATEGORY' }}
+              </span>
               <span class="cat-status-dot"><i class="bi bi-check-circle-fill"></i> ACTIVE</span>
             </div>
           </div>
@@ -368,15 +406,14 @@
           <!-- Category Organization Card -->
           <div class="schema-info-card">
             <h4 class="schema-card-title">
-              <i class="bi bi-diagram-3-fill"></i> Category Organization
+              <i class="bi bi-diagram-3-fill"></i> Hierarchy Organization
             </h4>
             <p class="schema-card-text">
-              Organize your catalog by grouping related <strong>Products</strong> into distinct classifications for seamless navigation.
+              Organize your catalog by grouping products into <strong>Main Categories</strong> and detailed <strong>Subcategories</strong> for effortless browsing.
             </p>
             <div class="schema-badges">
-              <span class="schema-badge"><i class="bi bi-tag-fill"></i> Taxonomy Group</span>
-              <span class="schema-badge"><i class="bi bi-images"></i> Visual Badges</span>
-              <span class="schema-badge"><i class="bi bi-box-seam"></i> Product Mapping</span>
+              <span class="schema-badge"><i class="bi bi-folder-fill"></i> {{ parentCategories().length }} Main Categories</span>
+              <span class="schema-badge"><i class="bi bi-diagram-2-fill"></i> {{ subCategories().length }} Subcategories</span>
             </div>
           </div>
         </div>
@@ -390,7 +427,7 @@
       <div class="directory-header">
         <div>
           <h2 class="section-title">Categories Directory</h2>
-          <p class="section-desc">Explore, inspect, edit, and delete product categories in the database.</p>
+          <p class="section-desc">Explore, inspect, edit, and organize product categories and nested subcategories.</p>
         </div>
         <div class="directory-actions">
           <div class="search-box">
@@ -398,9 +435,9 @@
             <input 
               type="text" 
               class="search-input" 
-              placeholder="Search categories by name or ID..."
+              placeholder="Search categories or subcategories..."
               [value]="searchQuery()" 
-              (input)="onSearchChange($event)"
+              (input)="onSearchChange($event)" 
             />
           </div>
           <button type="button" class="btn-refresh" (click)="fetchCategories()" title="Refresh database records">
@@ -412,72 +449,208 @@
         </div>
       </div>
 
+      <!-- UI Display: Tabs to toggle between Main Categories and Subcategories -->
+      <div class="category-view-toggle-bar">
+        <div class="view-toggle-buttons">
+          <button 
+            type="button" 
+            class="view-toggle-btn" 
+            [class.active]="categoryViewTab() === 'main'"
+            (click)="categoryViewTab.set('main')"
+          >
+            <i class="bi bi-folder-fill"></i>
+            <span>Main Categories</span>
+            <span class="view-pill-count">{{ parentCategories().length }}</span>
+          </button>
+
+          <button 
+            type="button" 
+            class="view-toggle-btn" 
+            [class.active]="categoryViewTab() === 'sub'"
+            (click)="categoryViewTab.set('sub')"
+          >
+            <i class="bi bi-diagram-2-fill"></i>
+            <span>Subcategories</span>
+            <span class="view-pill-count">{{ subCategories().length }}</span>
+          </button>
+        </div>
+
+        <!-- In Subcategories view: Main Categories dropdown to filter subcategories by their parent -->
+        @if (categoryViewTab() === 'sub' && parentCategories().length > 0) {
+          <div class="parent-filter-control animate-fade-in">
+            <label for="subcatParentFilter" class="parent-filter-label">
+              <i class="bi bi-funnel-fill"></i> Filter by Main Category:
+            </label>
+            <select 
+              id="subcatParentFilter" 
+              class="parent-filter-select"
+              [value]="selectedParentFilter()"
+              (change)="selectedParentFilter.set($any($event.target).value)"
+            >
+              <option value="all">All Main Categories ({{ subCategories().length }})</option>
+              @for (p of parentCategories(); track p.id) {
+                <option [value]="p.id">
+                  {{ p.name }} ({{ getSubCount(p.id) }})
+                </option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+
       <!-- Categories Grid / List -->
       @if (isLoadingList()) {
         <div class="loading-state">
           <div class="spinner-border large-spinner"></div>
           <p>Loading categories...</p>
         </div>
-      } @else if (filteredCategories.length === 0) {
+      } @else if (categoryViewTab() === 'main' && filteredParentCategories().length === 0) {
         <div class="empty-state">
           <div class="empty-icon-wrap">
-            <i class="bi bi-tags"></i>
+            <i class="bi bi-folder-x"></i>
           </div>
-          <h3>No Categories Found</h3>
-          <p>No categories match your search or none have been created yet.</p>
+          <h3>No Main Categories Found</h3>
+          <p>No main categories match your search or none have been created yet.</p>
           <button type="button" class="btn-primary mt-3" (click)="cancelEdit(); activeTab.set('register')">
-            <i class="bi bi-plus-lg"></i> Create First Category
+            <i class="bi bi-plus-lg"></i> Create First Main Category
           </button>
         </div>
-      } @else {
+      } @else if (categoryViewTab() === 'sub' && filteredSubCategories().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-wrap">
+            <i class="bi bi-diagram-2"></i>
+          </div>
+          <h3>No Subcategories Found</h3>
+          <p>No subcategories match your selected parent category or search filter.</p>
+          <button type="button" class="btn-primary mt-3" (click)="cancelEdit(); activeTab.set('register')">
+            <i class="bi bi-plus-lg"></i> Create Subcategory
+          </button>
+        </div>
+      } @else if (categoryViewTab() === 'main') {
+        <!-- Main Categories Grid -->
         <div class="categories-grid">
-          @for (category of filteredCategories; track category.id) {
+          @for (category of filteredParentCategories(); track category.id) {
             <div class="category-card-item" (click)="openCategoryDetail(category)">
               <div class="cat-card-media">
                 @if (category.categoryImage) {
                   <img [src]="categoryService.getFileUrl(category.categoryImage)" alt="{{ category.name }}" class="cat-card-img" />
                 } @else {
                   <div class="cat-fallback-banner">
-                    <i class="bi bi-tag-fill"></i>
+                    <i class="bi bi-folder-fill"></i>
                   </div>
                 }
                 <span class="cat-id-badge">ID #{{ category.id }}</span>
+                <span class="cat-type-indicator cat-type-parent">
+                  <i class="bi bi-folder-fill"></i> Main
+                </span>
               </div>
 
               <div class="cat-card-body">
                 <h3 class="cat-card-name">{{ category.name }}</h3>
-                <span class="cat-card-desc">Active Catalog Category</span>
+                <div class="cat-hierarchy-info">
+                  <span class="hierarchy-tag tag-parent">
+                    <i class="bi bi-diagram-3"></i> {{ getSubCount(category.id) }} Subcategories
+                  </span>
+                </div>
               </div>
 
-              <!-- Action Bar on each card: View, Edit, Delete -->
+              <!-- Action Bar -->
               <div class="card-item-footer" (click)="$event.stopPropagation()">
                 <div class="card-actions-group full-width-actions">
-                  <!-- View Button -->
                   <button 
                     type="button" 
                     class="btn-action-view" 
                     (click)="openCategoryDetail(category)" 
-                    title="View Category Details"
+                    title="View Details"
                   >
                     <i class="bi bi-eye"></i> View
                   </button>
 
-                  <!-- Edit Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-addsub" 
+                    (click)="addSubCategoryForParent(category, $event)" 
+                    title="Add Subcategory under {{ category.name }}"
+                  >
+                    <i class="bi bi-plus-circle"></i> + Sub
+                  </button>
+
                   <button 
                     type="button" 
                     class="btn-action-edit" 
                     (click)="startEdit(category, $event)" 
-                    title="Edit Category Record"
+                    title="Edit Record"
                   >
                     <i class="bi bi-pencil"></i> Edit
                   </button>
 
-                  <!-- Delete Button -->
                   <button 
                     type="button" 
                     class="btn-action-delete" 
                     (click)="promptDelete(category, $event)" 
                     title="Delete Category"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Subcategories Grid (Enriched with parentName) -->
+        <div class="categories-grid">
+          @for (category of filteredSubCategories(); track category.id) {
+            <div class="category-card-item" (click)="openCategoryDetail(category)">
+              <div class="cat-card-media">
+                @if (category.categoryImage) {
+                  <img [src]="categoryService.getFileUrl(category.categoryImage)" alt="{{ category.name }}" class="cat-card-img" />
+                } @else {
+                  <div class="cat-fallback-banner">
+                    <i class="bi bi-diagram-2-fill"></i>
+                  </div>
+                }
+                <span class="cat-id-badge">ID #{{ category.id }}</span>
+                <span class="cat-type-indicator cat-type-sub">
+                  <i class="bi bi-diagram-2-fill"></i> Sub
+                </span>
+              </div>
+
+              <div class="cat-card-body">
+                <h3 class="cat-card-name">{{ category.name }}</h3>
+                <div class="cat-hierarchy-info">
+                  <span class="hierarchy-tag tag-sub" title="Parent: {{ category.parentName }}">
+                    <i class="bi bi-arrow-return-right"></i> Parent: {{ category.parentName }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Action Bar -->
+              <div class="card-item-footer" (click)="$event.stopPropagation()">
+                <div class="card-actions-group full-width-actions">
+                  <button 
+                    type="button" 
+                    class="btn-action-view" 
+                    (click)="openCategoryDetail(category)" 
+                    title="View Details"
+                  >
+                    <i class="bi bi-eye"></i> View
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="btn-action-edit" 
+                    (click)="startEdit(category, $event)" 
+                    title="Edit Record"
+                  >
+                    <i class="bi bi-pencil"></i> Edit
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="btn-action-delete" 
+                    (click)="promptDelete(category, $event)" 
+                    title="Delete Subcategory"
                   >
                     <i class="bi bi-trash3"></i>
                   </button>
@@ -496,7 +669,14 @@
       <div class="modal-card" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <div class="modal-title-group">
-            <span class="modal-pretitle">Category Detail &bull; ID #{{ selectedCategory()?.id }}</span>
+            <div class="modal-pretitle-flex">
+              <span class="modal-pretitle">Category Detail &bull; ID #{{ selectedCategory()?.id }}</span>
+              @if (!selectedCategory()?.parentId) {
+                <span class="badge-modal-parent"><i class="bi bi-folder-fill"></i> Main Category</span>
+              } @else {
+                <span class="badge-modal-sub"><i class="bi bi-diagram-2-fill"></i> Subcategory</span>
+              }
+            </div>
             <h3 class="modal-title">{{ selectedCategory()?.name }}</h3>
           </div>
           <button type="button" class="modal-close-btn" (click)="closeCategoryDetail()">
@@ -511,10 +691,67 @@
               <span class="meta-value">#{{ selectedCategory()?.id }}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Category Name</span>
+              <span class="meta-label">Name</span>
               <span class="meta-value">{{ selectedCategory()?.name }}</span>
             </div>
+            <div class="meta-item">
+              <span class="meta-label">Type</span>
+              <span class="meta-value">
+                {{ selectedCategory()?.parentId ? 'Subcategory' : 'Main Category' }}
+              </span>
+            </div>
           </div>
+
+          <!-- If Subcategory: Display Parent Reference -->
+          @if (selectedCategory()?.parentId) {
+            <div class="info-block mt-3 parent-ref-card">
+              <label class="info-label"><i class="bi bi-folder2-open"></i> Parent Category</label>
+              <div class="parent-ref-box">
+                <i class="bi bi-arrow-return-right"></i>
+                <div class="parent-ref-details">
+                  <span class="parent-ref-name">{{ getParentName(selectedCategory()?.parentId) }}</span>
+                  <span class="parent-ref-id">ID #{{ selectedCategory()?.parentId }}</span>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- If Main Category: Display Subcategories List with Quick Add -->
+          @if (!selectedCategory()?.parentId) {
+            <div class="info-block mt-3 subcat-management-block">
+              <div class="subcat-block-header">
+                <label class="info-label mb-0">
+                  <i class="bi bi-diagram-3-fill"></i> Nested Subcategories 
+                  <span class="subcat-count-badge">({{ getSubCount(selectedCategory()!.id) }})</span>
+                </label>
+                <button 
+                  type="button" 
+                  class="btn-subcat-add-pill" 
+                  (click)="addSubCategoryForParent(selectedCategory()!)"
+                >
+                  <i class="bi bi-plus-lg"></i> Add Subcategory
+                </button>
+              </div>
+
+              @if (getSubCount(selectedCategory()!.id) === 0) {
+                <div class="subcat-empty-hint">
+                  <i class="bi bi-info-circle"></i> No subcategories created yet under {{ selectedCategory()?.name }}.
+                </div>
+              } @else {
+                <div class="subcat-pills-flow">
+                  @for (sub of subCategories(); track sub.id) {
+                    @if (sub.parentId === selectedCategory()?.id) {
+                      <div class="subcat-pill-item" (click)="openCategoryDetail(sub)">
+                        <i class="bi bi-tag"></i>
+                        <span class="sub-pill-title">{{ sub.name }}</span>
+                        <span class="sub-pill-id">#{{ sub.id }}</span>
+                      </div>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          }
 
           @if (selectedCategory()?.categoryImage) {
             <div class="info-block mt-3">

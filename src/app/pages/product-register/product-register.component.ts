@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -47,11 +47,47 @@ export class ProductRegisterComponent implements OnInit {
   readonly categories = signal<CategoryResponse[]>([]);
   readonly brands = signal<BrandResponse[]>([]);
 
+  // Hierarchy Data Computations
+  readonly parentCategories = computed(() =>
+    this.categories().filter(c => c.parentId == null)
+  );
+
+  readonly subCategories = computed(() => {
+    const parents = this.parentCategories();
+    return this.categories()
+      .filter(c => c.parentId != null)
+      .map(sub => ({
+        ...sub,
+        parentName: parents.find(p => p.id === sub.parentId)?.name || 'None'
+      }));
+  });
+
+  // Track the categoryId selected in the form
+  readonly selectedFormCategoryId = signal<string>('');
+
+  // Available Subcategories based on the chosen category in the form
+  readonly availableSubCategories = computed(() => {
+    const catId = Number(this.selectedFormCategoryId());
+    if (!catId) return [];
+    return this.subCategories().filter(s => s.parentId === catId);
+  });
+
   // Filtering & Search
   readonly searchQuery = signal<string>('');
   readonly filterCategory = signal<string>('all');
+  readonly filterSubCategory = signal<string>('all');
   readonly filterBrand = signal<string>('all');
   readonly filterFeatured = signal<'all' | 'featured' | 'standard'>('all');
+
+  // Subcategories available in directory filter based on filterCategory
+  readonly filterSubCategoriesList = computed(() => {
+    const catFilter = this.filterCategory();
+    if (!catFilter || catFilter === 'all') {
+      return this.subCategories();
+    }
+    const catId = Number(catFilter);
+    return this.subCategories().filter(s => s.parentId === catId);
+  });
 
   // Selected Product for View Modal
   readonly selectedProduct = signal<ProductResponse | null>(null);
@@ -60,6 +96,7 @@ export class ProductRegisterComponent implements OnInit {
   productForm: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(200)]],
     categoryId: ['', [Validators.required]],
+    subCategoryId: [''],
     brandId: ['', [Validators.required]],
     description: ['', [Validators.maxLength(2000)]],
     isFeatured: [false]
@@ -69,6 +106,17 @@ export class ProductRegisterComponent implements OnInit {
     this.fetchCategories();
     this.fetchBrands();
     this.fetchProducts();
+
+    this.productForm.get('categoryId')?.valueChanges.subscribe((val) => {
+      this.selectedFormCategoryId.set(val ? val.toString() : '');
+      const currentSub = this.productForm.get('subCategoryId')?.value;
+      if (currentSub) {
+        const validSub = this.availableSubCategories().some(s => s.id === Number(currentSub));
+        if (!validSub) {
+          this.productForm.patchValue({ subCategoryId: '' }, { emitEvent: false });
+        }
+      }
+    });
   }
 
   fetchCategories(): void {
@@ -184,6 +232,7 @@ export class ProductRegisterComponent implements OnInit {
     const requestData: ProductRequest = {
       name: formValues.name.trim(),
       categoryId: Number(formValues.categoryId),
+      subCategoryId: formValues.subCategoryId ? Number(formValues.subCategoryId) : null,
       brandId: Number(formValues.brandId),
       description: formValues.description ? formValues.description.trim() : undefined,
       isFeatured: !!formValues.isFeatured,
@@ -250,9 +299,11 @@ export class ProductRegisterComponent implements OnInit {
     if (event) event.stopPropagation();
     this.editingProductId.set(product.id);
 
+    this.selectedFormCategoryId.set(product.categoryId ? product.categoryId.toString() : '');
     this.productForm.patchValue({
       name: product.name || '',
       categoryId: product.categoryId || '',
+      subCategoryId: product.subCategoryId || '',
       brandId: product.brandId || '',
       description: product.description || '',
       isFeatured: !!(product.isFeatured ?? product.featured)
@@ -331,10 +382,12 @@ export class ProductRegisterComponent implements OnInit {
     this.productForm.reset({
       name: '',
       categoryId: '',
+      subCategoryId: '',
       brandId: '',
       description: '',
       isFeatured: false
     });
+    this.selectedFormCategoryId.set('');
     this.removeFile();
   }
 
@@ -356,6 +409,12 @@ export class ProductRegisterComponent implements OnInit {
     return cat ? cat.name : `Category #${id}`;
   }
 
+  getSubCategoryName(id?: number | null): string {
+    if (!id) return '';
+    const sub = this.subCategories().find(s => s.id === id);
+    return sub ? sub.name : `Subcategory #${id}`;
+  }
+
   getBrandName(id?: number): string {
     if (!id) return '';
     const brand = this.brands().find(b => b.id === id);
@@ -366,22 +425,29 @@ export class ProductRegisterComponent implements OnInit {
   get filteredProducts(): ProductResponse[] {
     const query = this.searchQuery().toLowerCase().trim();
     const catFilter = this.filterCategory();
+    const subCatFilter = this.filterSubCategory();
     const brandFilter = this.filterBrand();
     const featFilter = this.filterFeatured();
 
     return this.products().filter(p => {
-      // Query match (name, description, brandName, categoryName, or ID)
+      // Query match (name, description, brandName, categoryName, subCategoryName, or ID)
       const matchesQuery = !query ||
         p.name?.toLowerCase().includes(query) ||
         p.id?.toString().includes(query) ||
         p.brandName?.toLowerCase().includes(query) ||
         p.categoryName?.toLowerCase().includes(query) ||
+        p.subCategoryName?.toLowerCase().includes(query) ||
         p.description?.toLowerCase().includes(query);
 
       if (!matchesQuery) return false;
 
-      // Category filter
+      // Category filter (Main Category)
       if (catFilter !== 'all' && p.categoryId?.toString() !== catFilter) {
+        return false;
+      }
+
+      // Subcategory filter
+      if (subCatFilter !== 'all' && p.subCategoryId?.toString() !== subCatFilter) {
         return false;
       }
 
