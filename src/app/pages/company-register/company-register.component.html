@@ -1084,6 +1084,21 @@
           <button type="button" class="btn-refresh" (click)="fetchCompanies()" title="Refresh database records">
             <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
           </button>
+          <button 
+            type="button" 
+            class="btn-excel-export" 
+            (click)="exportToExcel()" 
+            [disabled]="isExportingExcel() || companies().length === 0"
+            title="Export all registered companies to Excel (.xlsx)"
+          >
+            @if (isExportingExcel()) {
+              <span class="spinner-border spinner-border-sm" role="status"></span>
+              <span>Exporting...</span>
+            } @else {
+              <i class="bi bi-file-earmark-excel-fill"></i>
+              <span>Export Excel</span>
+            }
+          </button>
           <button type="button" class="btn-primary-sm" (click)="cancelEdit(); activeTab.set('register')">
             <i class="bi bi-plus-lg"></i> New Company
           </button>

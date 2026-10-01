@@ -64,6 +64,15 @@ export class CompanyService {
   }
 
   /**
+   * Export all companies as an Excel workbook
+   */
+  exportCompaniesToExcel(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/export/excel`, {
+      responseType: 'blob'
+    });
+  }
+
+  /**
    * Formats the business card / file URL if stored path is relative
    */
   getFileUrl(path?: string): string {

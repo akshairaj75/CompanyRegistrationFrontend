@@ -31,6 +31,7 @@ export class CompanyRegisterComponent implements OnInit {
   // State Signals
   readonly isSubmitting = signal<boolean>(false);
   readonly isLoadingList = signal<boolean>(false);
+  readonly isExportingExcel = signal<boolean>(false);
   readonly activeTab = signal<'register' | 'directory'>('register');
   readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
@@ -192,6 +193,40 @@ export class CompanyRegisterComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load companies:', err);
         this.isLoadingList.set(false);
+      }
+    });
+  }
+
+  exportToExcel(): void {
+    if (this.isExportingExcel()) return;
+    this.isExportingExcel.set(true);
+    this.companyService.exportCompaniesToExcel().subscribe({
+      next: (blob: Blob) => {
+        this.isExportingExcel.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        a.download = `companies_directory_${dateStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.feedback.set({
+          type: 'success',
+          title: 'Excel Export Successful',
+          message: 'The companies directory spreadsheet has been generated and downloaded.'
+        });
+      },
+      error: (err) => {
+        this.isExportingExcel.set(false);
+        console.error('Excel export failed:', err);
+        this.feedback.set({
+          type: 'error',
+          title: 'Export Failed',
+          message: 'Could not generate the Excel file. Please ensure the backend server is reachable.'
+        });
       }
     });
   }
