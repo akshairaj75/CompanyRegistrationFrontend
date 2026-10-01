@@ -1099,6 +1099,21 @@
               <span>Export Excel</span>
             }
           </button>
+          <button 
+            type="button" 
+            class="btn-pdf-export" 
+            (click)="exportToPdf()" 
+            [disabled]="isExportingPdf() || companies().length === 0"
+            title="Export all registered companies to official PDF document (.pdf)"
+          >
+            @if (isExportingPdf()) {
+              <span class="spinner-border spinner-border-sm" role="status"></span>
+              <span>Generating...</span>
+            } @else {
+              <i class="bi bi-file-earmark-pdf-fill"></i>
+              <span>Export PDF</span>
+            }
+          </button>
           <button type="button" class="btn-primary-sm" (click)="cancelEdit(); activeTab.set('register')">
             <i class="bi bi-plus-lg"></i> New Company
           </button>

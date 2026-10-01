@@ -32,6 +32,7 @@ export class CompanyRegisterComponent implements OnInit {
   readonly isSubmitting = signal<boolean>(false);
   readonly isLoadingList = signal<boolean>(false);
   readonly isExportingExcel = signal<boolean>(false);
+  readonly isExportingPdf = signal<boolean>(false);
   readonly activeTab = signal<'register' | 'directory'>('register');
   readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
@@ -226,6 +227,40 @@ export class CompanyRegisterComponent implements OnInit {
           type: 'error',
           title: 'Export Failed',
           message: 'Could not generate the Excel file. Please ensure the backend server is reachable.'
+        });
+      }
+    });
+  }
+
+  exportToPdf(): void {
+    if (this.isExportingPdf()) return;
+    this.isExportingPdf.set(true);
+    this.companyService.exportCompaniesToPdf().subscribe({
+      next: (blob: Blob) => {
+        this.isExportingPdf.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        a.download = `companies_directory_${dateStr}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.feedback.set({
+          type: 'success',
+          title: 'PDF Export Successful',
+          message: 'The companies directory official PDF document has been generated and downloaded.'
+        });
+      },
+      error: (err) => {
+        this.isExportingPdf.set(false);
+        console.error('PDF export failed:', err);
+        this.feedback.set({
+          type: 'error',
+          title: 'Export Failed',
+          message: 'Could not generate the PDF file. Please ensure the backend server is reachable.'
         });
       }
     });

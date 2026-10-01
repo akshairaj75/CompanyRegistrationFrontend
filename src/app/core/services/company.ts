@@ -73,6 +73,15 @@ export class CompanyService {
   }
 
   /**
+   * Export all companies as a PDF document
+   */
+  exportCompaniesToPdf(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/export/pdf`, {
+      responseType: 'blob'
+    });
+  }
+
+  /**
    * Formats the business card / file URL if stored path is relative
    */
   getFileUrl(path?: string): string {

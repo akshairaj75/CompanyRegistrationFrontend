@@ -1123,6 +1123,39 @@
   font-size: 1rem;
 }
 
+.btn-pdf-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.52rem 1.05rem;
+  border-radius: var(--radius-full, 9999px);
+  border: 1.5px solid #e11d48;
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(225, 29, 72, 0.22);
+  transition: all 0.2s ease;
+}
+
+.btn-pdf-export:hover:not(:disabled) {
+  background: linear-gradient(135deg, #be123c 0%, #9f1239 100%);
+  box-shadow: 0 4px 10px rgba(225, 29, 72, 0.32);
+  transform: translateY(-1px);
+}
+
+.btn-pdf-export:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-pdf-export i {
+  font-size: 1rem;
+}
+
 .spin {
   animation: spinner-border 0.8s linear infinite;
 }
