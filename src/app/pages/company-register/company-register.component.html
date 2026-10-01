@@ -510,10 +510,238 @@
             }
           </div>
 
-          <!-- Section 6: Brand Asset & Business Card Upload -->
+          <!-- Section 06: Authorized Products Catalog (From Brands through Categories) -->
           <div class="form-card">
             <div class="card-legend">
               <span class="step-num">06</span>
+              <div>
+                <h3 class="card-title">Authorized Products Catalog</h3>
+                <p class="card-subtitle">Choose products from brands through categories that this enterprise offers or distributes</p>
+              </div>
+            </div>
+
+            <!-- Product Selection Filter & Search Controls -->
+            <div class="product-selection-controls">
+              <!-- Drilldown Filters -->
+              <div class="drilldown-filters-grid">
+                <!-- Brand Filter -->
+                <div class="filter-field-group">
+                  <label class="filter-label">
+                    <i class="bi bi-award"></i> 1. Filter by Brand
+                  </label>
+                  <select 
+                    class="filter-select"
+                    [value]="activeProductBrandFilter()"
+                    (change)="setProductBrandFilter($any($event.target).value)"
+                  >
+                    <option value="all">All Brands ({{ availableProducts().length }} total)</option>
+                    @for (brand of brandsWithProducts(); track brand.id) {
+                      <option [value]="brand.id">
+                        {{ brand.brandName }} ({{ brand.productCount }} prods)
+                      </option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Category Filter -->
+                <div class="filter-field-group">
+                  <label class="filter-label">
+                    <i class="bi bi-folder2-open"></i> 2. Filter by Category
+                  </label>
+                  <select 
+                    class="filter-select"
+                    [value]="activeProductCategoryFilter()"
+                    (change)="setProductCategoryFilter($any($event.target).value)"
+                  >
+                    <option value="all">All Categories</option>
+                    @for (cat of availableCategoriesForBrand(); track cat.id) {
+                      <option [value]="cat.id">{{ cat.name }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Subcategory Filter -->
+                <div class="filter-field-group">
+                  <label class="filter-label">
+                    <i class="bi bi-diagram-3"></i> 3. Filter by Subcategory
+                  </label>
+                  <select 
+                    class="filter-select"
+                    [value]="activeProductSubCategoryFilter()"
+                    (change)="activeProductSubCategoryFilter.set($any($event.target).value)"
+                  >
+                    <option value="all">All Subcategories</option>
+                    @for (sub of availableSubCategoriesForSelection(); track sub.id) {
+                      <option [value]="sub.id">{{ sub.name }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- Product Search Query -->
+                <div class="filter-field-group">
+                  <label class="filter-label">
+                    <i class="bi bi-search"></i> Search Product
+                  </label>
+                  <div class="filter-search-wrap">
+                    <input 
+                      type="text" 
+                      class="filter-search-input" 
+                      placeholder="Search name, code..." 
+                      [value]="productSearchQuery()"
+                      (input)="productSearchQuery.set($any($event.target).value)"
+                    />
+                    @if (productSearchQuery()) {
+                      <button type="button" class="btn-clear-prod-search" (click)="productSearchQuery.set('')">
+                        <i class="bi bi-x-circle-fill"></i>
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Selection Summary and Actions Bar -->
+              <div class="product-select-actions-bar">
+                <span class="product-selection-count">
+                  <i class="bi bi-box-seam-fill"></i>
+                  <strong>{{ selectedProductIds().length }}</strong> of {{ availableProducts().length }} products chosen
+                  @if (filteredAvailableProducts().length !== availableProducts().length) {
+                    <span class="filtered-hint">({{ filteredAvailableProducts().length }} matching filter)</span>
+                  }
+                </span>
+                <div class="product-action-btns">
+                  <button 
+                    type="button" 
+                    class="btn-prod-helper" 
+                    (click)="selectAllFilteredProducts()" 
+                    [disabled]="filteredAvailableProducts().length === 0"
+                  >
+                    <i class="bi bi-check-all"></i> Select Filtered ({{ filteredAvailableProducts().length }})
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-prod-helper" 
+                    (click)="deselectFilteredProducts()" 
+                    [disabled]="filteredAvailableProducts().length === 0"
+                  >
+                    <i class="bi bi-dash-circle"></i> Deselect Filtered
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn-prod-helper btn-danger-subtle" 
+                    (click)="clearSelectedProducts()" 
+                    [disabled]="selectedProductIds().length === 0"
+                  >
+                    <i class="bi bi-x-lg"></i> Clear
+                  </button>
+                </div>
+              </div>
+
+              <!-- Selected Products Chips -->
+              @if (selectedProductIds().length > 0) {
+                <div class="selected-products-pills">
+                  <span class="selected-pills-label">Selected ({{ selectedProductIds().length }}):</span>
+                  <div class="pills-scroll-wrap">
+                    @for (p of selectedProductsList(); track p.id) {
+                      <span class="prod-pill">
+                        @if (p.image) {
+                          <img [src]="productService.getFileUrl(p.image)" alt="" class="prod-pill-img" />
+                        }
+                        <span class="prod-pill-name">{{ p.name }}</span>
+                        <span class="prod-pill-brand">{{ p.brandName }}</span>
+                        <button type="button" class="prod-pill-remove" (click)="removeSelectedProduct(p.id)" title="Remove product">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Loading and Empty States -->
+            @if (isLoadingProducts() || isLoadingCategories()) {
+              <div class="brands-status-box">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+                <span>Loading products catalog and categories...</span>
+              </div>
+            } @else if (availableProducts().length === 0) {
+              <div class="brands-empty-alert">
+                <div class="brands-empty-icon">
+                  <i class="bi bi-box-seam"></i>
+                </div>
+                <div>
+                  <h4>No Products Available Yet</h4>
+                  <p>Register products associated with brands and categories so companies can choose their product portfolio.</p>
+                  <a routerLink="/products" class="btn-brand-nav-link">
+                    <i class="bi bi-plus-circle"></i> Register New Product
+                  </a>
+                </div>
+              </div>
+            } @else if (filteredAvailableProducts().length === 0) {
+              <div class="products-no-match">
+                <i class="bi bi-funnel"></i>
+                <p>No products match the selected Brand, Category, or search keyword.</p>
+                <button type="button" class="btn-reset-filters" (click)="setProductBrandFilter('all'); productSearchQuery.set('')">
+                  Reset Brand & Search Filters
+                </button>
+              </div>
+            } @else {
+              <!-- Products Cards Grid -->
+              <div class="products-grid-selector">
+                @for (prod of filteredAvailableProducts(); track prod.id) {
+                  <div 
+                    class="product-choice-card" 
+                    [class.is-selected]="isProductSelected(prod.id)"
+                    (click)="toggleProduct(prod)"
+                  >
+                    <div class="product-check-box">
+                      <i class="bi bi-check-lg check-icon"></i>
+                    </div>
+
+                    <div class="product-choice-thumb">
+                      @if (prod.image) {
+                        <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
+                      } @else {
+                        <div class="product-thumb-fallback">
+                          <i class="bi bi-box"></i>
+                        </div>
+                      }
+                      @if (prod.isFeatured || prod.featured) {
+                        <span class="prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
+                      }
+                    </div>
+
+                    <div class="product-choice-info">
+                      <div class="product-choice-header">
+                        <span class="product-brand-tag" [title]="prod.brandName">
+                          <i class="bi bi-award-fill"></i> {{ prod.brandName }}
+                        </span>
+                        @if (prod.subCategoryName) {
+                          <span class="product-subcat-badge">{{ prod.subCategoryName }}</span>
+                        }
+                      </div>
+
+                      <h4 class="product-choice-name" [title]="prod.name">{{ prod.name }}</h4>
+
+                      <!-- Hierarchy Path Breadcrumb: Category > SubCategory -->
+                      <div class="product-hierarchy-path">
+                        <span class="cat-crumb"><i class="bi bi-folder2"></i> {{ prod.categoryName }}</span>
+                        @if (prod.subCategoryName) {
+                          <i class="bi bi-chevron-right crumb-sep"></i>
+                          <span class="subcat-crumb">{{ prod.subCategoryName }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Section 07: Brand Asset & Business Card Upload -->
+          <div class="form-card">
+            <div class="card-legend">
+              <span class="step-num">07</span>
               <div>
                 <h3 class="card-title">Business Card & Brand Asset</h3>
                 <p class="card-subtitle">Upload company logo, digital visiting card, or certificate (JPEG, PNG, WEBP, PDF)</p>
@@ -594,10 +822,10 @@
             </div>
           </div>
 
-          <!-- Section 7: Overview & Description -->
+          <!-- Section 08: Overview & Description -->
           <div class="form-card">
             <div class="card-legend">
-              <span class="step-num">07</span>
+              <span class="step-num">08</span>
               <div>
                 <h3 class="card-title">Corporate Overview & Profile</h3>
                 <p class="card-subtitle">Summary of company activities, mission, and scope</p>
@@ -779,6 +1007,27 @@
                   </div>
                 </div>
               }
+
+              <!-- Chosen Products Catalog Preview -->
+              @if (selectedProductIds().length > 0) {
+                <div class="preview-products-container">
+                  <div class="preview-products-header">
+                    <span class="preview-products-title">
+                      <i class="bi bi-box-seam-fill"></i> Products Portfolio ({{ selectedProductIds().length }})
+                    </span>
+                  </div>
+                  <div class="preview-product-tags">
+                    @for (p of selectedProductsList(); track p.id) {
+                      <span class="preview-prod-chip" [title]="p.name + ' (' + p.brandName + ' - ' + p.categoryName + ')'">
+                        @if (p.image) {
+                          <img [src]="productService.getFileUrl(p.image)" alt="" class="preview-prod-chip-img" />
+                        }
+                        <span>{{ p.name }}</span>
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
             </div>
 
             <!-- Card Description Preview -->
@@ -925,6 +1174,25 @@
                 </div>
               }
 
+              <!-- Products in Directory Card -->
+              @if (company.products && company.products.length > 0) {
+                <div class="card-products-row">
+                  <span class="card-products-label">
+                    <i class="bi bi-box-seam-fill"></i> Products ({{ company.products.length }}):
+                  </span>
+                  <div class="card-products-list">
+                    @for (p of company.products.slice(0, 3); track p.id) {
+                      <span class="card-prod-badge" [title]="p.name + ' (' + (p.brandName || '') + ')'">
+                        {{ p.name }}
+                      </span>
+                    }
+                    @if (company.products.length > 3) {
+                      <span class="card-more-badge">+{{ company.products.length - 3 }} more</span>
+                    }
+                  </div>
+                </div>
+              }
+
               <!-- Action Bar on each card: View, Edit, Delete -->
               <div class="card-item-footer" (click)="$event.stopPropagation()">
                 <span class="card-created-date">
@@ -1062,6 +1330,43 @@
                       @if (brand.isFeatured || brand.featured) {
                         <span class="modal-brand-featured-tag"><i class="bi bi-star-fill"></i> Featured Brand</span>
                       }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Chosen Products Portfolio Modal Section -->
+          @if (selectedCompany()?.products && selectedCompany()!.products!.length > 0) {
+            <div class="info-block mt-3">
+              <label class="info-label">
+                <i class="bi bi-box-seam-fill"></i> Products Portfolio ({{ selectedCompany()!.products!.length }})
+              </label>
+              <div class="modal-products-grid">
+                @for (prod of selectedCompany()!.products!; track prod.id) {
+                  <div class="modal-product-card">
+                    <div class="modal-product-thumb">
+                      @if (prod.image) {
+                        <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
+                      } @else {
+                        <div class="modal-product-fallback"><i class="bi bi-box"></i></div>
+                      }
+                    </div>
+                    <div class="modal-product-details">
+                      <div class="modal-prod-top">
+                        <span class="modal-prod-brand"><i class="bi bi-award"></i> {{ prod.brandName }}</span>
+                        @if (prod.isFeatured || prod.featured) {
+                          <span class="modal-prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
+                        }
+                      </div>
+                      <span class="modal-product-name">{{ prod.name }}</span>
+                      <div class="modal-prod-cat-path">
+                        <span>{{ prod.categoryName }}</span>
+                        @if (prod.subCategoryName) {
+                          <span> &rsaquo; {{ prod.subCategoryName }}</span>
+                        }
+                      </div>
                     </div>
                   </div>
                 }
