@@ -94,6 +94,43 @@ export class CompanyRegisterComponent implements OnInit {
   // Companies List State
   readonly companies = signal<CompanyResponse[]>([]);
   readonly searchQuery = signal<string>('');
+  readonly isSearchFocused = signal<boolean>(false);
+  readonly activeAutofillIndex = signal<number>(-1);
+
+  // Form Autofill State
+  readonly formSearchQuery = signal<string>('');
+  readonly isFormSearchFocused = signal<boolean>(false);
+
+  // Searchbar Suggestions (Directory Search)
+  readonly searchSuggestions = computed(() => {
+    const q = this.searchQuery().toLowerCase().trim();
+    const list = this.companies();
+    if (!q) {
+      // Suggest top 5 recent/active companies when search input is focused
+      return list.slice(0, 5);
+    }
+    return list.filter(c =>
+      c.companyName?.toLowerCase().includes(q) ||
+      c.contactName?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.contactEmail?.toLowerCase().includes(q) ||
+      c.city?.toLowerCase().includes(q) ||
+      c.country?.toLowerCase().includes(q) ||
+      c.brands?.some(b => b.brandName?.toLowerCase().includes(q)) ||
+      c.products?.some(p => p.name?.toLowerCase().includes(q))
+    ).slice(0, 7);
+  });
+
+  // Registration Form Autofill Suggestions
+  readonly formAutofillSuggestions = computed(() => {
+    const q = this.formSearchQuery().toLowerCase().trim();
+    if (!q) return [];
+    return this.companies().filter(c =>
+      c.companyName?.toLowerCase().includes(q) ||
+      c.contactName?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q)
+    ).slice(0, 5);
+  });
 
   // Brand Association State (Brands Dealt With)
   readonly availableBrands = signal<BrandResponse[]>([]);
@@ -856,7 +893,7 @@ export class CompanyRegisterComponent implements OnInit {
   get filteredCompanies(): CompanyResponse[] {
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) return this.companies();
-    return this.companies().filter(c => 
+    return this.companies().filter(c =>
       c.companyName?.toLowerCase().includes(query) ||
       c.contactName?.toLowerCase().includes(query) ||
       c.contactEmail?.toLowerCase().includes(query) ||
@@ -871,6 +908,139 @@ export class CompanyRegisterComponent implements OnInit {
   onSearchChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchQuery.set(input.value);
+    this.isSearchFocused.set(true);
+    this.activeAutofillIndex.set(-1);
+  }
+
+  onSearchFocus(): void {
+    this.isSearchFocused.set(true);
+    this.activeAutofillIndex.set(-1);
+  }
+
+  onSearchBlur(): void {
+    // Timeout gives user enough time to click on suggestion items
+    setTimeout(() => {
+      this.isSearchFocused.set(false);
+      this.activeAutofillIndex.set(-1);
+    }, 220);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    this.activeAutofillIndex.set(-1);
+  }
+
+  selectSuggestion(company: CompanyResponse): void {
+    this.searchQuery.set(company.companyName);
+    this.isSearchFocused.set(false);
+    this.activeAutofillIndex.set(-1);
+  }
+
+  selectSuggestionAndOpen(company: CompanyResponse, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.searchQuery.set(company.companyName);
+    this.isSearchFocused.set(false);
+    this.activeAutofillIndex.set(-1);
+    this.openCompanyDetail(company);
+  }
+
+  onSearchKeyDown(event: KeyboardEvent): void {
+    const suggestions = this.searchSuggestions();
+    if (!this.isSearchFocused() || suggestions.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const current = this.activeAutofillIndex();
+      const next = current + 1 >= suggestions.length ? 0 : current + 1;
+      this.activeAutofillIndex.set(next);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const current = this.activeAutofillIndex();
+      const prev = current <= 0 ? suggestions.length - 1 : current - 1;
+      this.activeAutofillIndex.set(prev);
+    } else if (event.key === 'Enter') {
+      const idx = this.activeAutofillIndex();
+      if (idx >= 0 && idx < suggestions.length) {
+        event.preventDefault();
+        this.selectSuggestion(suggestions[idx]);
+      }
+    } else if (event.key === 'Escape') {
+      this.isSearchFocused.set(false);
+      this.activeAutofillIndex.set(-1);
+    }
+  }
+
+  getHighlightSegments(text: string | null | undefined, query: string): { text: string; isMatch: boolean }[] {
+    if (!text) return [];
+    if (!query || !query.trim()) return [{ text, isMatch: false }];
+    const q = query.trim().toLowerCase();
+    const lower = text.toLowerCase();
+    const index = lower.indexOf(q);
+    if (index === -1) return [{ text, isMatch: false }];
+    return [
+      { text: text.substring(0, index), isMatch: false },
+      { text: text.substring(index, index + q.length), isMatch: true },
+      { text: text.substring(index + q.length), isMatch: false }
+    ];
+  }
+
+  // --- Registration Form Quick Autofill ---
+  onFormSearchChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.formSearchQuery.set(input.value);
+    this.isFormSearchFocused.set(true);
+  }
+
+  onFormSearchFocus(): void {
+    this.isFormSearchFocused.set(true);
+  }
+
+  onFormSearchBlur(): void {
+    setTimeout(() => {
+      this.isFormSearchFocused.set(false);
+    }, 220);
+  }
+
+  clearFormSearch(): void {
+    this.formSearchQuery.set('');
+  }
+
+  autofillFormWithCompany(company: CompanyResponse): void {
+    this.companyForm.patchValue({
+      companyName: company.companyName ? `${company.companyName} (Copy)` : '',
+      email: company.email || '',
+      landline: company.landline || '',
+      address: company.address || '',
+      city: company.city || '',
+      country: company.country || 'United States',
+      website: company.website || '',
+      description: company.description || '',
+      status: company.status || 'ACTIVE',
+      contactName: company.contactName || '',
+      contactDesignation: company.contactDesignation || '',
+      contactEmail: company.contactEmail || '',
+      contactMobileNumber: company.contactMobileNumber || ''
+    });
+
+    const brandIds = (company.brandIds && company.brandIds.length > 0)
+      ? company.brandIds
+      : (company.brands?.map(b => b.id) || []);
+    this.selectedBrandIds.set(brandIds);
+    this.manuallySelectedBrandIds.set(new Set(brandIds));
+
+    const productIds = (company.productIds && company.productIds.length > 0)
+      ? company.productIds
+      : (company.products?.map(p => p.id) || []);
+    this.selectedProductIds.set(productIds);
+
+    this.formSearchQuery.set('');
+    this.isFormSearchFocused.set(false);
+
+    this.feedback.set({
+      type: 'success',
+      title: 'Company Autofilled',
+      message: `Form populated with template details from "${company.companyName}". Review and submit when ready.`
+    });
   }
 
   // Helpers for validation styling

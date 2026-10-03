@@ -34,52 +34,31 @@
     <!-- Navigation Tabs -->
     <nav class="nav-tabs" aria-label="Registration Views">
       <!-- Register Company Tab (ALWAYS visible & clickable) -->
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeTab() === 'register' && !editingCompanyId()"
-        (click)="switchToRegister()"
-        id="btn-nav-register"
-        title="Go to Company Registration"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="activeTab() === 'register' && !editingCompanyId()"
+        (click)="switchToRegister()" id="btn-nav-register" title="Go to Company Registration">
         <i class="bi bi-plus-circle-fill"></i>
         <span>Register Company</span>
       </button>
 
       <!-- Edit Company Tab (shown only while editing) -->
       @if (editingCompanyId()) {
-        <div class="edit-tab-pill-wrap">
-          <button 
-            type="button" 
-            class="nav-tab-btn active-edit-tab" 
-            [class.active]="activeTab() === 'register' && !!editingCompanyId()"
-            (click)="activeTab.set('register')"
-            id="btn-nav-edit"
-            title="Current Edit Mode"
-          >
-            <i class="bi bi-pencil-square"></i>
-            <span>Edit #{{ editingCompanyId() }}</span>
-          </button>
-          <button 
-            type="button" 
-            class="btn-close-edit-tab" 
-            (click)="switchToRegister()"
-            title="Exit edit mode and register new company"
-            aria-label="Exit edit mode"
-          >
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
+      <div class="edit-tab-pill-wrap">
+        <button type="button" class="nav-tab-btn active-edit-tab"
+          [class.active]="activeTab() === 'register' && !!editingCompanyId()" (click)="activeTab.set('register')"
+          id="btn-nav-edit" title="Current Edit Mode">
+          <i class="bi bi-pencil-square"></i>
+          <span>Edit #{{ editingCompanyId() }}</span>
+        </button>
+        <button type="button" class="btn-close-edit-tab" (click)="switchToRegister()"
+          title="Exit edit mode and register new company" aria-label="Exit edit mode">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
       }
 
       <!-- Directory Tab -->
-      <button 
-        type="button" 
-        class="nav-tab-btn" 
-        [class.active]="activeTab() === 'directory'"
-        (click)="activeTab.set('directory')"
-        id="btn-nav-directory"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="activeTab() === 'directory'"
+        (click)="activeTab.set('directory')" id="btn-nav-directory">
         <i class="bi bi-grid-3x3-gap-fill"></i>
         <span>Directory</span>
         <span class="count-pill">{{ companies().length }}</span>
@@ -95,1744 +74,1676 @@
 
   <!-- Feedback Alert Banner -->
   @if (feedback()) {
-    <div class="feedback-toast" [class.feedback-success]="feedback()?.type === 'success'" [class.feedback-error]="feedback()?.type === 'error'">
-      <div class="feedback-icon">
-        @if (feedback()?.type === 'success') {
-          <i class="bi bi-check-circle-fill"></i>
-        } @else {
-          <i class="bi bi-exclamation-triangle-fill"></i>
-        }
-      </div>
-      <div class="feedback-content">
-        <strong class="feedback-title">{{ feedback()?.title }}</strong>
-        <p class="feedback-msg">{{ feedback()?.message }}</p>
-      </div>
-      <button type="button" class="feedback-close" (click)="closeFeedback()" aria-label="Close Notification">
-        <i class="bi bi-x-lg"></i>
-      </button>
+  <div class="feedback-toast" [class.feedback-success]="feedback()?.type === 'success'"
+    [class.feedback-error]="feedback()?.type === 'error'">
+    <div class="feedback-icon">
+      @if (feedback()?.type === 'success') {
+      <i class="bi bi-check-circle-fill"></i>
+      } @else {
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      }
     </div>
+    <div class="feedback-content">
+      <strong class="feedback-title">{{ feedback()?.title }}</strong>
+      <p class="feedback-msg">{{ feedback()?.message }}</p>
+    </div>
+    <button type="button" class="feedback-close" (click)="closeFeedback()" aria-label="Close Notification">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
   }
 
   <!-- TAB 1: REGISTRATION / EDIT FORM & LIVE PREVIEW -->
   @if (activeTab() === 'register') {
-    <main class="page-content">
-      <!-- Left Column: Form Section -->
-      <section class="form-section">
-        
-        <!-- Header Banner (Dynamic for Create vs Edit) -->
-        <div class="section-header">
-          <div class="header-icon-wrap" [class.edit-mode-icon]="!!editingCompanyId()">
-            @if (editingCompanyId()) {
-              <i class="bi bi-pencil-square"></i>
-            } @else {
-              <i class="bi bi-file-earmark-text-fill"></i>
-            }
+  <main class="page-content">
+    <!-- Left Column: Form Section -->
+    <section class="form-section">
+
+      <!-- Header Banner (Dynamic for Create vs Edit) -->
+      <div class="section-header">
+        <div class="header-icon-wrap" [class.edit-mode-icon]="!!editingCompanyId()">
+          @if (editingCompanyId()) {
+          <i class="bi bi-pencil-square"></i>
+          } @else {
+          <i class="bi bi-file-earmark-text-fill"></i>
+          }
+        </div>
+        <div class="header-content-flex">
+          <div>
+            <div class="header-title-row">
+              <h2 class="section-title">
+                {{ editingCompanyId() ? 'Update Company Record' : 'Company Registration' }}
+              </h2>
+              @if (editingCompanyId()) {
+              <span class="badge-edit-mode">Editing ID #{{ editingCompanyId() }}</span>
+              }
+            </div>
+            <p class="section-desc">
+              {{ editingCompanyId() ? 'Modify and update official details for this registered entity.' : 'Register your
+              enterprise with official legal records and key personnel contacts.' }}
+            </p>
           </div>
-          <div class="header-content-flex">
+
+          @if (editingCompanyId()) {
+          <button type="button" class="btn-new-reg-header" (click)="switchToRegister()"
+            title="Switch to clean company registration form">
+            <i class="bi bi-plus-circle-fill"></i> Register New Company
+          </button>
+          }
+        </div>
+      </div>
+
+      @if (editingCompanyId()) {
+      <div class="editing-banner">
+        <div class="editing-banner-content">
+          <i class="bi bi-info-circle-fill"></i>
+          <span>You are editing company #{{ editingCompanyId() }}. Need to register a new company instead?</span>
+        </div>
+        <button type="button" class="btn-cancel-edit-banner" (click)="switchToRegister()">
+          <i class="bi bi-plus-lg"></i> Switch to Register Page
+        </button>
+      </div>
+      }
+
+      <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" class="registration-form" novalidate>
+
+        <!-- Section 1: Corporate Identity -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">01</span>
             <div>
-              <div class="header-title-row">
-                <h2 class="section-title">
-                  {{ editingCompanyId() ? 'Update Company Record' : 'Company Registration' }}
-                </h2>
-                @if (editingCompanyId()) {
-                  <span class="badge-edit-mode">Editing ID #{{ editingCompanyId() }}</span>
+              <h3 class="card-title">Corporate Information</h3>
+              <p class="card-subtitle">Official registered enterprise identity & operational status</p>
+            </div>
+          </div>
+
+          <!-- Quick Template Autofill Option for New Registrations -->
+          @if (!editingCompanyId() && companies().length > 0) {
+          <div class="form-autofill-banner">
+            <div class="autofill-banner-header">
+              <span class="autofill-banner-title">
+                <i class="bi bi-magic"></i> Fast Autofill / Copy from Registered Company:
+              </span>
+            </div>
+            <div class="form-autofill-input-wrap">
+              <i class="bi bi-search form-autofill-icon"></i>
+              <input type="text" class="form-autofill-input"
+                placeholder="Search an existing company to pre-fill details (e.g. Apex Global)..."
+                [value]="formSearchQuery()"
+                (input)="onFormSearchChange($event)"
+                (focus)="onFormSearchFocus()"
+                (blur)="onFormSearchBlur()"
+                autocomplete="off" />
+              @if (formSearchQuery().trim().length > 0) {
+              <button type="button" class="btn-clear-form-search" (click)="clearFormSearch()" title="Clear autofill search">
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+              }
+
+              <!-- Dropdown for form autofill -->
+              @if (isFormSearchFocused() && formAutofillSuggestions().length > 0) {
+              <div class="form-autofill-dropdown" (mousedown)="$event.preventDefault()">
+                <div class="form-autofill-dropdown-title">
+                  <i class="bi bi-lightning-charge-fill"></i> Choose company to copy details into form:
+                </div>
+                @for (c of formAutofillSuggestions(); track c.id) {
+                <button type="button" class="form-autofill-item" (click)="autofillFormWithCompany(c)">
+                  <div class="form-autofill-item-text">
+                    <span class="item-comp-name">{{ c.companyName }}</span>
+                    <span class="item-comp-sub">{{ c.city || c.country || 'Global' }} • {{ c.contactName || c.email }}</span>
+                  </div>
+                  <span class="btn-apply-pill">
+                    <i class="bi bi-arrow-right"></i> Autofill Form
+                  </span>
+                </button>
                 }
               </div>
-              <p class="section-desc">
-                {{ editingCompanyId() ? 'Modify and update official details for this registered entity.' : 'Register your enterprise with official legal records and key personnel contacts.' }}
-              </p>
+              }
             </div>
+          </div>
+          }
 
-            @if (editingCompanyId()) {
-              <button type="button" class="btn-new-reg-header" (click)="switchToRegister()" title="Switch to clean company registration form">
-                <i class="bi bi-plus-circle-fill"></i> Register New Company
-              </button>
+          <!-- Company Name -->
+          <div class="form-group" [class.has-error]="isInvalid('companyName')">
+            <label for="companyName" class="form-label">
+              Company Name <span class="required-mark">*</span>
+            </label>
+            <div class="input-wrap">
+              <i class="bi bi-building input-icon"></i>
+              <input type="text" id="companyName" formControlName="companyName" class="form-control"
+                placeholder="e.g. Apex Global Technologies Inc." />
+            </div>
+            @if (isInvalid('companyName')) {
+            <span class="field-error">
+              <i class="bi bi-info-circle"></i> Valid company name is required (min 2 characters)
+            </span>
             }
+          </div>
+
+          <!-- Status Selector -->
+          <div class="form-group mt-3">
+            <label class="form-label">Company Operational Status</label>
+            <div class="status-options">
+              <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'ACTIVE'">
+                <input type="radio" formControlName="status" value="ACTIVE" />
+                <span class="status-bullet active-dot"></span>
+                <span class="status-title">ACTIVE</span>
+              </label>
+              <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'PENDING'">
+                <input type="radio" formControlName="status" value="PENDING" />
+                <span class="status-bullet pending-dot"></span>
+                <span class="status-title">PENDING</span>
+              </label>
+              <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'INACTIVE'">
+                <input type="radio" formControlName="status" value="INACTIVE" />
+                <span class="status-bullet inactive-dot"></span>
+                <span class="status-title">INACTIVE</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        @if (editingCompanyId()) {
-          <div class="editing-banner">
-            <div class="editing-banner-content">
-              <i class="bi bi-info-circle-fill"></i>
-              <span>You are editing company #{{ editingCompanyId() }}. Need to register a new company instead?</span>
+        <!-- Section 2: Primary Contact Person -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">02</span>
+            <div>
+              <h3 class="card-title">Contact Person & Representative</h3>
+              <p class="card-subtitle">Key executive or point-of-contact details for this enterprise</p>
             </div>
-            <button type="button" class="btn-cancel-edit-banner" (click)="switchToRegister()">
-              <i class="bi bi-plus-lg"></i> Switch to Register Page
-            </button>
           </div>
-        }
 
-        <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" class="registration-form" novalidate>
-          
-          <!-- Section 1: Corporate Identity -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">01</span>
-              <div>
-                <h3 class="card-title">Corporate Information</h3>
-                <p class="card-subtitle">Official registered enterprise identity & operational status</p>
+          <div class="form-grid-2">
+            <!-- Contact Name -->
+            <div class="form-group">
+              <label for="contactName" class="form-label">Contact Person Name</label>
+              <div class="input-wrap">
+                <i class="bi bi-person-badge input-icon"></i>
+                <input type="text" id="contactName" formControlName="contactName" class="form-control"
+                  placeholder="e.g. Sarah Jenkins" />
               </div>
             </div>
 
-            <!-- Company Name -->
-            <div class="form-group" [class.has-error]="isInvalid('companyName')">
-              <label for="companyName" class="form-label">
-                Company Name <span class="required-mark">*</span>
+            <!-- Contact Designation -->
+            <div class="form-group">
+              <label for="contactDesignation" class="form-label">Designation / Role</label>
+              <div class="input-wrap">
+                <i class="bi bi-briefcase input-icon"></i>
+                <input type="text" id="contactDesignation" formControlName="contactDesignation" class="form-control"
+                  placeholder="e.g. Managing Director / CTO" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-2 mt-3">
+            <!-- Contact Email -->
+            <div class="form-group" [class.has-error]="isInvalid('contactEmail')">
+              <label for="contactEmail" class="form-label">Contact Person Email</label>
+              <div class="input-wrap">
+                <i class="bi bi-envelope input-icon"></i>
+                <input type="email" id="contactEmail" formControlName="contactEmail" class="form-control"
+                  placeholder="sarah.jenkins@company.com" />
+              </div>
+              @if (isInvalid('contactEmail')) {
+              <span class="field-error">
+                <i class="bi bi-info-circle"></i> Please enter a valid email address
+              </span>
+              }
+            </div>
+
+            <!-- Contact Mobile Number -->
+            <div class="form-group">
+              <label for="contactMobileNumber" class="form-label">Mobile Number</label>
+              <div class="input-wrap">
+                <i class="bi bi-phone input-icon"></i>
+                <input type="tel" id="contactMobileNumber" formControlName="contactMobileNumber" class="form-control"
+                  placeholder="+1 (555) 987-6543" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Corporate Communication -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">03</span>
+            <div>
+              <h3 class="card-title">Corporate Communication & Web</h3>
+              <p class="card-subtitle">Official company-wide channels and public web portal</p>
+            </div>
+          </div>
+
+          <div class="form-grid-3">
+            <!-- Official Email -->
+            <div class="form-group" [class.has-error]="isInvalid('email')">
+              <label for="email" class="form-label">
+                Corporate Email <span class="required-mark">*</span>
               </label>
               <div class="input-wrap">
-                <i class="bi bi-building input-icon"></i>
-                <input 
-                  type="text" 
-                  id="companyName" 
-                  formControlName="companyName" 
-                  class="form-control" 
-                  placeholder="e.g. Apex Global Technologies Inc."
-                />
+                <i class="bi bi-envelope-at input-icon"></i>
+                <input type="email" id="email" formControlName="email" class="form-control"
+                  placeholder="contact@enterprise.com" />
               </div>
-              @if (isInvalid('companyName')) {
-                <span class="field-error">
-                  <i class="bi bi-info-circle"></i> Valid company name is required (min 2 characters)
-                </span>
+              @if (isInvalid('email')) {
+              <span class="field-error">
+                <i class="bi bi-info-circle"></i> Valid corporate email is required
+              </span>
               }
             </div>
 
-            <!-- Status Selector -->
-            <div class="form-group mt-3">
-              <label class="form-label">Company Operational Status</label>
-              <div class="status-options">
-                <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'ACTIVE'">
-                  <input type="radio" formControlName="status" value="ACTIVE" />
-                  <span class="status-bullet active-dot"></span>
-                  <span class="status-title">ACTIVE</span>
-                </label>
-                <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'PENDING'">
-                  <input type="radio" formControlName="status" value="PENDING" />
-                  <span class="status-bullet pending-dot"></span>
-                  <span class="status-title">PENDING</span>
-                </label>
-                <label class="status-radio-card" [class.selected]="companyForm.get('status')?.value === 'INACTIVE'">
-                  <input type="radio" formControlName="status" value="INACTIVE" />
-                  <span class="status-bullet inactive-dot"></span>
-                  <span class="status-title">INACTIVE</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 2: Primary Contact Person -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">02</span>
-              <div>
-                <h3 class="card-title">Contact Person & Representative</h3>
-                <p class="card-subtitle">Key executive or point-of-contact details for this enterprise</p>
-              </div>
-            </div>
-
-            <div class="form-grid-2">
-              <!-- Contact Name -->
-              <div class="form-group">
-                <label for="contactName" class="form-label">Contact Person Name</label>
-                <div class="input-wrap">
-                  <i class="bi bi-person-badge input-icon"></i>
-                  <input 
-                    type="text" 
-                    id="contactName" 
-                    formControlName="contactName" 
-                    class="form-control" 
-                    placeholder="e.g. Sarah Jenkins"
-                  />
-                </div>
-              </div>
-
-              <!-- Contact Designation -->
-              <div class="form-group">
-                <label for="contactDesignation" class="form-label">Designation / Role</label>
-                <div class="input-wrap">
-                  <i class="bi bi-briefcase input-icon"></i>
-                  <input 
-                    type="text" 
-                    id="contactDesignation" 
-                    formControlName="contactDesignation" 
-                    class="form-control" 
-                    placeholder="e.g. Managing Director / CTO"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div class="form-grid-2 mt-3">
-              <!-- Contact Email -->
-              <div class="form-group" [class.has-error]="isInvalid('contactEmail')">
-                <label for="contactEmail" class="form-label">Contact Person Email</label>
-                <div class="input-wrap">
-                  <i class="bi bi-envelope input-icon"></i>
-                  <input 
-                    type="email" 
-                    id="contactEmail" 
-                    formControlName="contactEmail" 
-                    class="form-control" 
-                    placeholder="sarah.jenkins@company.com"
-                  />
-                </div>
-                @if (isInvalid('contactEmail')) {
-                  <span class="field-error">
-                    <i class="bi bi-info-circle"></i> Please enter a valid email address
-                  </span>
-                }
-              </div>
-
-              <!-- Contact Mobile Number -->
-              <div class="form-group">
-                <label for="contactMobileNumber" class="form-label">Mobile Number</label>
-                <div class="input-wrap">
-                  <i class="bi bi-phone input-icon"></i>
-                  <input 
-                    type="tel" 
-                    id="contactMobileNumber" 
-                    formControlName="contactMobileNumber" 
-                    class="form-control" 
-                    placeholder="+1 (555) 987-6543"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 3: Corporate Communication -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">03</span>
-              <div>
-                <h3 class="card-title">Corporate Communication & Web</h3>
-                <p class="card-subtitle">Official company-wide channels and public web portal</p>
-              </div>
-            </div>
-
-            <div class="form-grid-3">
-              <!-- Official Email -->
-              <div class="form-group" [class.has-error]="isInvalid('email')">
-                <label for="email" class="form-label">
-                  Corporate Email <span class="required-mark">*</span>
-                </label>
-                <div class="input-wrap">
-                  <i class="bi bi-envelope-at input-icon"></i>
-                  <input 
-                    type="email" 
-                    id="email" 
-                    formControlName="email" 
-                    class="form-control" 
-                    placeholder="contact@enterprise.com"
-                  />
-                </div>
-                @if (isInvalid('email')) {
-                  <span class="field-error">
-                    <i class="bi bi-info-circle"></i> Valid corporate email is required
-                  </span>
-                }
-              </div>
-
-              <!-- Landline -->
-              <div class="form-group">
-                <label for="landline" class="form-label">Landline Number</label>
-                <div class="input-wrap">
-                  <i class="bi bi-telephone-inbound input-icon"></i>
-                  <input 
-                    type="tel" 
-                    id="landline" 
-                    formControlName="landline" 
-                    class="form-control" 
-                    placeholder="+1 (555) 019-2834"
-                  />
-                </div>
-              </div>
-
-              <!-- Website URL -->
-              <div class="form-group">
-                <label for="website" class="form-label">Official Website</label>
-                <div class="input-wrap">
-                  <i class="bi bi-globe2 input-icon"></i>
-                  <input 
-                    type="url" 
-                    id="website" 
-                    formControlName="website" 
-                    class="form-control" 
-                    placeholder="https://company.example.com"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 4: Headquarters Address -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">04</span>
-              <div>
-                <h3 class="card-title">Corporate Headquarters</h3>
-                <p class="card-subtitle">Registered office address and country jurisdiction</p>
-              </div>
-            </div>
-
+            <!-- Landline -->
             <div class="form-group">
-              <label for="address" class="form-label">Street Address</label>
+              <label for="landline" class="form-label">Landline Number</label>
               <div class="input-wrap">
-                <i class="bi bi-geo-alt input-icon"></i>
-                <input 
-                  type="text" 
-                  id="address" 
-                  formControlName="address" 
-                  class="form-control" 
-                  placeholder="Suite 500, 100 Innovation Way"
-                />
+                <i class="bi bi-telephone-inbound input-icon"></i>
+                <input type="tel" id="landline" formControlName="landline" class="form-control"
+                  placeholder="+1 (555) 019-2834" />
               </div>
             </div>
 
-            <div class="form-grid-2 mt-3">
-              <!-- City -->
-              <div class="form-group">
-                <label for="city" class="form-label">City</label>
-                <input 
-                  type="text" 
-                  id="city" 
-                  formControlName="city" 
-                  class="form-control" 
-                  placeholder="San Francisco"
-                />
-              </div>
-
-              <!-- Country -->
-              <div class="form-group">
-                <label for="country" class="form-label">Country</label>
-                <input 
-                  type="text" 
-                  id="country" 
-                  formControlName="country" 
-                  class="form-control" 
-                  placeholder="United States"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 5: Brands Dealt With -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">05</span>
-              <div>
-                <h3 class="card-title">Brands Dealt With & Partner Dealerships</h3>
-                <p class="card-subtitle">Select the manufacturer brands this enterprise deals with, represents, or distributes</p>
-              </div>
-            </div>
-
-            <!-- Brands Filter and Selection Bar -->
-            <div class="brands-select-bar">
-              <div class="brands-search-wrapper">
-                <i class="bi bi-search brand-search-icon"></i>
-                <input 
-                  type="text" 
-                  class="brand-search-field" 
-                  placeholder="Filter brands by name..." 
-                  [value]="brandSearchQuery()"
-                  (input)="brandSearchQuery.set($any($event.target).value)"
-                />
-                @if (brandSearchQuery()) {
-                  <button type="button" class="btn-clear-brand-search" (click)="brandSearchQuery.set('')">
-                    <i class="bi bi-x-circle-fill"></i>
-                  </button>
-                }
-              </div>
-
-              <div class="brands-select-actions">
-                <span class="brands-selection-count">
-                  <i class="bi bi-check2-circle"></i>
-                  <strong>{{ selectedBrandIds().length }}</strong> of {{ availableBrands().length }} selected
-                </span>
-                <button type="button" class="btn-brand-helper" (click)="selectAllBrands()" [disabled]="availableBrands().length === 0">
-                  Select All
-                </button>
-                <button type="button" class="btn-brand-helper" (click)="clearSelectedBrands()" [disabled]="selectedBrandIds().length === 0">
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            @if (isLoadingBrands()) {
-              <div class="brands-status-box">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                <span>Loading available brands directory...</span>
-              </div>
-            } @else if (availableBrands().length === 0) {
-              <div class="brands-empty-alert">
-                <div class="brands-empty-icon">
-                  <i class="bi bi-award"></i>
-                </div>
-                <div>
-                  <h4>No Brands Available Yet</h4>
-                  <p>Register brands in the system first so companies can select the brands they deal with.</p>
-                  <a routerLink="/brands" class="btn-brand-nav-link">
-                    <i class="bi bi-plus-circle"></i> Register New Brand
-                  </a>
-                </div>
-              </div>
-            } @else {
-              <div class="brands-grid-selector">
-                @for (brand of filteredAvailableBrands; track brand.id) {
-                  <div 
-                    class="brand-choice-card" 
-                    [class.is-selected]="isBrandSelected(brand.id)"
-                    (click)="toggleBrand(brand.id)"
-                  >
-                    <div class="brand-check-box">
-                      <i class="bi bi-check-lg check-icon"></i>
-                    </div>
-
-                    <div class="brand-choice-logo">
-                      @if (brand.brandLogo) {
-                        <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
-                      } @else {
-                        <div class="brand-choice-fallback">
-                          {{ brand.brandName.substring(0, 2).toUpperCase() }}
-                        </div>
-                      }
-                    </div>
-
-                    <div class="brand-choice-info">
-                      <span class="brand-choice-name" [title]="brand.brandName">{{ brand.brandName }}</span>
-                      @if (brand.isFeatured || brand.featured) {
-                        <span class="brand-featured-badge"><i class="bi bi-star-fill"></i> Featured</span>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-
-          <!-- Section 06: Authorized Products Catalog (From Brands through Categories) -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">06</span>
-              <div>
-                <h3 class="card-title">Authorized Products Catalog</h3>
-                <p class="card-subtitle">Choose products from brands through categories that this enterprise offers or distributes</p>
-              </div>
-            </div>
-
-            <!-- Product Selection Filter & Search Controls -->
-            <div class="product-selection-controls">
-              <!-- Drilldown Filters -->
-              <div class="drilldown-filters-grid">
-                <!-- Brand Filter -->
-                <div class="filter-field-group">
-                  <label class="filter-label">
-                    <i class="bi bi-award"></i> 1. Filter by Brand
-                  </label>
-                  <select 
-                    class="filter-select"
-                    [value]="activeProductBrandFilter()"
-                    (change)="setProductBrandFilter($any($event.target).value)"
-                  >
-                    <option value="all">All Brands ({{ availableProducts().length }} total)</option>
-                    @for (brand of brandsWithProducts(); track brand.id) {
-                      <option [value]="brand.id">
-                        {{ brand.brandName }} ({{ brand.productCount }} prods)
-                      </option>
-                    }
-                  </select>
-                </div>
-
-                <!-- Category Filter -->
-                <div class="filter-field-group">
-                  <label class="filter-label">
-                    <i class="bi bi-folder2-open"></i> 2. Filter by Category
-                  </label>
-                  <select 
-                    class="filter-select"
-                    [value]="activeProductCategoryFilter()"
-                    (change)="setProductCategoryFilter($any($event.target).value)"
-                  >
-                    <option value="all">All Categories</option>
-                    @for (cat of availableCategoriesForBrand(); track cat.id) {
-                      <option [value]="cat.id">{{ cat.name }}</option>
-                    }
-                  </select>
-                </div>
-
-                <!-- Subcategory Filter -->
-                <div class="filter-field-group">
-                  <label class="filter-label">
-                    <i class="bi bi-diagram-3"></i> 3. Filter by Subcategory
-                  </label>
-                  <select 
-                    class="filter-select"
-                    [value]="activeProductSubCategoryFilter()"
-                    (change)="activeProductSubCategoryFilter.set($any($event.target).value)"
-                  >
-                    <option value="all">All Subcategories</option>
-                    @for (sub of availableSubCategoriesForSelection(); track sub.id) {
-                      <option [value]="sub.id">{{ sub.name }}</option>
-                    }
-                  </select>
-                </div>
-
-                <!-- Product Search Query -->
-                <div class="filter-field-group">
-                  <label class="filter-label">
-                    <i class="bi bi-search"></i> Search Product
-                  </label>
-                  <div class="filter-search-wrap">
-                    <input 
-                      type="text" 
-                      class="filter-search-input" 
-                      placeholder="Search name, code..." 
-                      [value]="productSearchQuery()"
-                      (input)="productSearchQuery.set($any($event.target).value)"
-                    />
-                    @if (productSearchQuery()) {
-                      <button type="button" class="btn-clear-prod-search" (click)="productSearchQuery.set('')">
-                        <i class="bi bi-x-circle-fill"></i>
-                      </button>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              <!-- Selection Summary and Actions Bar -->
-              <div class="product-select-actions-bar">
-                <span class="product-selection-count">
-                  <i class="bi bi-box-seam-fill"></i>
-                  <strong>{{ selectedProductIds().length }}</strong> of {{ availableProducts().length }} products chosen
-                  @if (filteredAvailableProducts().length !== availableProducts().length) {
-                    <span class="filtered-hint">({{ filteredAvailableProducts().length }} matching filter)</span>
-                  }
-                </span>
-                <div class="product-action-btns">
-                  <button 
-                    type="button" 
-                    class="btn-prod-helper" 
-                    (click)="selectAllFilteredProducts()" 
-                    [disabled]="filteredAvailableProducts().length === 0"
-                  >
-                    <i class="bi bi-check-all"></i> Select Filtered ({{ filteredAvailableProducts().length }})
-                  </button>
-                  <button 
-                    type="button" 
-                    class="btn-prod-helper" 
-                    (click)="deselectFilteredProducts()" 
-                    [disabled]="filteredAvailableProducts().length === 0"
-                  >
-                    <i class="bi bi-dash-circle"></i> Deselect Filtered
-                  </button>
-                  <button 
-                    type="button" 
-                    class="btn-prod-helper btn-danger-subtle" 
-                    (click)="clearSelectedProducts()" 
-                    [disabled]="selectedProductIds().length === 0"
-                  >
-                    <i class="bi bi-x-lg"></i> Clear
-                  </button>
-                </div>
-              </div>
-
-              <!-- Selected Products Chips -->
-              @if (selectedProductIds().length > 0) {
-                <div class="selected-products-pills">
-                  <span class="selected-pills-label">Selected ({{ selectedProductIds().length }}):</span>
-                  <div class="pills-scroll-wrap">
-                    @for (p of selectedProductsList(); track p.id) {
-                      <span class="prod-pill">
-                        @if (p.image) {
-                          <img [src]="productService.getFileUrl(p.image)" alt="" class="prod-pill-img" />
-                        }
-                        <span class="prod-pill-name">{{ p.name }}</span>
-                        <span class="prod-pill-brand">{{ p.brandName }}</span>
-                        <button type="button" class="prod-pill-remove" (click)="removeSelectedProduct(p.id)" title="Remove product">
-                          <i class="bi bi-x"></i>
-                        </button>
-                      </span>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-
-            <!-- Loading and Empty States -->
-            @if (isLoadingProducts() || isLoadingCategories()) {
-              <div class="brands-status-box">
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                <span>Loading products catalog and categories...</span>
-              </div>
-            } @else if (availableProducts().length === 0) {
-              <div class="brands-empty-alert">
-                <div class="brands-empty-icon">
-                  <i class="bi bi-box-seam"></i>
-                </div>
-                <div>
-                  <h4>No Products Available Yet</h4>
-                  <p>Register products associated with brands and categories so companies can choose their product portfolio.</p>
-                  <a routerLink="/products" class="btn-brand-nav-link">
-                    <i class="bi bi-plus-circle"></i> Register New Product
-                  </a>
-                </div>
-              </div>
-            } @else if (filteredAvailableProducts().length === 0) {
-              <div class="products-no-match">
-                <i class="bi bi-funnel"></i>
-                <p>No products match the selected Brand, Category, or search keyword.</p>
-                <button type="button" class="btn-reset-filters" (click)="setProductBrandFilter('all'); productSearchQuery.set('')">
-                  Reset Brand & Search Filters
-                </button>
-              </div>
-            } @else {
-              <!-- Products Cards Grid -->
-              <div class="products-grid-selector">
-                @for (prod of filteredAvailableProducts(); track prod.id) {
-                  <div 
-                    class="product-choice-card" 
-                    [class.is-selected]="isProductSelected(prod.id)"
-                    (click)="toggleProduct(prod)"
-                  >
-                    <div class="product-check-box">
-                      <i class="bi bi-check-lg check-icon"></i>
-                    </div>
-
-                    <div class="product-choice-thumb">
-                      @if (prod.image) {
-                        <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
-                      } @else {
-                        <div class="product-thumb-fallback">
-                          <i class="bi bi-box"></i>
-                        </div>
-                      }
-                      @if (prod.isFeatured || prod.featured) {
-                        <span class="prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
-                      }
-                    </div>
-
-                    <div class="product-choice-info">
-                      <div class="product-choice-header">
-                        <span class="product-brand-tag" [title]="prod.brandName">
-                          <i class="bi bi-award-fill"></i> {{ prod.brandName }}
-                        </span>
-                        @if (prod.subCategoryName) {
-                          <span class="product-subcat-badge">{{ prod.subCategoryName }}</span>
-                        }
-                      </div>
-
-                      <h4 class="product-choice-name" [title]="prod.name">{{ prod.name }}</h4>
-
-                      <!-- Hierarchy Path Breadcrumb: Category > SubCategory -->
-                      <div class="product-hierarchy-path">
-                        <span class="cat-crumb"><i class="bi bi-folder2"></i> {{ prod.categoryName }}</span>
-                        @if (prod.subCategoryName) {
-                          <i class="bi bi-chevron-right crumb-sep"></i>
-                          <span class="subcat-crumb">{{ prod.subCategoryName }}</span>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-
-          <!-- Section 07: Multiple Visiting Cards & Brand Assets Upload -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">07</span>
-              <div>
-                <h3 class="card-title">Visiting Cards & Brand Assets</h3>
-                <p class="card-subtitle">Upload multiple visiting cards, company logos, certificates, or brochures (JPEG, PNG, WEBP, PDF)</p>
-              </div>
-            </div>
-
-            <!-- Drag & Drop Zone -->
-            <div 
-              class="upload-dropzone" 
-              [class.drag-over]="isDragOver()"
-              [class.has-file]="businessCardItems().length > 0"
-              (dragover)="onDragOver($event)"
-              (dragleave)="onDragLeave($event)"
-              (drop)="onDrop($event)"
-            >
-              <input 
-                #fileInput 
-                type="file" 
-                multiple
-                class="hidden-file-input" 
-                (change)="onFileSelected($event)" 
-                accept=".jpg,.jpeg,.png,.webp,.gif,.pdf"
-              />
-
-              @if (businessCardItems().length === 0) {
-                <div class="dropzone-content" (click)="fileInput.click()">
-                  <div class="upload-icon-pulse">
-                    <i class="bi bi-cloud-arrow-up-fill"></i>
-                  </div>
-                  <h4 class="upload-prompt">Drop your visiting cards or brand documents here</h4>
-                  <p class="upload-hint">or <span class="browse-link">browse files</span> from your computer (select multiple files)</p>
-                  <div class="supported-formats">
-                    <span class="format-tag">PNG</span>
-                    <span class="format-tag">JPG</span>
-                    <span class="format-tag">WEBP</span>
-                    <span class="format-tag">PDF</span>
-                    <span class="format-limit">Max 20MB / file</span>
-                  </div>
-                </div>
-              } @else {
-                <div class="multi-cards-container" (click)="$event.stopPropagation()">
-                  <div class="multi-cards-toolbar">
-                    <div class="toolbar-info">
-                      <i class="bi bi-images"></i>
-                      <span class="toolbar-count">
-                        <strong>{{ businessCardItems().length }}</strong> {{ businessCardItems().length === 1 ? 'card / file' : 'cards / files' }} attached
-                      </span>
-                    </div>
-                    <div class="toolbar-actions">
-                      <button 
-                        type="button" 
-                        class="btn-toolbar-add" 
-                        (click)="fileInput.click()"
-                        title="Add more visiting cards"
-                      >
-                        <i class="bi bi-plus-lg"></i> Add More
-                      </button>
-                      <button 
-                        type="button" 
-                        class="btn-toolbar-clear" 
-                        (click)="clearAllCards($event)"
-                        title="Remove all files"
-                      >
-                        <i class="bi bi-trash3"></i> Clear All
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="cards-preview-grid">
-                    @for (item of businessCardItems(); track item.id; let idx = $index) {
-                      <div class="card-preview-item" [class.is-pdf]="item.isPdf">
-                        <div class="card-thumb-wrap">
-                          @if (!item.isPdf && item.url) {
-                            <img [src]="item.url" [alt]="item.name" class="card-thumb-img" />
-                          } @else {
-                            <div class="card-thumb-pdf">
-                              <i class="bi bi-file-earmark-pdf-fill"></i>
-                              <span class="pdf-badge">PDF</span>
-                            </div>
-                          }
-                          <button 
-                            type="button" 
-                            class="card-remove-btn" 
-                            (click)="removeCardItem(item, $event)" 
-                            title="Remove file"
-                            aria-label="Remove file"
-                          >
-                            <i class="bi bi-x-lg"></i>
-                          </button>
-                          @if (idx === 0) {
-                            <span class="primary-badge" title="Primary display card">Primary</span>
-                          }
-                        </div>
-
-                        <div class="card-item-meta">
-                          <span class="card-file-name" [title]="item.name">{{ item.name }}</span>
-                          <div class="card-file-sub">
-                            @if (item.size) {
-                              <span class="card-file-size">{{ (item.size / 1024) | number:'1.0-1' }} KB</span>
-                            }
-                            @if (item.isExisting) {
-                              <span class="card-status-chip saved"><i class="bi bi-cloud-check-fill"></i> Saved</span>
-                            } @else {
-                              <span class="card-status-chip new"><i class="bi bi-arrow-up-circle-fill"></i> New</span>
-                            }
-                          </div>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-
-          <!-- Section 08: Overview & Description -->
-          <div class="form-card">
-            <div class="card-legend">
-              <span class="step-num">08</span>
-              <div>
-                <h3 class="card-title">Corporate Overview & Profile</h3>
-                <p class="card-subtitle">Summary of company activities, mission, and scope</p>
-              </div>
-            </div>
-
+            <!-- Website URL -->
             <div class="form-group">
-              <label for="description" class="form-label">Company Summary</label>
-              <textarea 
-                id="description" 
-                formControlName="description" 
-                rows="4" 
-                class="form-control textarea-control" 
-                placeholder="Briefly describe your company's core business, services, products, and mission..."
-              ></textarea>
-              <div class="char-count">
-                {{ companyForm.get('description')?.value?.length || 0 }} / 1000 characters
+              <label for="website" class="form-label">Official Website</label>
+              <div class="input-wrap">
+                <i class="bi bi-globe2 input-icon"></i>
+                <input type="url" id="website" formControlName="website" class="form-control"
+                  placeholder="https://company.example.com" />
               </div>
-            </div>
-          </div>
-
-          <!-- Form Actions -->
-          <div class="form-actions">
-            @if (editingCompanyId()) {
-              <button 
-                type="button" 
-                class="btn-secondary" 
-                (click)="cancelEdit()"
-                [disabled]="isSubmitting()"
-              >
-                <i class="bi bi-x-circle"></i> Cancel Edit
-              </button>
-            } @else {
-              <button 
-                type="button" 
-                class="btn-secondary" 
-                (click)="resetForm()"
-                [disabled]="isSubmitting()"
-              >
-                <i class="bi bi-arrow-counterclockwise"></i> Reset Form
-              </button>
-            }
-
-            <button 
-              type="submit" 
-              class="btn-primary" 
-              [disabled]="isSubmitting()"
-              id="btn-register-company"
-            >
-              @if (isSubmitting()) {
-                <span class="spinner-border" role="status" aria-hidden="true"></span>
-                <span>{{ editingCompanyId() ? 'Saving Changes...' : 'Registering Entity...' }}</span>
-              } @else {
-                @if (editingCompanyId()) {
-                  <i class="bi bi-check2-all"></i>
-                  <span>Update Company Details</span>
-                } @else {
-                  <i class="bi bi-check2-circle"></i>
-                  <span>Complete Company Registration</span>
-                }
-              }
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <!-- Right Column: Live Enterprise Card Preview -->
-      <aside class="preview-sidebar">
-        <div class="preview-sticky">
-          <div class="preview-header">
-            <div class="preview-header-titles">
-              <span class="preview-tag">
-                <i class="bi bi-eye-fill"></i> Live Preview
-              </span>
-              <span class="preview-hint">Real-time enterprise card</span>
-            </div>
-            <button 
-              type="button" 
-              class="btn-preview-share" 
-              (click)="shareCurrentPreview()" 
-              title="Share or Export Current Contact Details"
-            >
-              <i class="bi bi-share-fill"></i> Share
-            </button>
-          </div>
-
-          <!-- Business Card Element -->
-          <div class="business-card-display">
-            <div class="card-gloss"></div>
-            
-            <div class="card-top-row">
-              <div class="company-brand-pill">
-                @if (filePreviewUrl()) {
-                  <img [src]="filePreviewUrl()" alt="Company Logo" class="preview-logo-thumb" />
-                } @else {
-                  <div class="preview-logo-placeholder">
-                    <i class="bi bi-building"></i>
-                  </div>
-                }
-                <div class="preview-brand-text">
-                  <h4 class="card-company-name">
-                    {{ companyForm.get('companyName')?.value || 'Your Company Name' }}
-                  </h4>
-                  @if (companyForm.get('contactName')?.value) {
-                    <span class="card-contact-name">
-                      <i class="bi bi-person-fill"></i> {{ companyForm.get('contactName')?.value }}
-                      @if (companyForm.get('contactDesignation')?.value) {
-                        &bull; {{ companyForm.get('contactDesignation')?.value }}
-                      }
-                    </span>
-                  }
-                </div>
-              </div>
-
-              <span class="card-status-badge" [ngClass]="companyForm.get('status')?.value?.toLowerCase()">
-                {{ companyForm.get('status')?.value || 'ACTIVE' }}
-              </span>
-            </div>
-
-            <!-- Multi-cards strip in preview if more than 1 card -->
-            @if (businessCardItems().length > 1) {
-              <div class="preview-cards-strip">
-                <span class="preview-cards-count">
-                  <i class="bi bi-images"></i> {{ businessCardItems().length }} Cards Attached
-                </span>
-                <div class="preview-cards-thumbs">
-                  @for (c of businessCardItems(); track c.id) {
-                    @if (!c.isPdf && c.url) {
-                      <img [src]="c.url" [alt]="c.name" class="strip-thumb" />
-                    } @else {
-                      <span class="strip-thumb-pdf" title="PDF Document"><i class="bi bi-file-earmark-pdf"></i></span>
-                    }
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Card Middle details -->
-            <div class="card-body-details">
-              <!-- Contact person details if present -->
-              @if (companyForm.get('contactMobileNumber')?.value || companyForm.get('contactEmail')?.value) {
-                <div class="preview-contact-box">
-                  <span class="contact-box-title">Key Contact</span>
-                  @if (companyForm.get('contactMobileNumber')?.value) {
-                    <div class="detail-row">
-                      <i class="bi bi-phone"></i>
-                      <span>{{ companyForm.get('contactMobileNumber')?.value }}</span>
-                    </div>
-                  }
-                  @if (companyForm.get('contactEmail')?.value) {
-                    <div class="detail-row">
-                      <i class="bi bi-envelope-at"></i>
-                      <span class="text-truncate">{{ companyForm.get('contactEmail')?.value }}</span>
-                    </div>
-                  }
-                </div>
-              }
-
-              <!-- Corporate Channels -->
-              <div class="detail-row">
-                <i class="bi bi-envelope"></i>
-                <span class="text-truncate">{{ companyForm.get('email')?.value || 'contact@company.com' }}</span>
-              </div>
-
-              @if (companyForm.get('landline')?.value) {
-                <div class="detail-row">
-                  <i class="bi bi-telephone-inbound"></i>
-                  <span>{{ companyForm.get('landline')?.value }}</span>
-                </div>
-              }
-
-              <div class="detail-row">
-                <i class="bi bi-geo-alt"></i>
-                <span class="text-truncate">
-                  @if (companyForm.get('city')?.value || companyForm.get('country')?.value) {
-                    {{ companyForm.get('city')?.value ? companyForm.get('city')?.value + ', ' : '' }}{{ companyForm.get('country')?.value }}
-                  } @else {
-                    Headquarters Location
-                  }
-                </span>
-              </div>
-
-              @if (companyForm.get('website')?.value) {
-                <div class="detail-row">
-                  <i class="bi bi-link-45deg"></i>
-                  <span class="text-truncate text-accent">{{ companyForm.get('website')?.value }}</span>
-                </div>
-              }
-
-              <!-- Partner / Dealt Brands Preview -->
-              @if (selectedBrandIds().length > 0) {
-                <div class="preview-brands-container">
-                  <div class="preview-brands-header">
-                    <span class="preview-brands-title">
-                      <i class="bi bi-award-fill"></i> Brands Dealt With ({{ selectedBrandIds().length }})
-                    </span>
-                  </div>
-                  <div class="preview-brand-tags">
-                    @for (b of selectedBrandsList; track b.id) {
-                      <span class="preview-brand-chip">
-                        @if (b.brandLogo) {
-                          <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="preview-brand-chip-img" />
-                        }
-                        <span>{{ b.brandName }}</span>
-                      </span>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Chosen Products Catalog Preview -->
-              @if (selectedProductIds().length > 0) {
-                <div class="preview-products-container">
-                  <div class="preview-products-header">
-                    <span class="preview-products-title">
-                      <i class="bi bi-box-seam-fill"></i> Products Portfolio ({{ selectedProductIds().length }})
-                    </span>
-                  </div>
-                  <div class="preview-product-tags">
-                    @for (p of selectedProductsList(); track p.id) {
-                      <span class="preview-prod-chip" [title]="p.name + ' (' + p.brandName + ' - ' + p.categoryName + ')'">
-                        @if (p.image) {
-                          <img [src]="productService.getFileUrl(p.image)" alt="" class="preview-prod-chip-img" />
-                        }
-                        <span>{{ p.name }}</span>
-                      </span>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-
-            <!-- Card Description Preview -->
-            @if (companyForm.get('description')?.value) {
-              <div class="card-description-preview">
-                <p>{{ companyForm.get('description')?.value }}</p>
-              </div>
-            }
-
-            <div class="card-footer-bar">
-              <span class="card-system-id">CORPORATE PROFILE IDENTIFIER</span>
-              <span class="card-chip-icon"><i class="bi bi-shield-check"></i> VERIFIED</span>
-            </div>
-          </div>
-
-          <!-- Enterprise Directory Stats Card -->
-          <div class="schema-info-card">
-            <h4 class="schema-card-title">
-              <i class="bi bi-shield-check"></i> Enterprise Directory
-            </h4>
-            <p class="schema-card-text">
-              Centralized corporate registry with verified records, linked partner <strong>Brands</strong>, and verified personnel contacts.
-            </p>
-            <div class="schema-badges">
-              <span class="schema-badge"><i class="bi bi-check-circle-fill"></i> Verified Registry</span>
-              <span class="schema-badge"><i class="bi bi-paperclip"></i> Corporate Assets</span>
-              <span class="schema-badge"><i class="bi bi-telephone"></i> Direct Contacts</span>
             </div>
           </div>
         </div>
-      </aside>
-    </main>
+
+        <!-- Section 4: Headquarters Address -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">04</span>
+            <div>
+              <h3 class="card-title">Corporate Headquarters</h3>
+              <p class="card-subtitle">Registered office address and country jurisdiction</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="address" class="form-label">Street Address</label>
+            <div class="input-wrap">
+              <i class="bi bi-geo-alt input-icon"></i>
+              <input type="text" id="address" formControlName="address" class="form-control"
+                placeholder="Suite 500, 100 Innovation Way" />
+            </div>
+          </div>
+
+          <div class="form-grid-2 mt-3">
+            <!-- City -->
+            <div class="form-group">
+              <label for="city" class="form-label">City</label>
+              <input type="text" id="city" formControlName="city" class="form-control" placeholder="San Francisco" />
+            </div>
+
+            <!-- Country -->
+            <div class="form-group">
+              <label for="country" class="form-label">Country</label>
+              <input type="text" id="country" formControlName="country" class="form-control"
+                placeholder="United States" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: Brands Dealt With -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">05</span>
+            <div>
+              <h3 class="card-title">Brands Dealt With & Partner Dealerships</h3>
+              <p class="card-subtitle">Select the manufacturer brands this enterprise deals with, represents, or
+                distributes</p>
+            </div>
+          </div>
+
+          <!-- Brands Filter and Selection Bar -->
+          <div class="brands-select-bar">
+            <div class="brands-search-wrapper">
+              <i class="bi bi-search brand-search-icon"></i>
+              <input type="text" class="brand-search-field" placeholder="Filter brands by name..."
+                [value]="brandSearchQuery()" (input)="brandSearchQuery.set($any($event.target).value)" />
+              @if (brandSearchQuery()) {
+              <button type="button" class="btn-clear-brand-search" (click)="brandSearchQuery.set('')">
+                <i class="bi bi-x-circle-fill"></i>
+              </button>
+              }
+            </div>
+
+            <div class="brands-select-actions">
+              <span class="brands-selection-count">
+                <i class="bi bi-check2-circle"></i>
+                <strong>{{ selectedBrandIds().length }}</strong> of {{ availableBrands().length }} selected
+              </span>
+              <button type="button" class="btn-brand-helper" (click)="selectAllBrands()"
+                [disabled]="availableBrands().length === 0">
+                Select All
+              </button>
+              <button type="button" class="btn-brand-helper" (click)="clearSelectedBrands()"
+                [disabled]="selectedBrandIds().length === 0">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          @if (isLoadingBrands()) {
+          <div class="brands-status-box">
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            <span>Loading available brands directory...</span>
+          </div>
+          } @else if (availableBrands().length === 0) {
+          <div class="brands-empty-alert">
+            <div class="brands-empty-icon">
+              <i class="bi bi-award"></i>
+            </div>
+            <div>
+              <h4>No Brands Available Yet</h4>
+              <p>Register brands in the system first so companies can select the brands they deal with.</p>
+              <a routerLink="/brands" class="btn-brand-nav-link">
+                <i class="bi bi-plus-circle"></i> Register New Brand
+              </a>
+            </div>
+          </div>
+          } @else {
+          <div class="brands-grid-selector">
+            @for (brand of filteredAvailableBrands; track brand.id) {
+            <div class="brand-choice-card" [class.is-selected]="isBrandSelected(brand.id)"
+              (click)="toggleBrand(brand.id)">
+              <div class="brand-check-box">
+                <i class="bi bi-check-lg check-icon"></i>
+              </div>
+
+              <div class="brand-choice-logo">
+                @if (brand.brandLogo) {
+                <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
+                } @else {
+                <div class="brand-choice-fallback">
+                  {{ brand.brandName.substring(0, 2).toUpperCase() }}
+                </div>
+                }
+              </div>
+
+              <div class="brand-choice-info">
+                <span class="brand-choice-name" [title]="brand.brandName">{{ brand.brandName }}</span>
+                @if (brand.isFeatured || brand.featured) {
+                <span class="brand-featured-badge"><i class="bi bi-star-fill"></i> Featured</span>
+                }
+              </div>
+            </div>
+            }
+          </div>
+          }
+        </div>
+
+        <!-- Section 06: Authorized Products Catalog (From Brands through Categories) -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">06</span>
+            <div>
+              <h3 class="card-title">Authorized Products Catalog</h3>
+              <p class="card-subtitle">Choose products from brands through categories that this enterprise offers or
+                distributes</p>
+            </div>
+          </div>
+
+          <!-- Product Selection Filter & Search Controls -->
+          <div class="product-selection-controls">
+            <!-- Drilldown Filters -->
+            <div class="drilldown-filters-grid">
+              <!-- Brand Filter -->
+              <div class="filter-field-group">
+                <label class="filter-label">
+                  <i class="bi bi-award"></i> 1. Filter by Brand
+                </label>
+                <select class="filter-select" [value]="activeProductBrandFilter()"
+                  (change)="setProductBrandFilter($any($event.target).value)">
+                  <option value="all">All Brands ({{ availableProducts().length }} total)</option>
+                  @for (brand of brandsWithProducts(); track brand.id) {
+                  <option [value]="brand.id">
+                    {{ brand.brandName }} ({{ brand.productCount }} prods)
+                  </option>
+                  }
+                </select>
+              </div>
+
+              <!-- Category Filter -->
+              <div class="filter-field-group">
+                <label class="filter-label">
+                  <i class="bi bi-folder2-open"></i> 2. Filter by Category
+                </label>
+                <select class="filter-select" [value]="activeProductCategoryFilter()"
+                  (change)="setProductCategoryFilter($any($event.target).value)">
+                  <option value="all">All Categories</option>
+                  @for (cat of availableCategoriesForBrand(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Subcategory Filter -->
+              <div class="filter-field-group">
+                <label class="filter-label">
+                  <i class="bi bi-diagram-3"></i> 3. Filter by Subcategory
+                </label>
+                <select class="filter-select" [value]="activeProductSubCategoryFilter()"
+                  (change)="activeProductSubCategoryFilter.set($any($event.target).value)">
+                  <option value="all">All Subcategories</option>
+                  @for (sub of availableSubCategoriesForSelection(); track sub.id) {
+                  <option [value]="sub.id">{{ sub.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Product Search Query -->
+              <div class="filter-field-group">
+                <label class="filter-label">
+                  <i class="bi bi-search"></i> Search Product
+                </label>
+                <div class="filter-search-wrap">
+                  <input type="text" class="filter-search-input" placeholder="Search name, code..."
+                    [value]="productSearchQuery()" (input)="productSearchQuery.set($any($event.target).value)" />
+                  @if (productSearchQuery()) {
+                  <button type="button" class="btn-clear-prod-search" (click)="productSearchQuery.set('')">
+                    <i class="bi bi-x-circle-fill"></i>
+                  </button>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Selection Summary and Actions Bar -->
+            <div class="product-select-actions-bar">
+              <span class="product-selection-count">
+                <i class="bi bi-box-seam-fill"></i>
+                <strong>{{ selectedProductIds().length }}</strong> of {{ availableProducts().length }} products chosen
+                @if (filteredAvailableProducts().length !== availableProducts().length) {
+                <span class="filtered-hint">({{ filteredAvailableProducts().length }} matching filter)</span>
+                }
+              </span>
+              <div class="product-action-btns">
+                <button type="button" class="btn-prod-helper" (click)="selectAllFilteredProducts()"
+                  [disabled]="filteredAvailableProducts().length === 0">
+                  <i class="bi bi-check-all"></i> Select Filtered ({{ filteredAvailableProducts().length }})
+                </button>
+                <button type="button" class="btn-prod-helper" (click)="deselectFilteredProducts()"
+                  [disabled]="filteredAvailableProducts().length === 0">
+                  <i class="bi bi-dash-circle"></i> Deselect Filtered
+                </button>
+                <button type="button" class="btn-prod-helper btn-danger-subtle" (click)="clearSelectedProducts()"
+                  [disabled]="selectedProductIds().length === 0">
+                  <i class="bi bi-x-lg"></i> Clear
+                </button>
+              </div>
+            </div>
+
+            <!-- Selected Products Chips -->
+            @if (selectedProductIds().length > 0) {
+            <div class="selected-products-pills">
+              <span class="selected-pills-label">Selected ({{ selectedProductIds().length }}):</span>
+              <div class="pills-scroll-wrap">
+                @for (p of selectedProductsList(); track p.id) {
+                <span class="prod-pill">
+                  @if (p.image) {
+                  <img [src]="productService.getFileUrl(p.image)" alt="" class="prod-pill-img" />
+                  }
+                  <span class="prod-pill-name">{{ p.name }}</span>
+                  <span class="prod-pill-brand">{{ p.brandName }}</span>
+                  <button type="button" class="prod-pill-remove" (click)="removeSelectedProduct(p.id)"
+                    title="Remove product">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </span>
+                }
+              </div>
+            </div>
+            }
+          </div>
+
+          <!-- Loading and Empty States -->
+          @if (isLoadingProducts() || isLoadingCategories()) {
+          <div class="brands-status-box">
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            <span>Loading products catalog and categories...</span>
+          </div>
+          } @else if (availableProducts().length === 0) {
+          <div class="brands-empty-alert">
+            <div class="brands-empty-icon">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            <div>
+              <h4>No Products Available Yet</h4>
+              <p>Register products associated with brands and categories so companies can choose their product
+                portfolio.</p>
+              <a routerLink="/products" class="btn-brand-nav-link">
+                <i class="bi bi-plus-circle"></i> Register New Product
+              </a>
+            </div>
+          </div>
+          } @else if (filteredAvailableProducts().length === 0) {
+          <div class="products-no-match">
+            <i class="bi bi-funnel"></i>
+            <p>No products match the selected Brand, Category, or search keyword.</p>
+            <button type="button" class="btn-reset-filters"
+              (click)="setProductBrandFilter('all'); productSearchQuery.set('')">
+              Reset Brand & Search Filters
+            </button>
+          </div>
+          } @else {
+          <!-- Products Cards Grid -->
+          <div class="products-grid-selector">
+            @for (prod of filteredAvailableProducts(); track prod.id) {
+            <div class="product-choice-card" [class.is-selected]="isProductSelected(prod.id)"
+              (click)="toggleProduct(prod)">
+              <div class="product-check-box">
+                <i class="bi bi-check-lg check-icon"></i>
+              </div>
+
+              <div class="product-choice-thumb">
+                @if (prod.image) {
+                <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
+                } @else {
+                <div class="product-thumb-fallback">
+                  <i class="bi bi-box"></i>
+                </div>
+                }
+                @if (prod.isFeatured || prod.featured) {
+                <span class="prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
+                }
+              </div>
+
+              <div class="product-choice-info">
+                <div class="product-choice-header">
+                  <span class="product-brand-tag" [title]="prod.brandName">
+                    <i class="bi bi-award-fill"></i> {{ prod.brandName }}
+                  </span>
+                  @if (prod.subCategoryName) {
+                  <span class="product-subcat-badge">{{ prod.subCategoryName }}</span>
+                  }
+                </div>
+
+                <h4 class="product-choice-name" [title]="prod.name">{{ prod.name }}</h4>
+
+                <!-- Hierarchy Path Breadcrumb: Category > SubCategory -->
+                <div class="product-hierarchy-path">
+                  <span class="cat-crumb"><i class="bi bi-folder2"></i> {{ prod.categoryName }}</span>
+                  @if (prod.subCategoryName) {
+                  <i class="bi bi-chevron-right crumb-sep"></i>
+                  <span class="subcat-crumb">{{ prod.subCategoryName }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+        </div>
+
+        <!-- Section 07: Multiple Visiting Cards & Brand Assets Upload -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">07</span>
+            <div>
+              <h3 class="card-title">Visiting Cards & Brand Assets</h3>
+              <p class="card-subtitle">Upload multiple visiting cards, company logos, certificates, or brochures (JPEG,
+                PNG, WEBP, PDF)</p>
+            </div>
+          </div>
+
+          <!-- Drag & Drop Zone -->
+          <div class="upload-dropzone" [class.drag-over]="isDragOver()"
+            [class.has-file]="businessCardItems().length > 0" (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+            <input #fileInput type="file" multiple class="hidden-file-input" (change)="onFileSelected($event)"
+              accept=".jpg,.jpeg,.png,.webp,.gif,.pdf" />
+
+            @if (businessCardItems().length === 0) {
+            <div class="dropzone-content" (click)="fileInput.click()">
+              <div class="upload-icon-pulse">
+                <i class="bi bi-cloud-arrow-up-fill"></i>
+              </div>
+              <h4 class="upload-prompt">Drop your visiting cards or brand documents here</h4>
+              <p class="upload-hint">or <span class="browse-link">browse files</span> from your computer (select
+                multiple files)</p>
+              <div class="supported-formats">
+                <span class="format-tag">PNG</span>
+                <span class="format-tag">JPG</span>
+                <span class="format-tag">WEBP</span>
+                <span class="format-tag">PDF</span>
+                <span class="format-limit">Max 20MB / file</span>
+              </div>
+            </div>
+            } @else {
+            <div class="multi-cards-container" (click)="$event.stopPropagation()">
+              <div class="multi-cards-toolbar">
+                <div class="toolbar-info">
+                  <i class="bi bi-images"></i>
+                  <span class="toolbar-count">
+                    <strong>{{ businessCardItems().length }}</strong> {{ businessCardItems().length === 1 ? 'card /
+                    file' : 'cards / files' }} attached
+                  </span>
+                </div>
+                <div class="toolbar-actions">
+                  <button type="button" class="btn-toolbar-add" (click)="fileInput.click()"
+                    title="Add more visiting cards">
+                    <i class="bi bi-plus-lg"></i> Add More
+                  </button>
+                  <button type="button" class="btn-toolbar-clear" (click)="clearAllCards($event)"
+                    title="Remove all files">
+                    <i class="bi bi-trash3"></i> Clear All
+                  </button>
+                </div>
+              </div>
+
+              <div class="cards-preview-grid">
+                @for (item of businessCardItems(); track item.id; let idx = $index) {
+                <div class="card-preview-item" [class.is-pdf]="item.isPdf">
+                  <div class="card-thumb-wrap">
+                    @if (!item.isPdf && item.url) {
+                    <img [src]="item.url" [alt]="item.name" class="card-thumb-img" />
+                    } @else {
+                    <div class="card-thumb-pdf">
+                      <i class="bi bi-file-earmark-pdf-fill"></i>
+                      <span class="pdf-badge">PDF</span>
+                    </div>
+                    }
+                    <button type="button" class="card-remove-btn" (click)="removeCardItem(item, $event)"
+                      title="Remove file" aria-label="Remove file">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                    @if (idx === 0) {
+                    <span class="primary-badge" title="Primary display card">Primary</span>
+                    }
+                  </div>
+
+                  <div class="card-item-meta">
+                    <span class="card-file-name" [title]="item.name">{{ item.name }}</span>
+                    <div class="card-file-sub">
+                      @if (item.size) {
+                      <span class="card-file-size">{{ (item.size / 1024) | number:'1.0-1' }} KB</span>
+                      }
+                      @if (item.isExisting) {
+                      <span class="card-status-chip saved"><i class="bi bi-cloud-check-fill"></i> Saved</span>
+                      } @else {
+                      <span class="card-status-chip new"><i class="bi bi-arrow-up-circle-fill"></i> New</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+                }
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+
+        <!-- Section 08: Overview & Description -->
+        <div class="form-card">
+          <div class="card-legend">
+            <span class="step-num">08</span>
+            <div>
+              <h3 class="card-title">Corporate Overview & Profile</h3>
+              <p class="card-subtitle">Summary of company activities, mission, and scope</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description" class="form-label">Company Summary</label>
+            <textarea id="description" formControlName="description" rows="4" class="form-control textarea-control"
+              placeholder="Briefly describe your company's core business, services, products, and mission..."></textarea>
+            <div class="char-count">
+              {{ companyForm.get('description')?.value?.length || 0 }} / 1000 characters
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          @if (editingCompanyId()) {
+          <button type="button" class="btn-secondary" (click)="cancelEdit()" [disabled]="isSubmitting()">
+            <i class="bi bi-x-circle"></i> Cancel Edit
+          </button>
+          } @else {
+          <button type="button" class="btn-secondary" (click)="resetForm()" [disabled]="isSubmitting()">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset Form
+          </button>
+          }
+
+          <button type="submit" class="btn-primary" [disabled]="isSubmitting()" id="btn-register-company">
+            @if (isSubmitting()) {
+            <span class="spinner-border" role="status" aria-hidden="true"></span>
+            <span>{{ editingCompanyId() ? 'Saving Changes...' : 'Registering Entity...' }}</span>
+            } @else {
+            @if (editingCompanyId()) {
+            <i class="bi bi-check2-all"></i>
+            <span>Update Company Details</span>
+            } @else {
+            <i class="bi bi-check2-circle"></i>
+            <span>Complete Company Registration</span>
+            }
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Right Column: Live Enterprise Card Preview -->
+    <aside class="preview-sidebar">
+      <div class="preview-sticky">
+        <div class="preview-header">
+          <div class="preview-header-titles">
+            <span class="preview-tag">
+              <i class="bi bi-eye-fill"></i> Live Preview
+            </span>
+            <span class="preview-hint">Real-time enterprise card</span>
+          </div>
+          <button type="button" class="btn-preview-share" (click)="shareCurrentPreview()"
+            title="Share or Export Current Contact Details">
+            <i class="bi bi-share-fill"></i> Share
+          </button>
+        </div>
+
+        <!-- Business Card Element -->
+        <div class="business-card-display">
+          <div class="card-gloss"></div>
+
+          <div class="card-top-row">
+            <div class="company-brand-pill">
+              @if (filePreviewUrl()) {
+              <img [src]="filePreviewUrl()" alt="Company Logo" class="preview-logo-thumb" />
+              } @else {
+              <div class="preview-logo-placeholder">
+                <i class="bi bi-building"></i>
+              </div>
+              }
+              <div class="preview-brand-text">
+                <h4 class="card-company-name">
+                  {{ companyForm.get('companyName')?.value || 'Your Company Name' }}
+                </h4>
+                @if (companyForm.get('contactName')?.value) {
+                <span class="card-contact-name">
+                  <i class="bi bi-person-fill"></i> {{ companyForm.get('contactName')?.value }}
+                  @if (companyForm.get('contactDesignation')?.value) {
+                  &bull; {{ companyForm.get('contactDesignation')?.value }}
+                  }
+                </span>
+                }
+              </div>
+            </div>
+
+            <span class="card-status-badge" [ngClass]="companyForm.get('status')?.value?.toLowerCase()">
+              {{ companyForm.get('status')?.value || 'ACTIVE' }}
+            </span>
+          </div>
+
+          <!-- Multi-cards strip in preview if more than 1 card -->
+          @if (businessCardItems().length > 1) {
+          <div class="preview-cards-strip">
+            <span class="preview-cards-count">
+              <i class="bi bi-images"></i> {{ businessCardItems().length }} Cards Attached
+            </span>
+            <div class="preview-cards-thumbs">
+              @for (c of businessCardItems(); track c.id) {
+              @if (!c.isPdf && c.url) {
+              <img [src]="c.url" [alt]="c.name" class="strip-thumb" />
+              } @else {
+              <span class="strip-thumb-pdf" title="PDF Document"><i class="bi bi-file-earmark-pdf"></i></span>
+              }
+              }
+            </div>
+          </div>
+          }
+
+          <!-- Card Middle details -->
+          <div class="card-body-details">
+            <!-- Contact person details if present -->
+            @if (companyForm.get('contactMobileNumber')?.value || companyForm.get('contactEmail')?.value) {
+            <div class="preview-contact-box">
+              <span class="contact-box-title">Key Contact</span>
+              @if (companyForm.get('contactMobileNumber')?.value) {
+              <div class="detail-row">
+                <i class="bi bi-phone"></i>
+                <span>{{ companyForm.get('contactMobileNumber')?.value }}</span>
+              </div>
+              }
+              @if (companyForm.get('contactEmail')?.value) {
+              <div class="detail-row">
+                <i class="bi bi-envelope-at"></i>
+                <span class="text-truncate">{{ companyForm.get('contactEmail')?.value }}</span>
+              </div>
+              }
+            </div>
+            }
+
+            <!-- Corporate Channels -->
+            <div class="detail-row">
+              <i class="bi bi-envelope"></i>
+              <span class="text-truncate">{{ companyForm.get('email')?.value || 'contact@company.com' }}</span>
+            </div>
+
+            @if (companyForm.get('landline')?.value) {
+            <div class="detail-row">
+              <i class="bi bi-telephone-inbound"></i>
+              <span>{{ companyForm.get('landline')?.value }}</span>
+            </div>
+            }
+
+            <div class="detail-row">
+              <i class="bi bi-geo-alt"></i>
+              <span class="text-truncate">
+                @if (companyForm.get('city')?.value || companyForm.get('country')?.value) {
+                {{ companyForm.get('city')?.value ? companyForm.get('city')?.value + ', ' : '' }}{{
+                companyForm.get('country')?.value }}
+                } @else {
+                Headquarters Location
+                }
+              </span>
+            </div>
+
+            @if (companyForm.get('website')?.value) {
+            <div class="detail-row">
+              <i class="bi bi-link-45deg"></i>
+              <span class="text-truncate text-accent">{{ companyForm.get('website')?.value }}</span>
+            </div>
+            }
+
+            <!-- Partner / Dealt Brands Preview -->
+            @if (selectedBrandIds().length > 0) {
+            <div class="preview-brands-container">
+              <div class="preview-brands-header">
+                <span class="preview-brands-title">
+                  <i class="bi bi-award-fill"></i> Brands Dealt With ({{ selectedBrandIds().length }})
+                </span>
+              </div>
+              <div class="preview-brand-tags">
+                @for (b of selectedBrandsList; track b.id) {
+                <span class="preview-brand-chip">
+                  @if (b.brandLogo) {
+                  <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="preview-brand-chip-img" />
+                  }
+                  <span>{{ b.brandName }}</span>
+                </span>
+                }
+              </div>
+            </div>
+            }
+
+            <!-- Chosen Products Catalog Preview -->
+            @if (selectedProductIds().length > 0) {
+            <div class="preview-products-container">
+              <div class="preview-products-header">
+                <span class="preview-products-title">
+                  <i class="bi bi-box-seam-fill"></i> Products Portfolio ({{ selectedProductIds().length }})
+                </span>
+              </div>
+              <div class="preview-product-tags">
+                @for (p of selectedProductsList(); track p.id) {
+                <span class="preview-prod-chip" [title]="p.name + ' (' + p.brandName + ' - ' + p.categoryName + ')'">
+                  @if (p.image) {
+                  <img [src]="productService.getFileUrl(p.image)" alt="" class="preview-prod-chip-img" />
+                  }
+                  <span>{{ p.name }}</span>
+                </span>
+                }
+              </div>
+            </div>
+            }
+          </div>
+
+          <!-- Card Description Preview -->
+          @if (companyForm.get('description')?.value) {
+          <div class="card-description-preview">
+            <p>{{ companyForm.get('description')?.value }}</p>
+          </div>
+          }
+
+          <div class="card-footer-bar">
+            <span class="card-system-id">CORPORATE PROFILE IDENTIFIER</span>
+            <span class="card-chip-icon"><i class="bi bi-shield-check"></i> VERIFIED</span>
+          </div>
+        </div>
+
+        <!-- Enterprise Directory Stats Card -->
+        <div class="schema-info-card">
+          <h4 class="schema-card-title">
+            <i class="bi bi-shield-check"></i> Enterprise Directory
+          </h4>
+          <p class="schema-card-text">
+            Centralized corporate registry with verified records, linked partner <strong>Brands</strong>, and verified
+            personnel contacts.
+          </p>
+          <div class="schema-badges">
+            <span class="schema-badge"><i class="bi bi-check-circle-fill"></i> Verified Registry</span>
+            <span class="schema-badge"><i class="bi bi-paperclip"></i> Corporate Assets</span>
+            <span class="schema-badge"><i class="bi bi-telephone"></i> Direct Contacts</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
   }
 
   <!-- TAB 2: COMPANY DIRECTORY (VIEW, EDIT, DELETE) -->
   @if (activeTab() === 'directory') {
-    <section class="directory-section">
-      <div class="directory-header">
-        <div>
-          <h2 class="section-title">Registered Companies Directory</h2>
-          <p class="section-desc">Manage, view, edit, and delete company records in the system.</p>
-        </div>
-        <div class="directory-actions">
-          <div class="search-box">
-            <i class="bi bi-search search-icon"></i>
-            <input 
-              type="text" 
-              class="search-input" 
-              placeholder="Search by company name, contact, city..." 
-              [value]="searchQuery()" 
-              (input)="onSearchChange($event)"
-            />
-          </div>
-          <button type="button" class="btn-refresh" (click)="fetchCompanies()" title="Refresh database records">
-            <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
-          </button>
-          <button 
-            type="button" 
-            class="btn-excel-export" 
-            (click)="exportToExcel()" 
-            [disabled]="isExportingExcel() || companies().length === 0"
-            title="Export all registered companies to Excel (.xlsx)"
-          >
-            @if (isExportingExcel()) {
-              <span class="spinner-border spinner-border-sm" role="status"></span>
-              <span>Exporting...</span>
-            } @else {
-              <i class="bi bi-file-earmark-excel-fill"></i>
-              <span>Export Excel</span>
-            }
-          </button>
-          <button 
-            type="button" 
-            class="btn-pdf-export" 
-            (click)="exportToPdf()" 
-            [disabled]="isExportingPdf() || companies().length === 0"
-            title="Export all registered companies to official PDF document (.pdf)"
-          >
-            @if (isExportingPdf()) {
-              <span class="spinner-border spinner-border-sm" role="status"></span>
-              <span>Generating...</span>
-            } @else {
-              <i class="bi bi-file-earmark-pdf-fill"></i>
-              <span>Export PDF</span>
-            }
-          </button>
-          <button type="button" class="btn-primary-sm" (click)="cancelEdit(); activeTab.set('register')">
-            <i class="bi bi-plus-lg"></i> New Company
-          </button>
-        </div>
+  <section class="directory-section">
+    <div class="directory-header">
+      <div>
+        <h2 class="section-title">Registered Companies Directory</h2>
+        <p class="section-desc">Manage, view, edit, and delete company records in the system.</p>
       </div>
-
-      <!-- Companies Grid / List -->
-      @if (isLoadingList()) {
-        <div class="loading-state">
-          <div class="spinner-border large-spinner"></div>
-          <p>Loading registered companies...</p>
-        </div>
-      } @else if (filteredCompanies.length === 0) {
-        <div class="empty-state">
-          <div class="empty-icon-wrap">
-            <i class="bi bi-buildings"></i>
-          </div>
-          <h3>No Companies Found</h3>
-          <p>No records match your criteria or none have been registered yet.</p>
-          <button type="button" class="btn-primary mt-3" (click)="cancelEdit(); activeTab.set('register')">
-            <i class="bi bi-plus-lg"></i> Register New Company
+      <div class="directory-actions">
+        <div class="search-box">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" class="search-input" placeholder="Search by company name, contact, city..."
+            [value]="searchQuery()" (input)="onSearchChange($event)" (focus)="onSearchFocus()" (blur)="onSearchBlur()"
+            (keydown)="onSearchKeyDown($event)" autocomplete="off" spellcheck="false"
+            aria-autocomplete="list" [attr.aria-expanded]="isSearchFocused()" />
+          
+          @if (searchQuery().trim().length > 0) {
+          <button type="button" class="btn-clear-search" (click)="clearSearch()" title="Clear search query" aria-label="Clear search">
+            <i class="bi bi-x-circle-fill"></i>
           </button>
-        </div>
-      } @else {
-        <div class="companies-grid">
-          @for (company of filteredCompanies; track company.id) {
-            <div class="company-card-item" (click)="openCompanyDetail(company)">
-              <div class="card-item-header">
-                <div class="card-avatar">
-                  @if (getCompanyCards(company).length > 0 && !getCompanyCards(company)[0].endsWith('.pdf')) {
-                    <img [src]="companyService.getFileUrl(getCompanyCards(company)[0])" alt="{{ company.companyName }}" />
-                  } @else {
-                    <div class="avatar-fallback">
-                      {{ company.companyName.charAt(0).toUpperCase() }}
-                    </div>
-                  }
-                  @if (getCompanyCards(company).length > 1) {
-                    <span class="avatar-multi-badge" [title]="getCompanyCards(company).length + ' visiting cards'">
-                      <i class="bi bi-images"></i> {{ getCompanyCards(company).length }}
-                    </span>
-                  }
-                </div>
-                <div class="card-header-titles">
-                  <h3 class="card-item-title">{{ company.companyName }}</h3>
-                  @if (company.contactName) {
-                    <span class="card-item-contact">
-                      <i class="bi bi-person"></i> {{ company.contactName }}
-                    </span>
-                  }
-                </div>
-                <span class="card-status-badge mini" [ngClass]="company.status.toLowerCase()">
-                  {{ company.status }}
-                </span>
+          }
+
+          <!-- Live Autofill / Autocomplete Dropdown -->
+          @if (isSearchFocused()) {
+          <div class="search-autofill-dropdown" (mousedown)="$event.preventDefault()" role="listbox">
+            <div class="autofill-header">
+              <div class="autofill-header-title">
+                <i class="bi bi-stars"></i>
+                <span>{{ searchQuery().trim() ? 'Matching Companies' : 'Popular / Recent Entities' }}</span>
+                <span class="autofill-badge">{{ searchSuggestions().length }}</span>
               </div>
-
-              <p class="card-item-desc">
-                {{ company.description ? company.description : 'No corporate summary provided.' }}
-              </p>
-
-              <div class="card-item-details">
-                <div class="detail-chip">
-                  <i class="bi bi-envelope"></i>
-                  <span>{{ company.email || 'N/A' }}</span>
-                </div>
-                @if (company.landline) {
-                  <div class="detail-chip">
-                    <i class="bi bi-telephone-inbound"></i>
-                    <span>{{ company.landline }}</span>
-                  </div>
-                }
-                <div class="detail-chip">
-                  <i class="bi bi-geo-alt"></i>
-                  <span>{{ company.city ? company.city + ', ' : '' }}{{ company.country || 'Global' }}</span>
-                </div>
-              </div>
-
-              <!-- Brands Dealt With in Directory Card -->
-              @if (company.brands && company.brands.length > 0) {
-                <div class="card-brands-row">
-                  <span class="card-brands-label">
-                    <i class="bi bi-award-fill"></i> Brands ({{ company.brands.length }}):
-                  </span>
-                  <div class="card-brands-list">
-                    @for (b of company.brands; track b.id) {
-                      <span class="card-brand-badge" [title]="b.brandName">
-                        @if (b.brandLogo) {
-                          <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="card-brand-badge-img" />
-                        }
-                        <span>{{ b.brandName }}</span>
-                      </span>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Products in Directory Card -->
-              @if (company.products && company.products.length > 0) {
-                <div class="card-products-row">
-                  <span class="card-products-label">
-                    <i class="bi bi-box-seam-fill"></i> Products ({{ company.products.length }}):
-                  </span>
-                  <div class="card-products-list">
-                    @for (p of company.products.slice(0, 3); track p.id) {
-                      <span class="card-prod-badge" [title]="p.name + ' (' + (p.brandName || '') + ')'">
-                        {{ p.name }}
-                      </span>
-                    }
-                    @if (company.products.length > 3) {
-                      <span class="card-more-badge">+{{ company.products.length - 3 }} more</span>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Action Bar on each card: View, Edit, Delete -->
-              <div class="card-item-footer" (click)="$event.stopPropagation()">
-                <span class="card-created-date">
-                  <i class="bi bi-hash"></i> ID: {{ company.id }}
-                </span>
-                
-                <div class="card-actions-group">
-                  <!-- View Button -->
-                  <button 
-                    type="button" 
-                    class="btn-action-view" 
-                    (click)="openCompanyDetail(company)" 
-                    title="View Company Details"
-                  >
-                    <i class="bi bi-eye"></i> View
-                  </button>
-
-                  <!-- Share Button -->
-                  <button 
-                    type="button" 
-                    class="btn-action-share" 
-                    (click)="openShareModal(company, $event)" 
-                    title="Share Contact Profile (WhatsApp, Email, vCard, Copy)"
-                  >
-                    <i class="bi bi-share-fill"></i> Share
-                  </button>
-
-                  <!-- PDF Download Button with Business Cards -->
-                  <button 
-                    type="button" 
-                    class="btn-action-pdf" 
-                    (click)="downloadCompanyPdf(company, $event)" 
-                    [disabled]="isExportingCompanyPdf() === company.id"
-                    title="Download Executive PDF Profile with Business Cards"
-                  >
-                    @if (isExportingCompanyPdf() === company.id) {
-                      <span class="spinner-border spinner-border-sm" role="status"></span>
-                    } @else {
-                      <i class="bi bi-file-earmark-pdf-fill"></i> PDF
-                    }
-                  </button>
-
-                  <!-- Edit Button -->
-                  <button 
-                    type="button" 
-                    class="btn-action-edit" 
-                    (click)="startEdit(company, $event)" 
-                    title="Edit Company Record"
-                  >
-                    <i class="bi bi-pencil"></i> Edit
-                  </button>
-
-                  <!-- Delete Button -->
-                  <button 
-                    type="button" 
-                    class="btn-action-delete" 
-                    (click)="promptDelete(company, $event)" 
-                    title="Delete Company"
-                  >
-                    <i class="bi bi-trash3"></i>
-                  </button>
-                </div>
+              <div class="autofill-kbd-hints">
+                <span class="kbd-pill"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+                <span class="kbd-pill"><kbd>↵</kbd> select</span>
+                <span class="kbd-pill"><kbd>esc</kbd> close</span>
               </div>
             </div>
+
+            @if (searchSuggestions().length > 0) {
+            <div class="autofill-list">
+              @for (suggestion of searchSuggestions(); track suggestion.id; let idx = $index) {
+              <div class="autofill-item" [class.is-active]="activeAutofillIndex() === idx"
+                (mouseenter)="activeAutofillIndex.set(idx)" (click)="selectSuggestion(suggestion)" role="option"
+                [attr.aria-selected]="activeAutofillIndex() === idx">
+                <div class="autofill-avatar">
+                  @if (getCompanyCards(suggestion).length > 0 && !getCompanyCards(suggestion)[0].endsWith('.pdf')) {
+                  <img [src]="companyService.getFileUrl(getCompanyCards(suggestion)[0])" alt="{{ suggestion.companyName }}" />
+                  } @else {
+                  <div class="autofill-avatar-fallback">
+                    {{ suggestion.companyName.charAt(0).toUpperCase() }}
+                  </div>
+                  }
+                </div>
+
+                <div class="autofill-content">
+                  <div class="autofill-name">
+                    @for (segment of getHighlightSegments(suggestion.companyName, searchQuery()); track $index) {
+                      @if (segment.isMatch) {
+                        <mark class="autofill-mark">{{ segment.text }}</mark>
+                      } @else {
+                        <span>{{ segment.text }}</span>
+                      }
+                    }
+                  </div>
+                  <div class="autofill-meta">
+                    @if (suggestion.contactName) {
+                    <span class="meta-tag"><i class="bi bi-person"></i> {{ suggestion.contactName }}</span>
+                    }
+                    @if (suggestion.city || suggestion.country) {
+                    <span class="meta-tag"><i class="bi bi-geo-alt"></i> {{ suggestion.city || suggestion.country }}</span>
+                    }
+                    @if (suggestion.brands && suggestion.brands.length > 0) {
+                    <span class="meta-tag brands-tag"><i class="bi bi-tags"></i> {{ suggestion.brands.length }} brands</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="autofill-actions">
+                  <span class="card-status-badge mini" [ngClass]="suggestion.status.toLowerCase()">
+                    {{ suggestion.status }}
+                  </span>
+                  <button type="button" class="btn-suggestion-preview" (click)="selectSuggestionAndOpen(suggestion, $event)"
+                    title="View Company Details">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+              }
+            </div>
+            } @else {
+            <div class="autofill-no-results">
+              <i class="bi bi-search"></i>
+              <div class="no-results-text">
+                <p>No companies found matching "<strong>{{ searchQuery() }}</strong>"</p>
+                <small>Try searching by contact person, city, or brand name</small>
+              </div>
+            </div>
+            }
+
+            <div class="autofill-footer">
+              <span><i class="bi bi-info-circle"></i> Click suggestion to filter directory or press <kbd>↵</kbd></span>
+            </div>
+          </div>
           }
         </div>
+        <button type="button" class="btn-refresh" (click)="fetchCompanies()" title="Refresh database records">
+          <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
+        </button>
+        <button type="button" class="btn-excel-export" (click)="exportToExcel()"
+          [disabled]="isExportingExcel() || companies().length === 0"
+          title="Export all registered companies to Excel (.xlsx)">
+          @if (isExportingExcel()) {
+          <span class="spinner-border spinner-border-sm" role="status"></span>
+          <span>Exporting...</span>
+          } @else {
+          <i class="bi bi-file-earmark-excel-fill"></i>
+          <span>Export Excel</span>
+          }
+        </button>
+        <button type="button" class="btn-pdf-export" (click)="exportToPdf()"
+          [disabled]="isExportingPdf() || companies().length === 0"
+          title="Export all registered companies to official PDF document (.pdf)">
+          @if (isExportingPdf()) {
+          <span class="spinner-border spinner-border-sm" role="status"></span>
+          <span>Generating...</span>
+          } @else {
+          <i class="bi bi-file-earmark-pdf-fill"></i>
+          <span>Export PDF</span>
+          }
+        </button>
+        <button type="button" class="btn-primary-sm" (click)="cancelEdit(); activeTab.set('register')">
+          <i class="bi bi-plus-lg"></i> New Company
+        </button>
+      </div>
+    </div>
+
+    <!-- Companies Grid / List -->
+    @if (isLoadingList()) {
+    <div class="loading-state">
+      <div class="spinner-border large-spinner"></div>
+      <p>Loading registered companies...</p>
+    </div>
+    } @else if (filteredCompanies.length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon-wrap">
+        <i class="bi bi-buildings"></i>
+      </div>
+      <h3>No Companies Found</h3>
+      <p>No records match your criteria or none have been registered yet.</p>
+      <button type="button" class="btn-primary mt-3" (click)="cancelEdit(); activeTab.set('register')">
+        <i class="bi bi-plus-lg"></i> Register New Company
+      </button>
+    </div>
+    } @else {
+    <div class="companies-grid">
+      @for (company of filteredCompanies; track company.id) {
+      <div class="company-card-item" (click)="openCompanyDetail(company)">
+        <div class="card-item-header">
+          <div class="card-avatar">
+            @if (getCompanyCards(company).length > 0 && !getCompanyCards(company)[0].endsWith('.pdf')) {
+            <img [src]="companyService.getFileUrl(getCompanyCards(company)[0])" alt="{{ company.companyName }}" />
+            } @else {
+            <div class="avatar-fallback">
+              {{ company.companyName.charAt(0).toUpperCase() }}
+            </div>
+            }
+            @if (getCompanyCards(company).length > 1) {
+            <span class="avatar-multi-badge" [title]="getCompanyCards(company).length + ' visiting cards'">
+              <i class="bi bi-images"></i> {{ getCompanyCards(company).length }}
+            </span>
+            }
+          </div>
+          <div class="card-header-titles">
+            <h3 class="card-item-title">{{ company.companyName }}</h3>
+            @if (company.contactName) {
+            <span class="card-item-contact">
+              <i class="bi bi-person"></i> {{ company.contactName }}
+            </span>
+            }
+          </div>
+          <span class="card-status-badge mini" [ngClass]="company.status.toLowerCase()">
+            {{ company.status }}
+          </span>
+        </div>
+
+        <p class="card-item-desc">
+          {{ company.description ? company.description : 'No corporate summary provided.' }}
+        </p>
+
+        <div class="card-item-details">
+          <div class="detail-chip">
+            <i class="bi bi-envelope"></i>
+            <span>{{ company.email || 'N/A' }}</span>
+          </div>
+          @if (company.landline) {
+          <div class="detail-chip">
+            <i class="bi bi-telephone-inbound"></i>
+            <span>{{ company.landline }}</span>
+          </div>
+          }
+          <div class="detail-chip">
+            <i class="bi bi-geo-alt"></i>
+            <span>{{ company.city ? company.city + ', ' : '' }}{{ company.country || 'Global' }}</span>
+          </div>
+        </div>
+
+        <!-- Brands Dealt With in Directory Card -->
+        @if (company.brands && company.brands.length > 0) {
+        <div class="card-brands-row">
+          <span class="card-brands-label">
+            <i class="bi bi-award-fill"></i> Brands ({{ company.brands.length }}):
+          </span>
+          <div class="card-brands-list">
+            @for (b of company.brands; track b.id) {
+            <span class="card-brand-badge" [title]="b.brandName">
+              @if (b.brandLogo) {
+              <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="card-brand-badge-img" />
+              }
+              <span>{{ b.brandName }}</span>
+            </span>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Products in Directory Card -->
+        @if (company.products && company.products.length > 0) {
+        <div class="card-products-row">
+          <span class="card-products-label">
+            <i class="bi bi-box-seam-fill"></i> Products ({{ company.products.length }}):
+          </span>
+          <div class="card-products-list">
+            @for (p of company.products.slice(0, 3); track p.id) {
+            <span class="card-prod-badge" [title]="p.name + ' (' + (p.brandName || '') + ')'">
+              {{ p.name }}
+            </span>
+            }
+            @if (company.products.length > 3) {
+            <span class="card-more-badge">+{{ company.products.length - 3 }} more</span>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Action Bar on each card: View, Edit, Delete -->
+        <div class="card-item-footer" (click)="$event.stopPropagation()">
+          <span class="card-created-date">
+            <i class="bi bi-hash"></i> ID: {{ company.id }}
+          </span>
+
+          <div class="card-actions-group">
+            <!-- View Button -->
+            <button type="button" class="btn-action-view" (click)="openCompanyDetail(company)"
+              title="View Company Details">
+              <i class="bi bi-eye"></i> View
+            </button>
+
+            <!-- Share Button -->
+            <button type="button" class="btn-action-share" (click)="openShareModal(company, $event)"
+              title="Share Contact Profile (WhatsApp, Email, vCard, Copy)">
+              <i class="bi bi-share-fill"></i> Share
+            </button>
+
+            <!-- PDF Download Button with Business Cards -->
+            <button type="button" class="btn-action-pdf" (click)="downloadCompanyPdf(company, $event)"
+              [disabled]="isExportingCompanyPdf() === company.id"
+              title="Download Executive PDF Profile with Business Cards">
+              @if (isExportingCompanyPdf() === company.id) {
+              <span class="spinner-border spinner-border-sm" role="status"></span>
+              } @else {
+              <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+              }
+            </button>
+
+            <!-- Edit Button -->
+            <button type="button" class="btn-action-edit" (click)="startEdit(company, $event)"
+              title="Edit Company Record">
+              <i class="bi bi-pencil"></i> Edit
+            </button>
+
+            <!-- Delete Button -->
+            <button type="button" class="btn-action-delete" (click)="promptDelete(company, $event)"
+              title="Delete Company">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </div>
+      </div>
       }
-    </section>
+    </div>
+    }
+  </section>
   }
 
   <!-- View Company Detail Modal -->
   @if (selectedCompany()) {
-    <div class="modal-backdrop" (click)="closeCompanyDetail()">
-      <div class="modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title-group">
-            <span class="modal-pretitle">Enterprise Profile &bull; ID #{{ selectedCompany()?.id }}</span>
-            <h3 class="modal-title">{{ selectedCompany()?.companyName }}</h3>
+  <div class="modal-backdrop" (click)="closeCompanyDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-pretitle">Enterprise Profile &bull; ID #{{ selectedCompany()?.id }}</span>
+          <h3 class="modal-title">{{ selectedCompany()?.companyName }}</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeCompanyDetail()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-meta-bar">
+          <div class="meta-item">
+            <span class="meta-label">Status</span>
+            <span class="card-status-badge mini" [ngClass]="selectedCompany()?.status?.toLowerCase()">
+              {{ selectedCompany()?.status }}
+            </span>
           </div>
-          <button type="button" class="modal-close-btn" (click)="closeCompanyDetail()">
-            <i class="bi bi-x-lg"></i>
+          <div class="meta-item">
+            <span class="meta-label">Corporate Email</span>
+            <span class="meta-value">{{ selectedCompany()?.email }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Landline</span>
+            <span class="meta-value">{{ selectedCompany()?.landline || 'Not Specified' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Contact Person</span>
+            <span class="meta-value">
+              {{ selectedCompany()?.contactName || 'N/A' }}
+              @if (selectedCompany()?.contactDesignation) {
+              ({{ selectedCompany()?.contactDesignation }})
+              }
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Contact Mobile</span>
+            <span class="meta-value">{{ selectedCompany()?.contactMobileNumber || 'N/A' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Contact Email</span>
+            <span class="meta-value">{{ selectedCompany()?.contactEmail || 'N/A' }}</span>
+          </div>
+        </div>
+
+        <div class="modal-info-grid">
+          <div class="info-block">
+            <label class="info-label"><i class="bi bi-geo-alt-fill"></i> Registered Address</label>
+            <p class="info-text">{{ selectedCompany()?.address || 'N/A' }}</p>
+            <p class="info-subtext">
+              {{ selectedCompany()?.city ? selectedCompany()?.city + ', ' : '' }}
+              {{ selectedCompany()?.country }}
+            </p>
+          </div>
+
+          <div class="info-block">
+            <label class="info-label"><i class="bi bi-globe"></i> Online Presence</label>
+            @if (selectedCompany()?.website) {
+            <a [href]="selectedCompany()?.website" target="_blank" class="web-link">
+              {{ selectedCompany()?.website }} <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+            } @else {
+            <p class="info-text text-muted">No website provided</p>
+            }
+          </div>
+        </div>
+
+        <!-- Brands Dealt With Modal Section -->
+        @if (selectedCompany()?.brands && selectedCompany()!.brands!.length > 0) {
+        <div class="info-block mt-3">
+          <label class="info-label">
+            <i class="bi bi-award-fill"></i> Brands Dealt With ({{ selectedCompany()!.brands!.length }})
+          </label>
+          <div class="modal-brands-grid">
+            @for (brand of selectedCompany()!.brands!; track brand.id) {
+            <div class="modal-brand-card">
+              <div class="modal-brand-logo">
+                @if (brand.brandLogo) {
+                <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
+                } @else {
+                <div class="modal-brand-fallback">{{ brand.brandName.substring(0, 2).toUpperCase() }}</div>
+                }
+              </div>
+              <div class="modal-brand-details">
+                <span class="modal-brand-name">{{ brand.brandName }}</span>
+                @if (brand.isFeatured || brand.featured) {
+                <span class="modal-brand-featured-tag"><i class="bi bi-star-fill"></i> Featured Brand</span>
+                }
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Chosen Products Portfolio Modal Section -->
+        @if (selectedCompany()?.products && selectedCompany()!.products!.length > 0) {
+        <div class="info-block mt-3">
+          <label class="info-label">
+            <i class="bi bi-box-seam-fill"></i> Products Portfolio ({{ selectedCompany()!.products!.length }})
+          </label>
+          <div class="modal-products-grid">
+            @for (prod of selectedCompany()!.products!; track prod.id) {
+            <div class="modal-product-card">
+              <div class="modal-product-thumb">
+                @if (prod.image) {
+                <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
+                } @else {
+                <div class="modal-product-fallback"><i class="bi bi-box"></i></div>
+                }
+              </div>
+              <div class="modal-product-details">
+                <div class="modal-prod-top">
+                  <span class="modal-prod-brand"><i class="bi bi-award"></i> {{ prod.brandName }}</span>
+                  @if (prod.isFeatured || prod.featured) {
+                  <span class="modal-prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
+                  }
+                </div>
+                <span class="modal-product-name">{{ prod.name }}</span>
+                <div class="modal-prod-cat-path">
+                  <span>{{ prod.categoryName }}</span>
+                  @if (prod.subCategoryName) {
+                  <span> &rsaquo; {{ prod.subCategoryName }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        @if (selectedCompany()?.description) {
+        <div class="info-block mt-3">
+          <label class="info-label"><i class="bi bi-card-text"></i> Description</label>
+          <p class="info-text">{{ selectedCompany()?.description }}</p>
+        </div>
+        }
+
+        @if (getCompanyCards(selectedCompany()!).length > 0) {
+        <div class="info-block mt-3">
+          <label class="info-label">
+            <i class="bi bi-collection"></i> Visiting Cards & Brand Documents ({{
+            getCompanyCards(selectedCompany()!).length }})
+          </label>
+          <div class="modal-cards-grid">
+            @for (card of getCompanyCards(selectedCompany()!); track card) {
+            @if (card.endsWith('.pdf')) {
+            <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-pdf-card"
+              title="Click to view full PDF document">
+              <div class="modal-pdf-icon-wrap">
+                <i class="bi bi-file-earmark-pdf-fill"></i>
+              </div>
+              <div class="modal-pdf-details">
+                <span class="modal-pdf-title">Visiting Card (PDF)</span>
+                <span class="modal-pdf-sub">Open document &rsaquo;</span>
+              </div>
+            </a>
+            } @else {
+            <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-img-card"
+              title="Click to view full size image">
+              <img [src]="companyService.getFileUrl(card)" alt="Business Card" class="modal-card-thumbnail" />
+              <div class="modal-img-overlay">
+                <i class="bi bi-arrows-fullscreen"></i>
+              </div>
+            </a>
+            }
+            }
+          </div>
+        </div>
+        }
+      </div>
+
+      <div class="modal-footer modal-footer-actions">
+        <div class="modal-left-actions">
+          <button type="button" class="btn-danger-outline" (click)="promptDelete(selectedCompany()!)">
+            <i class="bi bi-trash3"></i> Delete
+          </button>
+          <button type="button" class="btn-edit-action" (click)="startEdit(selectedCompany()!)">
+            <i class="bi bi-pencil-square"></i> Edit
+          </button>
+          <button type="button" class="btn-share-modal-action" (click)="openShareModal(selectedCompany()!)"
+            title="Share Contact Profile (WhatsApp, Email, vCard, Copy)">
+            <i class="bi bi-share-fill"></i> Share Contact
+          </button>
+          <button type="button" class="btn-pdf-modal-action" (click)="downloadCompanyPdf(selectedCompany()!)"
+            [disabled]="isExportingCompanyPdf() === selectedCompany()?.id"
+            title="Download Executive PDF Profile with Business Card Images">
+            @if (isExportingCompanyPdf() === selectedCompany()?.id) {
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            <span>Generating...</span>
+            } @else {
+            <i class="bi bi-file-earmark-pdf-fill"></i>
+            <span>PDF Profile</span>
+            }
           </button>
         </div>
-
-        <div class="modal-body">
-          <div class="modal-meta-bar">
-            <div class="meta-item">
-              <span class="meta-label">Status</span>
-              <span class="card-status-badge mini" [ngClass]="selectedCompany()?.status?.toLowerCase()">
-                {{ selectedCompany()?.status }}
-              </span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Corporate Email</span>
-              <span class="meta-value">{{ selectedCompany()?.email }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Landline</span>
-              <span class="meta-value">{{ selectedCompany()?.landline || 'Not Specified' }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Contact Person</span>
-              <span class="meta-value">
-                {{ selectedCompany()?.contactName || 'N/A' }}
-                @if (selectedCompany()?.contactDesignation) {
-                  ({{ selectedCompany()?.contactDesignation }})
-                }
-              </span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Contact Mobile</span>
-              <span class="meta-value">{{ selectedCompany()?.contactMobileNumber || 'N/A' }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Contact Email</span>
-              <span class="meta-value">{{ selectedCompany()?.contactEmail || 'N/A' }}</span>
-            </div>
-          </div>
-
-          <div class="modal-info-grid">
-            <div class="info-block">
-              <label class="info-label"><i class="bi bi-geo-alt-fill"></i> Registered Address</label>
-              <p class="info-text">{{ selectedCompany()?.address || 'N/A' }}</p>
-              <p class="info-subtext">
-                {{ selectedCompany()?.city ? selectedCompany()?.city + ', ' : '' }}
-                {{ selectedCompany()?.country }}
-              </p>
-            </div>
-
-            <div class="info-block">
-              <label class="info-label"><i class="bi bi-globe"></i> Online Presence</label>
-              @if (selectedCompany()?.website) {
-                <a [href]="selectedCompany()?.website" target="_blank" class="web-link">
-                  {{ selectedCompany()?.website }} <i class="bi bi-box-arrow-up-right"></i>
-                </a>
-              } @else {
-                <p class="info-text text-muted">No website provided</p>
-              }
-            </div>
-          </div>
-
-          <!-- Brands Dealt With Modal Section -->
-          @if (selectedCompany()?.brands && selectedCompany()!.brands!.length > 0) {
-            <div class="info-block mt-3">
-              <label class="info-label">
-                <i class="bi bi-award-fill"></i> Brands Dealt With ({{ selectedCompany()!.brands!.length }})
-              </label>
-              <div class="modal-brands-grid">
-                @for (brand of selectedCompany()!.brands!; track brand.id) {
-                  <div class="modal-brand-card">
-                    <div class="modal-brand-logo">
-                      @if (brand.brandLogo) {
-                        <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
-                      } @else {
-                        <div class="modal-brand-fallback">{{ brand.brandName.substring(0, 2).toUpperCase() }}</div>
-                      }
-                    </div>
-                    <div class="modal-brand-details">
-                      <span class="modal-brand-name">{{ brand.brandName }}</span>
-                      @if (brand.isFeatured || brand.featured) {
-                        <span class="modal-brand-featured-tag"><i class="bi bi-star-fill"></i> Featured Brand</span>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Chosen Products Portfolio Modal Section -->
-          @if (selectedCompany()?.products && selectedCompany()!.products!.length > 0) {
-            <div class="info-block mt-3">
-              <label class="info-label">
-                <i class="bi bi-box-seam-fill"></i> Products Portfolio ({{ selectedCompany()!.products!.length }})
-              </label>
-              <div class="modal-products-grid">
-                @for (prod of selectedCompany()!.products!; track prod.id) {
-                  <div class="modal-product-card">
-                    <div class="modal-product-thumb">
-                      @if (prod.image) {
-                        <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
-                      } @else {
-                        <div class="modal-product-fallback"><i class="bi bi-box"></i></div>
-                      }
-                    </div>
-                    <div class="modal-product-details">
-                      <div class="modal-prod-top">
-                        <span class="modal-prod-brand"><i class="bi bi-award"></i> {{ prod.brandName }}</span>
-                        @if (prod.isFeatured || prod.featured) {
-                          <span class="modal-prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
-                        }
-                      </div>
-                      <span class="modal-product-name">{{ prod.name }}</span>
-                      <div class="modal-prod-cat-path">
-                        <span>{{ prod.categoryName }}</span>
-                        @if (prod.subCategoryName) {
-                          <span> &rsaquo; {{ prod.subCategoryName }}</span>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          @if (selectedCompany()?.description) {
-            <div class="info-block mt-3">
-              <label class="info-label"><i class="bi bi-card-text"></i> Description</label>
-              <p class="info-text">{{ selectedCompany()?.description }}</p>
-            </div>
-          }
-
-          @if (getCompanyCards(selectedCompany()!).length > 0) {
-            <div class="info-block mt-3">
-              <label class="info-label">
-                <i class="bi bi-collection"></i> Visiting Cards & Brand Documents ({{ getCompanyCards(selectedCompany()!).length }})
-              </label>
-              <div class="modal-cards-grid">
-                @for (card of getCompanyCards(selectedCompany()!); track card) {
-                  @if (card.endsWith('.pdf')) {
-                    <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-pdf-card" title="Click to view full PDF document">
-                      <div class="modal-pdf-icon-wrap">
-                        <i class="bi bi-file-earmark-pdf-fill"></i>
-                      </div>
-                      <div class="modal-pdf-details">
-                        <span class="modal-pdf-title">Visiting Card (PDF)</span>
-                        <span class="modal-pdf-sub">Open document &rsaquo;</span>
-                      </div>
-                    </a>
-                  } @else {
-                    <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-img-card" title="Click to view full size image">
-                      <img [src]="companyService.getFileUrl(card)" alt="Business Card" class="modal-card-thumbnail" />
-                      <div class="modal-img-overlay">
-                        <i class="bi bi-arrows-fullscreen"></i>
-                      </div>
-                    </a>
-                  }
-                }
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="modal-footer modal-footer-actions">
-          <div class="modal-left-actions">
-            <button 
-              type="button" 
-              class="btn-danger-outline" 
-              (click)="promptDelete(selectedCompany()!)"
-            >
-              <i class="bi bi-trash3"></i> Delete
-            </button>
-            <button 
-              type="button" 
-              class="btn-edit-action" 
-              (click)="startEdit(selectedCompany()!)"
-            >
-              <i class="bi bi-pencil-square"></i> Edit
-            </button>
-            <button 
-              type="button" 
-              class="btn-share-modal-action" 
-              (click)="openShareModal(selectedCompany()!)"
-              title="Share Contact Profile (WhatsApp, Email, vCard, Copy)"
-            >
-              <i class="bi bi-share-fill"></i> Share Contact
-            </button>
-            <button 
-              type="button" 
-              class="btn-pdf-modal-action" 
-              (click)="downloadCompanyPdf(selectedCompany()!)"
-              [disabled]="isExportingCompanyPdf() === selectedCompany()?.id"
-              title="Download Executive PDF Profile with Business Card Images"
-            >
-              @if (isExportingCompanyPdf() === selectedCompany()?.id) {
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                <span>Generating...</span>
-              } @else {
-                <i class="bi bi-file-earmark-pdf-fill"></i>
-                <span>PDF Profile</span>
-              }
-            </button>
-          </div>
-          <button type="button" class="btn-secondary" (click)="closeCompanyDetail()">Close</button>
-        </div>
+        <button type="button" class="btn-secondary" (click)="closeCompanyDetail()">Close</button>
       </div>
     </div>
+  </div>
   }
 
   <!-- Delete Confirmation Modal Dialog -->
   @if (companyToDelete()) {
-    <div class="modal-backdrop" (click)="cancelDelete()">
-      <div class="modal-card delete-dialog-card" (click)="$event.stopPropagation()">
-        <div class="delete-icon-wrapper">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-        </div>
-        <h3 class="delete-dialog-title">Delete Company Record?</h3>
-        <p class="delete-dialog-text">
-          Are you sure you want to permanently delete <strong>"{{ companyToDelete()?.companyName }}"</strong> (ID #{{ companyToDelete()?.id }})? This action cannot be undone.
-        </p>
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <div class="modal-card delete-dialog-card" (click)="$event.stopPropagation()">
+      <div class="delete-icon-wrapper">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <h3 class="delete-dialog-title">Delete Company Record?</h3>
+      <p class="delete-dialog-text">
+        Are you sure you want to permanently delete <strong>"{{ companyToDelete()?.companyName }}"</strong> (ID #{{
+        companyToDelete()?.id }})? This action cannot be undone.
+      </p>
 
-        <div class="delete-dialog-actions">
-          <button 
-            type="button" 
-            class="btn-secondary" 
-            (click)="cancelDelete()"
-            [disabled]="isDeleting()"
-          >
-            Cancel
-          </button>
-          <button 
-            type="button" 
-            class="btn-danger" 
-            (click)="confirmDelete()"
-            [disabled]="isDeleting()"
-          >
-            @if (isDeleting()) {
-              <span class="spinner-border" role="status" aria-hidden="true"></span>
-              <span>Deleting...</span>
-            } @else {
-              <i class="bi bi-trash3-fill"></i>
-              <span>Yes, Delete Company</span>
-            }
-          </button>
-        </div>
+      <div class="delete-dialog-actions">
+        <button type="button" class="btn-secondary" (click)="cancelDelete()" [disabled]="isDeleting()">
+          Cancel
+        </button>
+        <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="isDeleting()">
+          @if (isDeleting()) {
+          <span class="spinner-border" role="status" aria-hidden="true"></span>
+          <span>Deleting...</span>
+          } @else {
+          <i class="bi bi-trash3-fill"></i>
+          <span>Yes, Delete Company</span>
+          }
+        </button>
       </div>
     </div>
+  </div>
   }
 
   <!-- Share Company Contact Modal Dialog -->
   @if (companyToShare(); as comp) {
-    <div class="modal-backdrop" (click)="closeShareModal()">
-      <div class="modal-card share-dialog-card" (click)="$event.stopPropagation()">
-        
-        <!-- Modal Header -->
-        <div class="modal-header share-modal-header">
-          <div class="modal-title-group">
-            <span class="modal-pretitle"><i class="bi bi-share-fill"></i> Enterprise Contact Sharing</span>
-            <h3 class="modal-title">{{ comp.companyName }}</h3>
-          </div>
-          <button type="button" class="modal-close-btn" (click)="closeShareModal()" aria-label="Close share dialog">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
+  <div class="modal-backdrop" (click)="closeShareModal()">
+    <div class="modal-card share-dialog-card" (click)="$event.stopPropagation()">
 
-        <div class="modal-body share-modal-body">
-          <!-- Summary Contact Card Preview -->
-          <div class="share-preview-card">
-            <div class="share-card-header">
-              <div class="share-card-brand">
-                <div class="share-card-avatar">
-                  {{ comp.companyName.charAt(0).toUpperCase() }}
-                </div>
-                <div class="share-card-titles">
-                  <h4 class="share-comp-title">{{ comp.companyName }}</h4>
-                  <span class="share-comp-loc">
-                    <i class="bi bi-geo-alt"></i> {{ comp.city ? comp.city + ', ' : '' }}{{ comp.country || 'Global' }}
-                  </span>
-                </div>
+      <!-- Modal Header -->
+      <div class="modal-header share-modal-header">
+        <div class="modal-title-group">
+          <span class="modal-pretitle"><i class="bi bi-share-fill"></i> Enterprise Contact Sharing</span>
+          <h3 class="modal-title">{{ comp.companyName }}</h3>
+        </div>
+        <button type="button" class="modal-close-btn" (click)="closeShareModal()" aria-label="Close share dialog">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body share-modal-body">
+        <!-- Summary Contact Card Preview -->
+        <div class="share-preview-card">
+          <div class="share-card-header">
+            <div class="share-card-brand">
+              <div class="share-card-avatar">
+                {{ comp.companyName.charAt(0).toUpperCase() }}
               </div>
-              <span class="share-status-pill" [ngClass]="comp.status.toLowerCase()">{{ comp.status }}</span>
+              <div class="share-card-titles">
+                <h4 class="share-comp-title">{{ comp.companyName }}</h4>
+                <span class="share-comp-loc">
+                  <i class="bi bi-geo-alt"></i> {{ comp.city ? comp.city + ', ' : '' }}{{ comp.country || 'Global' }}
+                </span>
+              </div>
             </div>
-
-            <div class="share-details-list">
-              @if (comp.contactName) {
-                <div class="share-detail-row">
-                  <span class="share-detail-label"><i class="bi bi-person-fill"></i> Contact</span>
-                  <span class="share-detail-val">
-                    <strong>{{ comp.contactName }}</strong>
-                    @if (comp.contactDesignation) {
-                      <span class="desig-text"> &bull; {{ comp.contactDesignation }}</span>
-                    }
-                  </span>
-                </div>
-              }
-
-              @if (comp.contactMobileNumber) {
-                <div class="share-detail-row">
-                  <span class="share-detail-label"><i class="bi bi-phone-fill"></i> Mobile</span>
-                  <a [href]="'tel:' + comp.contactMobileNumber" class="share-detail-link">
-                    {{ comp.contactMobileNumber }}
-                  </a>
-                </div>
-              }
-
-              @if (comp.landline) {
-                <div class="share-detail-row">
-                  <span class="share-detail-label"><i class="bi bi-telephone-fill"></i> Landline</span>
-                  <a [href]="'tel:' + comp.landline" class="share-detail-link">
-                    {{ comp.landline }}
-                  </a>
-                </div>
-              }
-
-              @if (comp.email) {
-                <div class="share-detail-row">
-                  <span class="share-detail-label"><i class="bi bi-envelope-fill"></i> Email</span>
-                  <a [href]="'mailto:' + comp.email" class="share-detail-link">
-                    {{ comp.email }}
-                  </a>
-                </div>
-              }
-
-              @if (comp.website) {
-                <div class="share-detail-row">
-                  <span class="share-detail-label"><i class="bi bi-globe"></i> Website</span>
-                  <a [href]="comp.website" target="_blank" rel="noopener" class="share-detail-link text-truncate">
-                    {{ comp.website }}
-                  </a>
-                </div>
-              }
-
-              @if (comp.brands && comp.brands.length > 0) {
-                <div class="share-detail-row">
-                  <span class="share-detail-label"><i class="bi bi-award-fill"></i> Brands</span>
-                  <span class="share-detail-val">
-                    @for (b of comp.brands; track b.id; let last = $last) {
-                      {{ b.brandName }}{{ !last ? ', ' : '' }}
-                    }
-                  </span>
-                </div>
-              }
-            </div>
+            <span class="share-status-pill" [ngClass]="comp.status.toLowerCase()">{{ comp.status }}</span>
           </div>
 
-          <!-- Sharing Action Channels -->
-          <div class="share-actions-section">
-            <h5 class="share-section-title">Share Via</h5>
-
-            <div class="share-buttons-grid">
-              <!-- Copy To Clipboard -->
-              <button 
-                type="button" 
-                class="share-channel-btn btn-copy" 
-                [class.copied]="isCopied()"
-                (click)="copyContactDetails(comp)"
-              >
-                <div class="share-icon-circle">
-                  @if (isCopied()) {
-                    <i class="bi bi-check2"></i>
-                  } @else {
-                    <i class="bi bi-clipboard2-check-fill"></i>
-                  }
-                </div>
-                <div class="share-btn-text">
-                  <span class="channel-title">
-                    {{ isCopied() ? 'Copied to Clipboard!' : 'Copy Contact Details' }}
-                  </span>
-                  <span class="channel-sub">Formatted text summary</span>
-                </div>
-              </button>
-
-              <!-- Share via WhatsApp -->
-              <button 
-                type="button" 
-                class="share-channel-btn btn-whatsapp" 
-                (click)="shareViaWhatsApp(comp)"
-              >
-                <div class="share-icon-circle whatsapp-circle">
-                  <i class="bi bi-whatsapp"></i>
-                </div>
-                <div class="share-btn-text">
-                  <span class="channel-title">Share on WhatsApp</span>
-                  <span class="channel-sub">Direct chat message</span>
-                </div>
-              </button>
-
-              <!-- Share via Email -->
-              <button 
-                type="button" 
-                class="share-channel-btn btn-email" 
-                (click)="shareViaEmail(comp)"
-              >
-                <div class="share-icon-circle email-circle">
-                  <i class="bi bi-envelope-at-fill"></i>
-                </div>
-                <div class="share-btn-text">
-                  <span class="channel-title">Send via Email</span>
-                  <span class="channel-sub">Pre-filled email draft</span>
-                </div>
-              </button>
-
-              <!-- Download vCard (.vcf) -->
-              <button 
-                type="button" 
-                class="share-channel-btn btn-vcard" 
-                (click)="downloadVCard(comp)"
-              >
-                <div class="share-icon-circle vcard-circle">
-                  <i class="bi bi-person-vcard-fill"></i>
-                </div>
-                <div class="share-btn-text">
-                  <span class="channel-title">Download vCard (.vcf)</span>
-                  <span class="channel-sub">Import to phone contacts</span>
-                </div>
-              </button>
-
-              <!-- Download PDF Profile (with Business Cards) -->
-              <button 
-                type="button" 
-                class="share-channel-btn btn-pdf-profile" 
-                (click)="downloadCompanyPdf(comp)"
-                [disabled]="isExportingCompanyPdf() === comp.id"
-              >
-                <div class="share-icon-circle pdf-profile-circle">
-                  @if (isExportingCompanyPdf() === comp.id) {
-                    <span class="spinner-border spinner-border-sm" role="status"></span>
-                  } @else {
-                    <i class="bi bi-file-earmark-pdf-fill"></i>
-                  }
-                </div>
-                <div class="share-btn-text">
-                  <span class="channel-title">Download PDF Profile</span>
-                  <span class="channel-sub">With business cards images</span>
-                </div>
-              </button>
-
-              <!-- Native System Share (Mobile / Tablet / Modern Browser) -->
-              @if (canNativeShare()) {
-                <button 
-                  type="button" 
-                  class="share-channel-btn btn-native" 
-                  (click)="shareNative(comp)"
-                >
-                  <div class="share-icon-circle native-circle">
-                    <i class="bi bi-share-fill"></i>
-                  </div>
-                  <div class="share-btn-text">
-                    <span class="channel-title">Device Share Sheet</span>
-                    <span class="channel-sub">AirDrop, Slack, Messages...</span>
-                  </div>
-                </button>
-              }
+          <div class="share-details-list">
+            @if (comp.contactName) {
+            <div class="share-detail-row">
+              <span class="share-detail-label"><i class="bi bi-person-fill"></i> Contact</span>
+              <span class="share-detail-val">
+                <strong>{{ comp.contactName }}</strong>
+                @if (comp.contactDesignation) {
+                <span class="desig-text"> &bull; {{ comp.contactDesignation }}</span>
+                }
+              </span>
             </div>
+            }
+
+            @if (comp.contactMobileNumber) {
+            <div class="share-detail-row">
+              <span class="share-detail-label"><i class="bi bi-phone-fill"></i> Mobile</span>
+              <a [href]="'tel:' + comp.contactMobileNumber" class="share-detail-link">
+                {{ comp.contactMobileNumber }}
+              </a>
+            </div>
+            }
+
+            @if (comp.landline) {
+            <div class="share-detail-row">
+              <span class="share-detail-label"><i class="bi bi-telephone-fill"></i> Landline</span>
+              <a [href]="'tel:' + comp.landline" class="share-detail-link">
+                {{ comp.landline }}
+              </a>
+            </div>
+            }
+
+            @if (comp.email) {
+            <div class="share-detail-row">
+              <span class="share-detail-label"><i class="bi bi-envelope-fill"></i> Email</span>
+              <a [href]="'mailto:' + comp.email" class="share-detail-link">
+                {{ comp.email }}
+              </a>
+            </div>
+            }
+
+            @if (comp.website) {
+            <div class="share-detail-row">
+              <span class="share-detail-label"><i class="bi bi-globe"></i> Website</span>
+              <a [href]="comp.website" target="_blank" rel="noopener" class="share-detail-link text-truncate">
+                {{ comp.website }}
+              </a>
+            </div>
+            }
+
+            @if (comp.brands && comp.brands.length > 0) {
+            <div class="share-detail-row">
+              <span class="share-detail-label"><i class="bi bi-award-fill"></i> Brands</span>
+              <span class="share-detail-val">
+                @for (b of comp.brands; track b.id; let last = $last) {
+                {{ b.brandName }}{{ !last ? ', ' : '' }}
+                }
+              </span>
+            </div>
+            }
           </div>
         </div>
 
-        <div class="modal-footer share-modal-footer">
-          <button type="button" class="btn-secondary" (click)="closeShareModal()">Done</button>
+        <!-- Sharing Action Channels -->
+        <div class="share-actions-section">
+          <h5 class="share-section-title">Share Via</h5>
+
+          <div class="share-buttons-grid">
+            <!-- Copy To Clipboard -->
+            <button type="button" class="share-channel-btn btn-copy" [class.copied]="isCopied()"
+              (click)="copyContactDetails(comp)">
+              <div class="share-icon-circle">
+                @if (isCopied()) {
+                <i class="bi bi-check2"></i>
+                } @else {
+                <i class="bi bi-clipboard2-check-fill"></i>
+                }
+              </div>
+              <div class="share-btn-text">
+                <span class="channel-title">
+                  {{ isCopied() ? 'Copied to Clipboard!' : 'Copy Contact Details' }}
+                </span>
+                <span class="channel-sub">Formatted text summary</span>
+              </div>
+            </button>
+
+            <!-- Share via WhatsApp -->
+            <button type="button" class="share-channel-btn btn-whatsapp" (click)="shareViaWhatsApp(comp)">
+              <div class="share-icon-circle whatsapp-circle">
+                <i class="bi bi-whatsapp"></i>
+              </div>
+              <div class="share-btn-text">
+                <span class="channel-title">Share on WhatsApp</span>
+                <span class="channel-sub">Direct chat message</span>
+              </div>
+            </button>
+
+            <!-- Share via Email -->
+            <button type="button" class="share-channel-btn btn-email" (click)="shareViaEmail(comp)">
+              <div class="share-icon-circle email-circle">
+                <i class="bi bi-envelope-at-fill"></i>
+              </div>
+              <div class="share-btn-text">
+                <span class="channel-title">Send via Email</span>
+                <span class="channel-sub">Pre-filled email draft</span>
+              </div>
+            </button>
+
+            <!-- Download vCard (.vcf) -->
+            <button type="button" class="share-channel-btn btn-vcard" (click)="downloadVCard(comp)">
+              <div class="share-icon-circle vcard-circle">
+                <i class="bi bi-person-vcard-fill"></i>
+              </div>
+              <div class="share-btn-text">
+                <span class="channel-title">Download vCard (.vcf)</span>
+                <span class="channel-sub">Import to phone contacts</span>
+              </div>
+            </button>
+
+            <!-- Download PDF Profile (with Business Cards) -->
+            <button type="button" class="share-channel-btn btn-pdf-profile" (click)="downloadCompanyPdf(comp)"
+              [disabled]="isExportingCompanyPdf() === comp.id">
+              <div class="share-icon-circle pdf-profile-circle">
+                @if (isExportingCompanyPdf() === comp.id) {
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+                } @else {
+                <i class="bi bi-file-earmark-pdf-fill"></i>
+                }
+              </div>
+              <div class="share-btn-text">
+                <span class="channel-title">Download PDF Profile</span>
+                <span class="channel-sub">With business cards images</span>
+              </div>
+            </button>
+
+            <!-- Native System Share (Mobile / Tablet / Modern Browser) -->
+            @if (canNativeShare()) {
+            <button type="button" class="share-channel-btn btn-native" (click)="shareNative(comp)">
+              <div class="share-icon-circle native-circle">
+                <i class="bi bi-share-fill"></i>
+              </div>
+              <div class="share-btn-text">
+                <span class="channel-title">Device Share Sheet</span>
+                <span class="channel-sub">AirDrop, Slack, Messages...</span>
+              </div>
+            </button>
+            }
+          </div>
         </div>
       </div>
+
+      <div class="modal-footer share-modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeShareModal()">Done</button>
+      </div>
     </div>
+  </div>
   }
 </div>
