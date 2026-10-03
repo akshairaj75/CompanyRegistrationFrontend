@@ -27,30 +27,38 @@ export class CompanyService {
   }
 
   /**
-   * Register a new company with multipart data (JSON dto + optional logo/business card file)
+   * Register a new company with multipart data (JSON dto + optional multiple logo/business card files)
    */
-  createCompany(companyData: CompanyRequest, file?: File | null): Observable<CompanyResponse> {
+  createCompany(companyData: CompanyRequest, files?: File[] | File | null): Observable<CompanyResponse> {
     const formData = new FormData();
     const dataBlob = new Blob([JSON.stringify(companyData)], { type: 'application/json' });
     formData.append('data', dataBlob);
 
-    if (file) {
-      formData.append('file', file, file.name);
+    if (files) {
+      if (Array.isArray(files)) {
+        files.forEach(file => formData.append('files', file, file.name));
+      } else {
+        formData.append('files', files, files.name);
+      }
     }
 
     return this.http.post<CompanyResponse>(`${this.apiUrl}/create`, formData);
   }
 
   /**
-   * Update an existing company
+   * Update an existing company with optional new files
    */
-  updateCompany(id: number, companyData: CompanyRequest, file?: File | null): Observable<CompanyResponse> {
+  updateCompany(id: number, companyData: CompanyRequest, files?: File[] | File | null): Observable<CompanyResponse> {
     const formData = new FormData();
     const dataBlob = new Blob([JSON.stringify(companyData)], { type: 'application/json' });
     formData.append('data', dataBlob);
 
-    if (file) {
-      formData.append('file', file, file.name);
+    if (files) {
+      if (Array.isArray(files)) {
+        files.forEach(file => formData.append('files', file, file.name));
+      } else {
+        formData.append('files', files, files.name);
+      }
     }
 
     return this.http.put<CompanyResponse>(`${this.apiUrl}/update/${id}`, formData);
@@ -77,6 +85,15 @@ export class CompanyService {
    */
   exportCompaniesToPdf(): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/export/pdf`, {
+      responseType: 'blob'
+    });
+  }
+
+  /**
+   * Export single company profile as a PDF document (includes contact details & business card images)
+   */
+  exportCompanyProfilePdf(id: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${id}/export/pdf`, {
       responseType: 'blob'
     });
   }

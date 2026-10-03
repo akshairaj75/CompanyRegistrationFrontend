@@ -18,6 +18,7 @@ export interface CompanyRequest {
   contactMobileNumber?: string;
   brandIds?: number[];
   productIds?: number[];
+  existingBusinessCards?: string[];
 }
 
 export interface CompanyResponse {
@@ -32,6 +33,7 @@ export interface CompanyResponse {
   description?: string;
   status: string;
   businessCard?: string;
+  businessCards?: string[];
   contactName?: string;
   contactDesignation?: string;
   contactEmail?: string;

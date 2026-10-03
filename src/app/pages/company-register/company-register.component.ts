@@ -13,6 +13,17 @@ import { environment } from '../../../environments/environment';
 
 import { RouterLink } from '@angular/router';
 
+export interface BusinessCardItem {
+  id: string;
+  name: string;
+  url?: string;
+  path?: string;
+  isPdf: boolean;
+  isExisting: boolean;
+  file?: File;
+  size?: number;
+}
+
 @Component({
   selector: 'app-company-register',
   standalone: true,
@@ -33,6 +44,7 @@ export class CompanyRegisterComponent implements OnInit {
   readonly isLoadingList = signal<boolean>(false);
   readonly isExportingExcel = signal<boolean>(false);
   readonly isExportingPdf = signal<boolean>(false);
+  readonly isExportingCompanyPdf = signal<number | null>(null);
   readonly activeTab = signal<'register' | 'directory'>('register');
   readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
@@ -43,11 +55,41 @@ export class CompanyRegisterComponent implements OnInit {
   readonly companyToDelete = signal<CompanyResponse | null>(null);
   readonly isDeleting = signal<boolean>(false);
 
-  // File Upload State
-  readonly selectedFile = signal<File | null>(null);
-  readonly filePreviewUrl = signal<string | null>(null);
-  readonly isPdfFile = signal<boolean>(false);
+  // Share Modal State
+  readonly companyToShare = signal<CompanyResponse | null>(null);
+  readonly isCopied = signal<boolean>(false);
+  readonly canNativeShare = signal<boolean>(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
+
+  // File Upload State (Multiple Visiting Cards & Brand Assets)
+  readonly businessCardItems = signal<BusinessCardItem[]>([]);
   readonly isDragOver = signal<boolean>(false);
+
+  // Computations for multiple files
+  readonly selectedNewFiles = computed(() =>
+    this.businessCardItems().filter(c => !c.isExisting && c.file).map(c => c.file as File)
+  );
+
+  readonly existingCardPaths = computed(() =>
+    this.businessCardItems().filter(c => c.isExisting && c.path).map(c => c.path as string)
+  );
+
+  readonly primaryCardPreviewUrl = computed(() => {
+    const firstImg = this.businessCardItems().find(c => !c.isPdf && c.url);
+    return firstImg ? firstImg.url || null : null;
+  });
+
+  // Signal-like compatibility accessors for existing template bindings
+  readonly selectedFile = computed(() => {
+    const newFiles = this.selectedNewFiles();
+    return newFiles.length > 0 ? newFiles[0] : null;
+  });
+
+  readonly filePreviewUrl = computed(() => this.primaryCardPreviewUrl());
+
+  readonly isPdfFile = computed(() => {
+    const items = this.businessCardItems();
+    return items.length > 0 && items[0].isPdf;
+  });
 
   // Companies List State
   readonly companies = signal<CompanyResponse[]>([]);
@@ -446,7 +488,7 @@ export class CompanyRegisterComponent implements OnInit {
     this.activeProductSubCategoryFilter.set('all');
   }
 
-  // --- File Drag & Drop & Selection Handlers ---
+  // --- File Drag & Drop & Multi-Selection Handlers ---
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
@@ -465,59 +507,96 @@ export class CompanyRegisterComponent implements OnInit {
     this.isDragOver.set(false);
 
     if (event.dataTransfer && event.dataTransfer.files.length > 0) {
-      this.handleFile(event.dataTransfer.files[0]);
+      this.handleFiles(Array.from(event.dataTransfer.files));
     }
   }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.handleFile(input.files[0]);
+      this.handleFiles(Array.from(input.files));
+      input.value = '';
     }
   }
 
-  private handleFile(file: File): void {
+  private handleFiles(files: File[]): void {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
     const maxSizeBytes = 20 * 1024 * 1024; // 20 MB
 
-    if (!allowedTypes.includes(file.type)) {
-      this.feedback.set({
-        type: 'error',
-        title: 'Unsupported File Format',
-        message: 'Please upload a JPEG, PNG, WEBP, GIF, or PDF document.'
-      });
-      return;
-    }
+    for (const file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        this.feedback.set({
+          type: 'error',
+          title: 'Unsupported File Format',
+          message: `"${file.name}" has an unsupported format. Please upload JPEG, PNG, WEBP, GIF, or PDF.`
+        });
+        continue;
+      }
 
-    if (file.size > maxSizeBytes) {
-      this.feedback.set({
-        type: 'error',
-        title: 'File Too Large',
-        message: 'Max file size allowed is 20MB.'
-      });
-      return;
-    }
+      if (file.size > maxSizeBytes) {
+        this.feedback.set({
+          type: 'error',
+          title: 'File Too Large',
+          message: `"${file.name}" exceeds the 20MB limit.`
+        });
+        continue;
+      }
 
-    this.selectedFile.set(file);
-    const isPdf = file.type === 'application/pdf';
-    this.isPdfFile.set(isPdf);
+      const isPdf = file.type === 'application/pdf';
+      const id = 'new-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
 
-    if (isPdf) {
-      this.filePreviewUrl.set(null);
-    } else {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.filePreviewUrl.set(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      if (isPdf) {
+        this.businessCardItems.update(items => [
+          ...items,
+          {
+            id,
+            name: file.name,
+            isPdf: true,
+            isExisting: false,
+            file,
+            size: file.size
+          }
+        ]);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.businessCardItems.update(items => [
+            ...items,
+            {
+              id,
+              name: file.name,
+              url: e.target?.result as string,
+              isPdf: false,
+              isExisting: false,
+              file,
+              size: file.size
+            }
+          ]);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   }
 
-  removeFile(event?: Event): void {
+  removeCardItem(item: BusinessCardItem, event?: Event): void {
     if (event) event.stopPropagation();
-    this.selectedFile.set(null);
-    this.filePreviewUrl.set(null);
-    this.isPdfFile.set(false);
+    this.businessCardItems.update(items => items.filter(c => c.id !== item.id));
+  }
+
+  clearAllCards(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.businessCardItems.set([]);
+  }
+
+  removeFile(event?: Event): void {
+    this.clearAllCards(event);
+  }
+
+  getCompanyCards(company: CompanyResponse): string[] {
+    if (company.businessCards && company.businessCards.length > 0) {
+      return company.businessCards;
+    }
+    return company.businessCard ? [company.businessCard] : [];
   }
 
   // --- Form Submission (Create or Update) ---
@@ -557,15 +636,16 @@ export class CompanyRegisterComponent implements OnInit {
           ...this.selectedProductsList().map(p => p.brandId).filter(Boolean) as number[]
         ])
       ),
-      productIds: this.selectedProductIds()
+      productIds: this.selectedProductIds(),
+      existingBusinessCards: this.existingCardPaths()
     };
 
-    const fileToUpload = this.selectedFile();
+    const filesToUpload = this.selectedNewFiles();
     const editId = this.editingCompanyId();
 
     if (editId) {
       // Update existing company
-      this.companyService.updateCompany(editId, requestData, fileToUpload).subscribe({
+      this.companyService.updateCompany(editId, requestData, filesToUpload).subscribe({
         next: (response) => {
           this.isSubmitting.set(false);
           this.feedback.set({
@@ -591,7 +671,7 @@ export class CompanyRegisterComponent implements OnInit {
       });
     } else {
       // Create new company
-      this.companyService.createCompany(requestData, fileToUpload).subscribe({
+      this.companyService.createCompany(requestData, filesToUpload).subscribe({
         next: (response) => {
           this.isSubmitting.set(false);
           this.feedback.set({
@@ -651,19 +731,24 @@ export class CompanyRegisterComponent implements OnInit {
       : (company.products?.map(p => p.id) || []);
     this.selectedProductIds.set(productIds);
 
-    this.selectedFile.set(null);
-    if (company.businessCard) {
-      if (company.businessCard.endsWith('.pdf')) {
-        this.isPdfFile.set(true);
-        this.filePreviewUrl.set(null);
-      } else {
-        this.isPdfFile.set(false);
-        this.filePreviewUrl.set(this.companyService.getFileUrl(company.businessCard));
-      }
-    } else {
-      this.isPdfFile.set(false);
-      this.filePreviewUrl.set(null);
-    }
+    // Populate multiple business cards
+    const items: BusinessCardItem[] = [];
+    const serverCards = (company.businessCards && company.businessCards.length > 0)
+      ? company.businessCards
+      : (company.businessCard ? [company.businessCard] : []);
+
+    serverCards.forEach((path, idx) => {
+      const isPdf = path.toLowerCase().endsWith('.pdf');
+      items.push({
+        id: `existing-${idx}-${path}`,
+        name: path.split('/').pop() || `Visiting Card ${idx + 1}`,
+        path: path,
+        url: this.companyService.getFileUrl(path),
+        isPdf: isPdf,
+        isExisting: true
+      });
+    });
+    this.businessCardItems.set(items);
 
     if (this.selectedCompany()) {
       this.closeCompanyDetail();
@@ -792,5 +877,200 @@ export class CompanyRegisterComponent implements OnInit {
   isInvalid(controlName: string): boolean {
     const control = this.companyForm.get(controlName);
     return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  // ==========================================
+  // SHARE SYSTEM HANDLERS
+  // ==========================================
+  openShareModal(company: CompanyResponse, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.companyToShare.set(company);
+    this.isCopied.set(false);
+  }
+
+  closeShareModal(): void {
+    this.companyToShare.set(null);
+    this.isCopied.set(false);
+  }
+
+  formatCompanyContactText(company: CompanyResponse): string {
+    const lines: string[] = [];
+    lines.push(`🏢 *${company.companyName.toUpperCase()}*`);
+    if (company.contactName) {
+      const desig = company.contactDesignation ? ` (${company.contactDesignation})` : '';
+      lines.push(`👤 Contact: ${company.contactName}${desig}`);
+    }
+    if (company.contactMobileNumber) {
+      lines.push(`📱 Mobile: ${company.contactMobileNumber}`);
+    }
+    if (company.landline) {
+      lines.push(`☎️ Landline: ${company.landline}`);
+    }
+    if (company.email) {
+      lines.push(`✉️ Email: ${company.email}`);
+    }
+    if (company.contactEmail && company.contactEmail !== company.email) {
+      lines.push(`✉️ Direct Email: ${company.contactEmail}`);
+    }
+    if (company.address || company.city || company.country) {
+      const loc = [company.address, company.city, company.country].filter(Boolean).join(', ');
+      lines.push(`📍 Location: ${loc}`);
+    }
+    if (company.website) {
+      lines.push(`🌐 Website: ${company.website}`);
+    }
+    if (company.brands && company.brands.length > 0) {
+      const brandNames = company.brands.map(b => b.brandName).join(', ');
+      lines.push(`🏷️ Brands Dealt: ${brandNames}`);
+    }
+    if (company.description) {
+      lines.push(`📝 Overview: ${company.description}`);
+    }
+    return lines.join('\n');
+  }
+
+  async copyContactDetails(company: CompanyResponse): Promise<void> {
+    const text = this.formatCompanyContactText(company);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      this.isCopied.set(true);
+      setTimeout(() => this.isCopied.set(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy contact details: ', err);
+    }
+  }
+
+  shareViaWhatsApp(company: CompanyResponse): void {
+    const text = this.formatCompanyContactText(company);
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  shareViaEmail(company: CompanyResponse): void {
+    const subject = encodeURIComponent(`Contact Details: ${company.companyName}`);
+    const body = encodeURIComponent(this.formatCompanyContactText(company));
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
+  downloadVCard(company: CompanyResponse): void {
+    const contactName = company.contactName || company.companyName;
+    const vCardLines = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${contactName}`,
+      `ORG:${company.companyName}`,
+      company.contactDesignation ? `TITLE:${company.contactDesignation}` : '',
+      company.contactMobileNumber ? `TEL;TYPE=CELL:${company.contactMobileNumber}` : '',
+      company.landline ? `TEL;TYPE=WORK:${company.landline}` : '',
+      company.contactEmail ? `EMAIL;TYPE=PREF,INTERNET:${company.contactEmail}` : '',
+      company.email ? `EMAIL;TYPE=WORK,INTERNET:${company.email}` : '',
+      (company.address || company.city || company.country)
+        ? `ADR;TYPE=WORK:;;${company.address || ''};${company.city || ''};;;${company.country || ''}`
+        : '',
+      company.website ? `URL:${company.website}` : '',
+      company.description ? `NOTE:${company.description.replace(/\r?\n/g, ' ')}` : '',
+      'END:VCARD'
+    ].filter(Boolean).join('\r\n');
+
+    const blob = new Blob([vCardLines], { type: 'text/vcard;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeName = company.companyName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    link.href = url;
+    link.setAttribute('download', `${safeName}_contact.vcf`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async shareNative(company: CompanyResponse): Promise<void> {
+    if (this.canNativeShare()) {
+      try {
+        await navigator.share({
+          title: `${company.companyName} Contact Details`,
+          text: this.formatCompanyContactText(company)
+        });
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          await this.copyContactDetails(company);
+        }
+      }
+    } else {
+      await this.copyContactDetails(company);
+    }
+  }
+
+  shareCurrentPreview(): void {
+    const formVal = this.companyForm.value;
+    const previewCompany: CompanyResponse = {
+      id: this.editingCompanyId() || 0,
+      companyName: formVal.companyName || 'Untitled Company',
+      email: formVal.email || '',
+      landline: formVal.landline,
+      address: formVal.address,
+      city: formVal.city,
+      country: formVal.country,
+      website: formVal.website,
+      description: formVal.description,
+      status: formVal.status || 'ACTIVE',
+      contactName: formVal.contactName,
+      contactDesignation: formVal.contactDesignation,
+      contactEmail: formVal.contactEmail,
+      contactMobileNumber: formVal.contactMobileNumber,
+      brands: this.selectedBrandsList,
+      products: this.selectedProductsList()
+    };
+    this.openShareModal(previewCompany);
+  }
+
+  downloadCompanyPdf(company: CompanyResponse, event?: Event): void {
+    if (event) event.stopPropagation();
+    if (!company || !company.id) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Save Required',
+        message: 'Please register and save this company record first before downloading the executive PDF profile.'
+      });
+      return;
+    }
+
+    if (this.isExportingCompanyPdf() === company.id) return;
+    this.isExportingCompanyPdf.set(company.id);
+
+    this.companyService.exportCompanyProfilePdf(company.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeName = (company.companyName || 'company').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.href = url;
+        a.download = `${safeName}_Profile_with_Cards.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.isExportingCompanyPdf.set(null);
+      },
+      error: (err) => {
+        console.error('Failed to export company PDF profile:', err);
+        this.isExportingCompanyPdf.set(null);
+        this.feedback.set({
+          type: 'error',
+          title: 'Export Failed',
+          message: 'Could not generate company PDF profile with business cards. Please try again.'
+        });
+      }
+    });
   }
 }

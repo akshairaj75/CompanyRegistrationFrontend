@@ -738,13 +738,13 @@
             }
           </div>
 
-          <!-- Section 07: Brand Asset & Business Card Upload -->
+          <!-- Section 07: Multiple Visiting Cards & Brand Assets Upload -->
           <div class="form-card">
             <div class="card-legend">
               <span class="step-num">07</span>
               <div>
-                <h3 class="card-title">Business Card & Brand Asset</h3>
-                <p class="card-subtitle">Upload company logo, digital visiting card, or certificate (JPEG, PNG, WEBP, PDF)</p>
+                <h3 class="card-title">Visiting Cards & Brand Assets</h3>
+                <p class="card-subtitle">Upload multiple visiting cards, company logos, certificates, or brochures (JPEG, PNG, WEBP, PDF)</p>
               </div>
             </div>
 
@@ -752,71 +752,106 @@
             <div 
               class="upload-dropzone" 
               [class.drag-over]="isDragOver()"
-              [class.has-file]="!!selectedFile() || !!filePreviewUrl()"
+              [class.has-file]="businessCardItems().length > 0"
               (dragover)="onDragOver($event)"
               (dragleave)="onDragLeave($event)"
               (drop)="onDrop($event)"
-              (click)="fileInput.click()"
             >
               <input 
                 #fileInput 
                 type="file" 
+                multiple
                 class="hidden-file-input" 
                 (change)="onFileSelected($event)" 
                 accept=".jpg,.jpeg,.png,.webp,.gif,.pdf"
               />
 
-              @if (!selectedFile() && !filePreviewUrl()) {
-                <div class="dropzone-content">
+              @if (businessCardItems().length === 0) {
+                <div class="dropzone-content" (click)="fileInput.click()">
                   <div class="upload-icon-pulse">
                     <i class="bi bi-cloud-arrow-up-fill"></i>
                   </div>
-                  <h4 class="upload-prompt">Drop your business card or company logo here</h4>
-                  <p class="upload-hint">or <span class="browse-link">browse files</span> from your computer</p>
+                  <h4 class="upload-prompt">Drop your visiting cards or brand documents here</h4>
+                  <p class="upload-hint">or <span class="browse-link">browse files</span> from your computer (select multiple files)</p>
                   <div class="supported-formats">
                     <span class="format-tag">PNG</span>
                     <span class="format-tag">JPG</span>
                     <span class="format-tag">WEBP</span>
                     <span class="format-tag">PDF</span>
-                    <span class="format-limit">Max 20MB</span>
+                    <span class="format-limit">Max 20MB / file</span>
                   </div>
                 </div>
               } @else {
-                <div class="file-preview-card" (click)="$event.stopPropagation()">
-                  @if (filePreviewUrl()) {
-                    <div class="preview-img-container">
-                      <img [src]="filePreviewUrl()" alt="Business card preview" class="preview-img" />
-                    </div>
-                  } @else {
-                    <div class="pdf-preview-box">
-                      <i class="bi bi-file-earmark-pdf-fill pdf-icon"></i>
-                      <span class="pdf-tag">PDF DOCUMENT</span>
-                    </div>
-                  }
-
-                  <div class="file-details">
-                    <span class="file-name">
-                      {{ selectedFile()?.name || 'Attached Business Card / Logo' }}
-                    </span>
-                    @if (selectedFile()) {
-                      <span class="file-size">{{ (selectedFile()!.size / 1024) | number:'1.0-1' }} KB</span>
-                      <span class="file-success-badge"><i class="bi bi-check-circle-fill"></i> Ready to upload</span>
-                    } @else {
-                      <span class="file-success-badge current-file-badge">
-                        <i class="bi bi-cloud-check-fill"></i> Currently saved on file
+                <div class="multi-cards-container" (click)="$event.stopPropagation()">
+                  <div class="multi-cards-toolbar">
+                    <div class="toolbar-info">
+                      <i class="bi bi-images"></i>
+                      <span class="toolbar-count">
+                        <strong>{{ businessCardItems().length }}</strong> {{ businessCardItems().length === 1 ? 'card / file' : 'cards / files' }} attached
                       </span>
-                    }
+                    </div>
+                    <div class="toolbar-actions">
+                      <button 
+                        type="button" 
+                        class="btn-toolbar-add" 
+                        (click)="fileInput.click()"
+                        title="Add more visiting cards"
+                      >
+                        <i class="bi bi-plus-lg"></i> Add More
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn-toolbar-clear" 
+                        (click)="clearAllCards($event)"
+                        title="Remove all files"
+                      >
+                        <i class="bi bi-trash3"></i> Clear All
+                      </button>
+                    </div>
                   </div>
 
-                  <button 
-                    type="button" 
-                    class="btn-remove-file" 
-                    (click)="removeFile($event)" 
-                    title="Remove or replace file"
-                    aria-label="Remove uploaded file"
-                  >
-                    <i class="bi bi-trash3-fill"></i>
-                  </button>
+                  <div class="cards-preview-grid">
+                    @for (item of businessCardItems(); track item.id; let idx = $index) {
+                      <div class="card-preview-item" [class.is-pdf]="item.isPdf">
+                        <div class="card-thumb-wrap">
+                          @if (!item.isPdf && item.url) {
+                            <img [src]="item.url" [alt]="item.name" class="card-thumb-img" />
+                          } @else {
+                            <div class="card-thumb-pdf">
+                              <i class="bi bi-file-earmark-pdf-fill"></i>
+                              <span class="pdf-badge">PDF</span>
+                            </div>
+                          }
+                          <button 
+                            type="button" 
+                            class="card-remove-btn" 
+                            (click)="removeCardItem(item, $event)" 
+                            title="Remove file"
+                            aria-label="Remove file"
+                          >
+                            <i class="bi bi-x-lg"></i>
+                          </button>
+                          @if (idx === 0) {
+                            <span class="primary-badge" title="Primary display card">Primary</span>
+                          }
+                        </div>
+
+                        <div class="card-item-meta">
+                          <span class="card-file-name" [title]="item.name">{{ item.name }}</span>
+                          <div class="card-file-sub">
+                            @if (item.size) {
+                              <span class="card-file-size">{{ (item.size / 1024) | number:'1.0-1' }} KB</span>
+                            }
+                            @if (item.isExisting) {
+                              <span class="card-status-chip saved"><i class="bi bi-cloud-check-fill"></i> Saved</span>
+                            } @else {
+                              <span class="card-status-chip new"><i class="bi bi-arrow-up-circle-fill"></i> New</span>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
                 </div>
               }
             </div>
@@ -896,10 +931,20 @@
       <aside class="preview-sidebar">
         <div class="preview-sticky">
           <div class="preview-header">
-            <span class="preview-tag">
-              <i class="bi bi-eye-fill"></i> Live Preview
-            </span>
-            <span class="preview-hint">Real-time enterprise card</span>
+            <div class="preview-header-titles">
+              <span class="preview-tag">
+                <i class="bi bi-eye-fill"></i> Live Preview
+              </span>
+              <span class="preview-hint">Real-time enterprise card</span>
+            </div>
+            <button 
+              type="button" 
+              class="btn-preview-share" 
+              (click)="shareCurrentPreview()" 
+              title="Share or Export Current Contact Details"
+            >
+              <i class="bi bi-share-fill"></i> Share
+            </button>
           </div>
 
           <!-- Business Card Element -->
@@ -934,6 +979,24 @@
                 {{ companyForm.get('status')?.value || 'ACTIVE' }}
               </span>
             </div>
+
+            <!-- Multi-cards strip in preview if more than 1 card -->
+            @if (businessCardItems().length > 1) {
+              <div class="preview-cards-strip">
+                <span class="preview-cards-count">
+                  <i class="bi bi-images"></i> {{ businessCardItems().length }} Cards Attached
+                </span>
+                <div class="preview-cards-thumbs">
+                  @for (c of businessCardItems(); track c.id) {
+                    @if (!c.isPdf && c.url) {
+                      <img [src]="c.url" [alt]="c.name" class="strip-thumb" />
+                    } @else {
+                      <span class="strip-thumb-pdf" title="PDF Document"><i class="bi bi-file-earmark-pdf"></i></span>
+                    }
+                  }
+                </div>
+              </div>
+            }
 
             <!-- Card Middle details -->
             <div class="card-body-details">
@@ -1143,12 +1206,17 @@
             <div class="company-card-item" (click)="openCompanyDetail(company)">
               <div class="card-item-header">
                 <div class="card-avatar">
-                  @if (company.businessCard && !company.businessCard.endsWith('.pdf')) {
-                    <img [src]="companyService.getFileUrl(company.businessCard)" alt="{{ company.companyName }}" />
+                  @if (getCompanyCards(company).length > 0 && !getCompanyCards(company)[0].endsWith('.pdf')) {
+                    <img [src]="companyService.getFileUrl(getCompanyCards(company)[0])" alt="{{ company.companyName }}" />
                   } @else {
                     <div class="avatar-fallback">
                       {{ company.companyName.charAt(0).toUpperCase() }}
                     </div>
+                  }
+                  @if (getCompanyCards(company).length > 1) {
+                    <span class="avatar-multi-badge" [title]="getCompanyCards(company).length + ' visiting cards'">
+                      <i class="bi bi-images"></i> {{ getCompanyCards(company).length }}
+                    </span>
                   }
                 </div>
                 <div class="card-header-titles">
@@ -1238,6 +1306,31 @@
                     title="View Company Details"
                   >
                     <i class="bi bi-eye"></i> View
+                  </button>
+
+                  <!-- Share Button -->
+                  <button 
+                    type="button" 
+                    class="btn-action-share" 
+                    (click)="openShareModal(company, $event)" 
+                    title="Share Contact Profile (WhatsApp, Email, vCard, Copy)"
+                  >
+                    <i class="bi bi-share-fill"></i> Share
+                  </button>
+
+                  <!-- PDF Download Button with Business Cards -->
+                  <button 
+                    type="button" 
+                    class="btn-action-pdf" 
+                    (click)="downloadCompanyPdf(company, $event)" 
+                    [disabled]="isExportingCompanyPdf() === company.id"
+                    title="Download Executive PDF Profile with Business Cards"
+                  >
+                    @if (isExportingCompanyPdf() === company.id) {
+                      <span class="spinner-border spinner-border-sm" role="status"></span>
+                    } @else {
+                      <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+                    }
                   </button>
 
                   <!-- Edit Button -->
@@ -1411,16 +1504,31 @@
             </div>
           }
 
-          @if (selectedCompany()?.businessCard) {
+          @if (getCompanyCards(selectedCompany()!).length > 0) {
             <div class="info-block mt-3">
-              <label class="info-label"><i class="bi bi-paperclip"></i> Business Card / Attachment</label>
-              <div class="attachment-preview-box">
-                @if (selectedCompany()?.businessCard?.endsWith('.pdf')) {
-                  <a [href]="companyService.getFileUrl(selectedCompany()?.businessCard)" target="_blank" class="pdf-link-btn">
-                    <i class="bi bi-file-earmark-pdf-fill"></i> View Business Card (PDF Document)
-                  </a>
-                } @else {
-                  <img [src]="companyService.getFileUrl(selectedCompany()?.businessCard)" alt="Company Business Card" class="modal-card-img" />
+              <label class="info-label">
+                <i class="bi bi-collection"></i> Visiting Cards & Brand Documents ({{ getCompanyCards(selectedCompany()!).length }})
+              </label>
+              <div class="modal-cards-grid">
+                @for (card of getCompanyCards(selectedCompany()!); track card) {
+                  @if (card.endsWith('.pdf')) {
+                    <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-pdf-card" title="Click to view full PDF document">
+                      <div class="modal-pdf-icon-wrap">
+                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                      </div>
+                      <div class="modal-pdf-details">
+                        <span class="modal-pdf-title">Visiting Card (PDF)</span>
+                        <span class="modal-pdf-sub">Open document &rsaquo;</span>
+                      </div>
+                    </a>
+                  } @else {
+                    <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-img-card" title="Click to view full size image">
+                      <img [src]="companyService.getFileUrl(card)" alt="Business Card" class="modal-card-thumbnail" />
+                      <div class="modal-img-overlay">
+                        <i class="bi bi-arrows-fullscreen"></i>
+                      </div>
+                    </a>
+                  }
                 }
               </div>
             </div>
@@ -1442,6 +1550,29 @@
               (click)="startEdit(selectedCompany()!)"
             >
               <i class="bi bi-pencil-square"></i> Edit
+            </button>
+            <button 
+              type="button" 
+              class="btn-share-modal-action" 
+              (click)="openShareModal(selectedCompany()!)"
+              title="Share Contact Profile (WhatsApp, Email, vCard, Copy)"
+            >
+              <i class="bi bi-share-fill"></i> Share Contact
+            </button>
+            <button 
+              type="button" 
+              class="btn-pdf-modal-action" 
+              (click)="downloadCompanyPdf(selectedCompany()!)"
+              [disabled]="isExportingCompanyPdf() === selectedCompany()?.id"
+              title="Download Executive PDF Profile with Business Card Images"
+            >
+              @if (isExportingCompanyPdf() === selectedCompany()?.id) {
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+                <span>Generating...</span>
+              } @else {
+                <i class="bi bi-file-earmark-pdf-fill"></i>
+                <span>PDF Profile</span>
+              }
             </button>
           </div>
           <button type="button" class="btn-secondary" (click)="closeCompanyDetail()">Close</button>
@@ -1485,6 +1616,221 @@
               <span>Yes, Delete Company</span>
             }
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Share Company Contact Modal Dialog -->
+  @if (companyToShare(); as comp) {
+    <div class="modal-backdrop" (click)="closeShareModal()">
+      <div class="modal-card share-dialog-card" (click)="$event.stopPropagation()">
+        
+        <!-- Modal Header -->
+        <div class="modal-header share-modal-header">
+          <div class="modal-title-group">
+            <span class="modal-pretitle"><i class="bi bi-share-fill"></i> Enterprise Contact Sharing</span>
+            <h3 class="modal-title">{{ comp.companyName }}</h3>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeShareModal()" aria-label="Close share dialog">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="modal-body share-modal-body">
+          <!-- Summary Contact Card Preview -->
+          <div class="share-preview-card">
+            <div class="share-card-header">
+              <div class="share-card-brand">
+                <div class="share-card-avatar">
+                  {{ comp.companyName.charAt(0).toUpperCase() }}
+                </div>
+                <div class="share-card-titles">
+                  <h4 class="share-comp-title">{{ comp.companyName }}</h4>
+                  <span class="share-comp-loc">
+                    <i class="bi bi-geo-alt"></i> {{ comp.city ? comp.city + ', ' : '' }}{{ comp.country || 'Global' }}
+                  </span>
+                </div>
+              </div>
+              <span class="share-status-pill" [ngClass]="comp.status.toLowerCase()">{{ comp.status }}</span>
+            </div>
+
+            <div class="share-details-list">
+              @if (comp.contactName) {
+                <div class="share-detail-row">
+                  <span class="share-detail-label"><i class="bi bi-person-fill"></i> Contact</span>
+                  <span class="share-detail-val">
+                    <strong>{{ comp.contactName }}</strong>
+                    @if (comp.contactDesignation) {
+                      <span class="desig-text"> &bull; {{ comp.contactDesignation }}</span>
+                    }
+                  </span>
+                </div>
+              }
+
+              @if (comp.contactMobileNumber) {
+                <div class="share-detail-row">
+                  <span class="share-detail-label"><i class="bi bi-phone-fill"></i> Mobile</span>
+                  <a [href]="'tel:' + comp.contactMobileNumber" class="share-detail-link">
+                    {{ comp.contactMobileNumber }}
+                  </a>
+                </div>
+              }
+
+              @if (comp.landline) {
+                <div class="share-detail-row">
+                  <span class="share-detail-label"><i class="bi bi-telephone-fill"></i> Landline</span>
+                  <a [href]="'tel:' + comp.landline" class="share-detail-link">
+                    {{ comp.landline }}
+                  </a>
+                </div>
+              }
+
+              @if (comp.email) {
+                <div class="share-detail-row">
+                  <span class="share-detail-label"><i class="bi bi-envelope-fill"></i> Email</span>
+                  <a [href]="'mailto:' + comp.email" class="share-detail-link">
+                    {{ comp.email }}
+                  </a>
+                </div>
+              }
+
+              @if (comp.website) {
+                <div class="share-detail-row">
+                  <span class="share-detail-label"><i class="bi bi-globe"></i> Website</span>
+                  <a [href]="comp.website" target="_blank" rel="noopener" class="share-detail-link text-truncate">
+                    {{ comp.website }}
+                  </a>
+                </div>
+              }
+
+              @if (comp.brands && comp.brands.length > 0) {
+                <div class="share-detail-row">
+                  <span class="share-detail-label"><i class="bi bi-award-fill"></i> Brands</span>
+                  <span class="share-detail-val">
+                    @for (b of comp.brands; track b.id; let last = $last) {
+                      {{ b.brandName }}{{ !last ? ', ' : '' }}
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Sharing Action Channels -->
+          <div class="share-actions-section">
+            <h5 class="share-section-title">Share Via</h5>
+
+            <div class="share-buttons-grid">
+              <!-- Copy To Clipboard -->
+              <button 
+                type="button" 
+                class="share-channel-btn btn-copy" 
+                [class.copied]="isCopied()"
+                (click)="copyContactDetails(comp)"
+              >
+                <div class="share-icon-circle">
+                  @if (isCopied()) {
+                    <i class="bi bi-check2"></i>
+                  } @else {
+                    <i class="bi bi-clipboard2-check-fill"></i>
+                  }
+                </div>
+                <div class="share-btn-text">
+                  <span class="channel-title">
+                    {{ isCopied() ? 'Copied to Clipboard!' : 'Copy Contact Details' }}
+                  </span>
+                  <span class="channel-sub">Formatted text summary</span>
+                </div>
+              </button>
+
+              <!-- Share via WhatsApp -->
+              <button 
+                type="button" 
+                class="share-channel-btn btn-whatsapp" 
+                (click)="shareViaWhatsApp(comp)"
+              >
+                <div class="share-icon-circle whatsapp-circle">
+                  <i class="bi bi-whatsapp"></i>
+                </div>
+                <div class="share-btn-text">
+                  <span class="channel-title">Share on WhatsApp</span>
+                  <span class="channel-sub">Direct chat message</span>
+                </div>
+              </button>
+
+              <!-- Share via Email -->
+              <button 
+                type="button" 
+                class="share-channel-btn btn-email" 
+                (click)="shareViaEmail(comp)"
+              >
+                <div class="share-icon-circle email-circle">
+                  <i class="bi bi-envelope-at-fill"></i>
+                </div>
+                <div class="share-btn-text">
+                  <span class="channel-title">Send via Email</span>
+                  <span class="channel-sub">Pre-filled email draft</span>
+                </div>
+              </button>
+
+              <!-- Download vCard (.vcf) -->
+              <button 
+                type="button" 
+                class="share-channel-btn btn-vcard" 
+                (click)="downloadVCard(comp)"
+              >
+                <div class="share-icon-circle vcard-circle">
+                  <i class="bi bi-person-vcard-fill"></i>
+                </div>
+                <div class="share-btn-text">
+                  <span class="channel-title">Download vCard (.vcf)</span>
+                  <span class="channel-sub">Import to phone contacts</span>
+                </div>
+              </button>
+
+              <!-- Download PDF Profile (with Business Cards) -->
+              <button 
+                type="button" 
+                class="share-channel-btn btn-pdf-profile" 
+                (click)="downloadCompanyPdf(comp)"
+                [disabled]="isExportingCompanyPdf() === comp.id"
+              >
+                <div class="share-icon-circle pdf-profile-circle">
+                  @if (isExportingCompanyPdf() === comp.id) {
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                  } @else {
+                    <i class="bi bi-file-earmark-pdf-fill"></i>
+                  }
+                </div>
+                <div class="share-btn-text">
+                  <span class="channel-title">Download PDF Profile</span>
+                  <span class="channel-sub">With business cards images</span>
+                </div>
+              </button>
+
+              <!-- Native System Share (Mobile / Tablet / Modern Browser) -->
+              @if (canNativeShare()) {
+                <button 
+                  type="button" 
+                  class="share-channel-btn btn-native" 
+                  (click)="shareNative(comp)"
+                >
+                  <div class="share-icon-circle native-circle">
+                    <i class="bi bi-share-fill"></i>
+                  </div>
+                  <div class="share-btn-text">
+                    <span class="channel-title">Device Share Sheet</span>
+                    <span class="channel-sub">AirDrop, Slack, Messages...</span>
+                  </div>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer share-modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeShareModal()">Done</button>
         </div>
       </div>
     </div>
