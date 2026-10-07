@@ -838,15 +838,26 @@
 
 .category-preview-media {
   position: relative;
-  height: 180px;
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+  height: 190px;
+  background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1.5px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
+  padding: 12px;
 }
 
 .category-preview-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 90%;
+  max-height: 90%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
+  display: block;
+  margin: 0 auto;
 }
 
 .category-placeholder-backdrop {
@@ -855,7 +866,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #059669;
   font-size: 4rem;
 }
 
@@ -1078,7 +1090,7 @@
 /* Categories Grid */
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 1.5rem;
 }
 
@@ -1092,6 +1104,8 @@
   flex-direction: column;
   cursor: pointer;
   transition: all var(--transition-normal);
+  min-width: 0;
+  width: 100%;
 }
 
 .category-card-item:hover {
@@ -1102,15 +1116,32 @@
 
 .cat-card-media {
   position: relative;
-  height: 140px;
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  height: 170px;
+  background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1.5px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
+  padding: 10px;
 }
 
 .cat-card-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 90%;
+  max-height: 90%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.08));
+  display: block;
+  margin: 0 auto;
+}
+
+.category-card-item:hover .cat-card-img {
+  transform: scale(1.08);
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.14));
 }
 
 .cat-fallback-banner {
@@ -1119,7 +1150,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #059669;
   font-size: 3rem;
 }
 
@@ -1127,13 +1159,15 @@
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(6px);
   color: white;
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 0.2rem 0.55rem;
+  padding: 0.2rem 0.6rem;
   border-radius: var(--radius-full);
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .cat-card-body {
@@ -1386,12 +1420,29 @@
   color: #059669;
 }
 
-.modal-category-img {
+.attachment-preview-box {
   width: 100%;
-  max-height: 240px;
-  object-fit: cover;
+  height: 220px;
+  background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-light);
+  border: 1.5px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.modal-category-img {
+  max-width: 90%;
+  max-height: 90%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
+  display: block;
+  margin: 0 auto;
 }
 
 .modal-footer {
@@ -1972,23 +2023,95 @@
 @media (max-width: 1024px) {
   .page-content {
     grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+
+  .preview-sidebar {
+    width: 100%;
+    max-width: 540px;
+    margin: 0 auto;
   }
 
   .preview-sticky {
     position: static;
   }
+
+  .directory-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .directory-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  .search-box {
+    width: 100%;
+    flex: 1 1 240px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .search-input:focus {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
   .navbar {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .brand-subtitle {
+    display: none;
   }
 
   .module-switcher {
     order: 3;
     width: 100%;
-    justify-content: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding: 0.25rem 0.35rem;
+  }
+
+  .module-switcher::-webkit-scrollbar {
+    display: none;
+  }
+
+  .module-link {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.78rem;
+    padding: 0.35rem 0.75rem;
+  }
+
+  .nav-tabs {
+    order: 2;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding: 0.25rem;
+  }
+
+  .nav-tab-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
   }
 
   .backend-chip {
@@ -1996,6 +2119,65 @@
   }
 
   .page-content {
-    padding: 1rem;
+    padding: 1.25rem 0.85rem 3rem;
+  }
+
+  .directory-section {
+    padding: 1.25rem 0.85rem 3rem;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .categories-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .btn-primary-sm {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 540px) {
+  .navbar {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .card-item-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .card-actions-group {
+    width: 100%;
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .btn-action-view,
+  .btn-action-edit,
+  .btn-action-delete {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .modal-card {
+    max-height: 94vh;
+    border-radius: var(--radius-lg);
   }
 }
