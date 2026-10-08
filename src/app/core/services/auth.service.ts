@@ -2,8 +2,9 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
-import { AuthResponse, LoginRequest, UserProfile } from '../models/auth.model';
+import { AuthResponse, LoginRequest, RegisterRequest, UserProfile } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
+
 
 export const TOKEN_KEY = 'cr_auth_token';
 export const USER_KEY = 'cr_auth_user';
@@ -72,7 +73,27 @@ export class AuthService {
   }
 
   /**
+   * Register a new user account and initialize session
+   */
+  register(data: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.authUrl}/register`, data).pipe(
+      tap((res) => {
+        if (res && res.token) {
+          const userProfile: UserProfile = {
+            username: res.username,
+            email: res.email,
+            fullName: res.fullName,
+            role: res.role
+          };
+          this.setSession(res.token, userProfile);
+        }
+      })
+    );
+  }
+
+  /**
    * Fetch current authenticated user profile
+
    */
   fetchCurrentUser(): Observable<UserProfile> {
     return this.http.get<UserProfile>(`${this.authUrl}/me`);

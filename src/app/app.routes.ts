@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './pages/login/login.component';
+import { RegisterComponent } from './pages/register/register.component';
 import { CompanyRegisterComponent } from './pages/company-register/company-register.component';
 import { CategoryRegisterComponent } from './pages/category-register/category-register.component';
 import { BrandRegisterComponent } from './pages/brand-register/brand-register.component';
@@ -16,6 +17,11 @@ export const routes: Routes = [
     path: 'login',
     component: LoginComponent,
     title: 'Sign In | CorpRegistry PRO'
+  },
+  {
+    path: 'register',
+    component: RegisterComponent,
+    title: 'Create Account | CorpRegistry PRO'
   },
   {
     path: 'companies',
