@@ -67,7 +67,8 @@
 
     <!-- User Session & Logout Navigation -->
     <div class="user-session-bar">
-      <div class="user-badge" [title]="'Authenticated: ' + (currentUser()?.email || currentUser()?.username || 'Admin')">
+      <div class="user-badge"
+        [title]="'Authenticated: ' + (currentUser()?.email || currentUser()?.username || 'Admin')">
         <div class="user-avatar-circle">
           <i class="bi bi-person-fill"></i>
         </div>
@@ -180,13 +181,11 @@
               <i class="bi bi-search form-autofill-icon"></i>
               <input type="text" class="form-autofill-input"
                 placeholder="Search an existing company to pre-fill details (e.g. Apex Global)..."
-                [value]="formSearchQuery()"
-                (input)="onFormSearchChange($event)"
-                (focus)="onFormSearchFocus()"
-                (blur)="onFormSearchBlur()"
-                autocomplete="off" />
+                [value]="formSearchQuery()" (input)="onFormSearchChange($event)" (focus)="onFormSearchFocus()"
+                (blur)="onFormSearchBlur()" autocomplete="off" />
               @if (formSearchQuery().trim().length > 0) {
-              <button type="button" class="btn-clear-form-search" (click)="clearFormSearch()" title="Clear autofill search">
+              <button type="button" class="btn-clear-form-search" (click)="clearFormSearch()"
+                title="Clear autofill search">
                 <i class="bi bi-x-circle-fill"></i>
               </button>
               }
@@ -201,7 +200,8 @@
                 <button type="button" class="form-autofill-item" (click)="autofillFormWithCompany(c)">
                   <div class="form-autofill-item-text">
                     <span class="item-comp-name">{{ c.companyName }}</span>
-                    <span class="item-comp-sub">{{ c.city || c.country || 'Global' }} • {{ c.contactName || c.email }}</span>
+                    <span class="item-comp-sub">{{ c.city || c.country || 'Global' }} • {{ c.contactName || c.email
+                      }}</span>
                   </div>
                   <span class="btn-apply-pill">
                     <i class="bi bi-arrow-right"></i> Autofill Form
@@ -1048,11 +1048,12 @@
           <i class="bi bi-search search-icon"></i>
           <input type="text" class="search-input" placeholder="Search by company name, contact, city..."
             [value]="searchQuery()" (input)="onSearchChange($event)" (focus)="onSearchFocus()" (blur)="onSearchBlur()"
-            (keydown)="onSearchKeyDown($event)" autocomplete="off" spellcheck="false"
-            aria-autocomplete="list" [attr.aria-expanded]="isSearchFocused()" />
-          
+            (keydown)="onSearchKeyDown($event)" autocomplete="off" spellcheck="false" aria-autocomplete="list"
+            [attr.aria-expanded]="isSearchFocused()" />
+
           @if (searchQuery().trim().length > 0) {
-          <button type="button" class="btn-clear-search" (click)="clearSearch()" title="Clear search query" aria-label="Clear search">
+          <button type="button" class="btn-clear-search" (click)="clearSearch()" title="Clear search query"
+            aria-label="Clear search">
             <i class="bi bi-x-circle-fill"></i>
           </button>
           }
@@ -1081,7 +1082,8 @@
                 [attr.aria-selected]="activeAutofillIndex() === idx">
                 <div class="autofill-avatar">
                   @if (getCompanyCards(suggestion).length > 0 && !getCompanyCards(suggestion)[0].endsWith('.pdf')) {
-                  <img [src]="companyService.getFileUrl(getCompanyCards(suggestion)[0])" alt="{{ suggestion.companyName }}" />
+                  <img [src]="companyService.getFileUrl(getCompanyCards(suggestion)[0])"
+                    alt="{{ suggestion.companyName }}" />
                   } @else {
                   <div class="autofill-avatar-fallback">
                     {{ suggestion.companyName.charAt(0).toUpperCase() }}
@@ -1092,11 +1094,11 @@
                 <div class="autofill-content">
                   <div class="autofill-name">
                     @for (segment of getHighlightSegments(suggestion.companyName, searchQuery()); track $index) {
-                      @if (segment.isMatch) {
-                        <mark class="autofill-mark">{{ segment.text }}</mark>
-                      } @else {
-                        <span>{{ segment.text }}</span>
-                      }
+                    @if (segment.isMatch) {
+                    <mark class="autofill-mark">{{ segment.text }}</mark>
+                    } @else {
+                    <span>{{ segment.text }}</span>
+                    }
                     }
                   </div>
                   <div class="autofill-meta">
@@ -1104,10 +1106,12 @@
                     <span class="meta-tag"><i class="bi bi-person"></i> {{ suggestion.contactName }}</span>
                     }
                     @if (suggestion.city || suggestion.country) {
-                    <span class="meta-tag"><i class="bi bi-geo-alt"></i> {{ suggestion.city || suggestion.country }}</span>
+                    <span class="meta-tag"><i class="bi bi-geo-alt"></i> {{ suggestion.city || suggestion.country
+                      }}</span>
                     }
                     @if (suggestion.brands && suggestion.brands.length > 0) {
-                    <span class="meta-tag brands-tag"><i class="bi bi-tags"></i> {{ suggestion.brands.length }} brands</span>
+                    <span class="meta-tag brands-tag"><i class="bi bi-tags"></i> {{ suggestion.brands.length }}
+                      brands</span>
                     }
                   </div>
                 </div>
@@ -1116,8 +1120,8 @@
                   <span class="card-status-badge mini" [ngClass]="suggestion.status.toLowerCase()">
                     {{ suggestion.status }}
                   </span>
-                  <button type="button" class="btn-suggestion-preview" (click)="selectSuggestionAndOpen(suggestion, $event)"
-                    title="View Company Details">
+                  <button type="button" class="btn-suggestion-preview"
+                    (click)="selectSuggestionAndOpen(suggestion, $event)" title="View Company Details">
                     <i class="bi bi-eye"></i>
                   </button>
                 </div>
