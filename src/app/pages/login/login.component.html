@@ -1,26 +1,24 @@
 <div class="login-page-container">
-  <!-- Dynamic Background Glow Elements -->
-  <div class="ambient-glow glow-top-left"></div>
-  <div class="ambient-glow glow-bottom-right"></div>
-
   <div class="login-wrapper">
     <!-- Brand Header -->
-    <div class="login-header">
-      <div class="brand-badge">
-        <div class="brand-icon">
-          <i class="bi bi-shield-lock-fill"></i>
-        </div>
-        <div class="brand-texts">
-          <span class="brand-title">CorpRegistry <span class="badge-pro">PRO</span></span>
-          <span class="brand-sub">Enterprise Directory & Catalog Suite</span>
-        </div>
+    <div class="brand-header">
+      <div class="brand-logo-icon">
+        <i class="bi bi-buildings-fill"></i>
       </div>
-      <h2 class="welcome-heading">Sign in to your portal</h2>
-      <p class="welcome-desc">Enter your administrative credentials to manage companies, categories, brands, and products.</p>
+      <div class="brand-details">
+        <span class="brand-name">CorpRegistry</span>
+        <span class="brand-tagline">Enterprise Directory System</span>
+      </div>
     </div>
 
     <!-- Main Login Card -->
     <div class="login-card">
+      <!-- Card Header -->
+      <div class="card-header">
+        <h1 class="card-title">Sign in to your account</h1>
+        <p class="card-subtitle">Enter your credentials to access your portal</p>
+      </div>
+
       <!-- Error Alert -->
       @if (errorMessage()) {
         <div class="alert-error" role="alert">
@@ -54,12 +52,10 @@
 
         <!-- Password Field -->
         <div class="form-group">
-          <div class="label-row">
-            <label for="password" class="form-label">
-              <span>Password</span>
-              <span class="required-star">*</span>
-            </label>
-          </div>
+          <label for="password" class="form-label">
+            <span>Password</span>
+            <span class="required-star">*</span>
+          </label>
           <div class="input-container" [class.has-error]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid">
             <i class="bi bi-lock-fill input-icon"></i>
             <input
@@ -68,7 +64,7 @@
               formControlName="password"
               placeholder="••••••••••••"
               autocomplete="current-password"
-              class="form-control"
+              class="form-control has-toggle"
             />
             <button
               type="button"
@@ -137,7 +133,7 @@
 
     <!-- Footer Note -->
     <div class="login-footer">
-      <p>© 2026 CorpRegistry PRO. System Protected by Spring Security & Angular Enterprise Architecture.</p>
+      <p>© 2026 CorpRegistry. System Protected by Spring Security & Angular Enterprise Architecture.</p>
     </div>
   </div>
 </div>

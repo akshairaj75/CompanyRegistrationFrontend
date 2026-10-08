@@ -16,36 +16,36 @@ export const routes: Routes = [
   {
     path: 'login',
     component: LoginComponent,
-    title: 'Sign In | CorpRegistry PRO'
+    title: 'Sign In | CorpRegistry'
   },
   {
     path: 'register',
     component: RegisterComponent,
-    title: 'Create Account | CorpRegistry PRO'
+    title: 'Create Account | CorpRegistry'
   },
   {
     path: 'companies',
     component: CompanyRegisterComponent,
     canActivate: [authGuard],
-    title: 'Company Management | CorpRegistry PRO'
+    title: 'Company Management | CorpRegistry'
   },
   {
     path: 'categories',
     component: CategoryRegisterComponent,
     canActivate: [authGuard],
-    title: 'Category Management | CategoryRegistry PRO'
+    title: 'Category Management | CategoryRegistry'
   },
   {
     path: 'brands',
     component: BrandRegisterComponent,
     canActivate: [authGuard],
-    title: 'Brand Management | BrandRegistry PRO'
+    title: 'Brand Management | BrandRegistry'
   },
   {
     path: 'products',
     component: ProductRegisterComponent,
     canActivate: [authGuard],
-    title: 'Product Management | ProductRegistry PRO'
+    title: 'Product Management | ProductRegistry'
   },
   {
     path: '**',
