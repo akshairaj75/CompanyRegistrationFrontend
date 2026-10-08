@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { CategoryService } from '../../core/services/category';
 import { CategoryRequest, CategoryResponse } from '../../core/models/category.model';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -16,7 +17,14 @@ import { environment } from '../../../environments/environment';
 export class CategoryRegisterComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly categoryService = inject(CategoryService);
+  readonly authService = inject(AuthService);
   readonly environment = environment;
+
+  readonly currentUser = this.authService.currentUser;
+
+  logout(): void {
+    this.authService.logout();
+  }
 
   // State Signals
   readonly isSubmitting = signal<boolean>(false);

@@ -1,0 +1,136 @@
+<div class="login-page-container">
+  <!-- Dynamic Background Glow Elements -->
+  <div class="ambient-glow glow-top-left"></div>
+  <div class="ambient-glow glow-bottom-right"></div>
+
+  <div class="login-wrapper">
+    <!-- Brand Header -->
+    <div class="login-header">
+      <div class="brand-badge">
+        <div class="brand-icon">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <div class="brand-texts">
+          <span class="brand-title">CorpRegistry <span class="badge-pro">PRO</span></span>
+          <span class="brand-sub">Enterprise Directory & Catalog Suite</span>
+        </div>
+      </div>
+      <h2 class="welcome-heading">Sign in to your portal</h2>
+      <p class="welcome-desc">Enter your administrative credentials to manage companies, categories, brands, and products.</p>
+    </div>
+
+    <!-- Main Login Card -->
+    <div class="login-card">
+      <!-- Error Alert -->
+      @if (errorMessage()) {
+        <div class="alert-error" role="alert">
+          <i class="bi bi-exclamation-triangle-fill alert-icon"></i>
+          <span class="alert-text">{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate class="login-form">
+        <!-- Username or Email Field -->
+        <div class="form-group">
+          <label for="usernameOrEmail" class="form-label">
+            <span>Username or Email</span>
+            <span class="required-star">*</span>
+          </label>
+          <div class="input-container" [class.has-error]="loginForm.get('usernameOrEmail')?.touched && loginForm.get('usernameOrEmail')?.invalid">
+            <i class="bi bi-person-fill input-icon"></i>
+            <input
+              type="text"
+              id="usernameOrEmail"
+              formControlName="usernameOrEmail"
+              placeholder="e.g. admin or admin@dealspot.com"
+              autocomplete="username"
+              class="form-control"
+            />
+          </div>
+          @if (loginForm.get('usernameOrEmail')?.touched && loginForm.get('usernameOrEmail')?.hasError('required')) {
+            <span class="error-msg">Username or email is required</span>
+          }
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="password" class="form-label">
+              <span>Password</span>
+              <span class="required-star">*</span>
+            </label>
+          </div>
+          <div class="input-container" [class.has-error]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid">
+            <i class="bi bi-lock-fill input-icon"></i>
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              id="password"
+              formControlName="password"
+              placeholder="••••••••••••"
+              autocomplete="current-password"
+              class="form-control"
+            />
+            <button
+              type="button"
+              class="btn-toggle-password"
+              (click)="togglePasswordVisibility()"
+              [title]="showPassword() ? 'Hide password' : 'Show password'"
+              tabindex="-1"
+            >
+              <i class="bi" [class.bi-eye-slash-fill]="showPassword()" [class.bi-eye-fill]="!showPassword()"></i>
+            </button>
+          </div>
+          @if (loginForm.get('password')?.touched && loginForm.get('password')?.hasError('required')) {
+            <span class="error-msg">Password is required</span>
+          }
+        </div>
+
+        <!-- Demo Quick Access Pill -->
+        <div class="demo-account-box">
+          <div class="demo-info">
+            <i class="bi bi-key-fill"></i>
+            <span>Default Seed Account:</span>
+            <code>SuperAdmin</code> / <code>companyAdmin</code>
+          </div>
+
+          <button type="button" class="btn-demo-fill" (click)="useDemoAdmin()" title="Auto-fill default credentials">
+            <span>Auto Fill</span>
+          </button>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="btn-submit"
+          [disabled]="isLoading()"
+          id="btn-login-submit"
+        >
+          @if (isLoading()) {
+            <span class="spinner-border" role="status" aria-hidden="true"></span>
+            <span>Verifying Credentials...</span>
+          } @else {
+            <span>Sign In to Portal</span>
+            <i class="bi bi-arrow-right-short submit-arrow"></i>
+          }
+        </button>
+      </form>
+
+      <!-- Security Trust Badges -->
+      <div class="security-badges">
+        <div class="security-item">
+          <i class="bi bi-shield-check"></i>
+          <span>JJWT 0.12 Bearer Security</span>
+        </div>
+        <div class="security-item">
+          <i class="bi bi-lock"></i>
+          <span>BCrypt Encryption</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="login-footer">
+      <p>© 2026 CorpRegistry PRO. System Protected by Spring Security & Angular Enterprise Architecture.</p>
+    </div>
+  </div>
+</div>

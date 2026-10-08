@@ -8,6 +8,7 @@ import { BrandService } from '../../core/services/brand';
 import { ProductRequest, ProductResponse } from '../../core/models/product.model';
 import { CategoryResponse } from '../../core/models/category.model';
 import { BrandResponse } from '../../core/models/brand.model';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -22,7 +23,14 @@ export class ProductRegisterComponent implements OnInit {
   readonly productService = inject(ProductService);
   readonly categoryService = inject(CategoryService);
   readonly brandService = inject(BrandService);
+  readonly authService = inject(AuthService);
   readonly environment = environment;
+
+  readonly currentUser = this.authService.currentUser;
+
+  logout(): void {
+    this.authService.logout();
+  }
 
   // State Signals
   readonly isSubmitting = signal<boolean>(false);

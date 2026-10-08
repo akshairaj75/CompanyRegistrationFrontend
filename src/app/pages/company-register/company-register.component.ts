@@ -9,6 +9,7 @@ import { CompanyRequest, CompanyResponse } from '../../core/models/company.model
 import { BrandResponse } from '../../core/models/brand.model';
 import { ProductResponse } from '../../core/models/product.model';
 import { CategoryResponse } from '../../core/models/category.model';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 import { RouterLink } from '@angular/router';
@@ -37,7 +38,15 @@ export class CompanyRegisterComponent implements OnInit {
   readonly brandService = inject(BrandService);
   readonly productService = inject(ProductService);
   readonly categoryService = inject(CategoryService);
+  readonly authService = inject(AuthService);
   readonly environment = environment;
+
+  readonly currentUser = this.authService.currentUser;
+
+  logout(): void {
+    this.authService.logout();
+  }
+
 
   // State Signals
   readonly isSubmitting = signal<boolean>(false);

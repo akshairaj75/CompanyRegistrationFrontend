@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { BrandService } from '../../core/services/brand';
 import { BrandRequest, BrandResponse } from '../../core/models/brand.model';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -16,7 +17,14 @@ import { environment } from '../../../environments/environment';
 export class BrandRegisterComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly brandService = inject(BrandService);
+  readonly authService = inject(AuthService);
   readonly environment = environment;
+
+  readonly currentUser = this.authService.currentUser;
+
+  logout(): void {
+    this.authService.logout();
+  }
 
   // State Signals
   readonly isSubmitting = signal<boolean>(false);

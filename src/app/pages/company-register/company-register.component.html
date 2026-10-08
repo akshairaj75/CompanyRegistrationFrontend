@@ -65,10 +65,21 @@
       </button>
     </nav>
 
-    <!-- System Status Chip -->
-    <div class="backend-chip" title="System Operational">
-      <span class="pulse-dot"></span>
-      <span class="backend-label">System Online</span>
+    <!-- User Session & Logout Navigation -->
+    <div class="user-session-bar">
+      <div class="user-badge" [title]="'Authenticated: ' + (currentUser()?.email || currentUser()?.username || 'Admin')">
+        <div class="user-avatar-circle">
+          <i class="bi bi-person-fill"></i>
+        </div>
+        <div class="user-meta-info">
+          <span class="user-display-name">{{ currentUser()?.username || 'Admin' }}</span>
+          <span class="user-role-label">{{ currentUser()?.role || 'ROLE_ADMIN' }}</span>
+        </div>
+      </div>
+      <button type="button" class="btn-logout" (click)="logout()" id="btn-company-logout" title="Sign out of system">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </button>
     </div>
   </header>
 
