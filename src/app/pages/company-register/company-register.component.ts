@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { CompanyService } from '../../core/services/company';
 import { BrandService } from '../../core/services/brand';
 import { ProductService } from '../../core/services/product';
@@ -10,6 +10,8 @@ import { BrandResponse } from '../../core/models/brand.model';
 import { ProductResponse } from '../../core/models/product.model';
 import { CategoryResponse } from '../../core/models/category.model';
 import { AuthService } from '../../core/services/auth.service';
+import { OcrService } from '../../core/services/ocr.service';
+import { BusinessCardScanResult } from '../../core/models/ocr.model';
 import { environment } from '../../../environments/environment';
 
 import { RouterLink } from '@angular/router';
@@ -28,7 +30,7 @@ export interface BusinessCardItem {
 @Component({
   selector: 'app-company-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
   templateUrl: './company-register.component.html',
   styleUrl: './company-register.component.css'
 })
@@ -39,9 +41,23 @@ export class CompanyRegisterComponent implements OnInit {
   readonly productService = inject(ProductService);
   readonly categoryService = inject(CategoryService);
   readonly authService = inject(AuthService);
+  readonly ocrService = inject(OcrService);
   readonly environment = environment;
 
   readonly currentUser = this.authService.currentUser;
+
+  // OCR Business Card Scanner State
+  readonly isOcrModalOpen = signal<boolean>(false);
+  readonly isScanningCard = signal<boolean>(false);
+  readonly scannedCardResult = signal<BusinessCardScanResult | null>(null);
+  readonly scannedCardPreview = signal<string | null>(null);
+  readonly scannedCardFile = signal<File | null>(null);
+  readonly showRawOcrText = signal<boolean>(false);
+  readonly isOcrSettingsOpen = signal<boolean>(false);
+  readonly ocrApiKeyInput = signal<string>('');
+  readonly autoAttachScannedCard = signal<boolean>(true);
+  readonly ocrDragOver = signal<boolean>(false);
+  readonly isUsingLiveVision = computed(() => this.ocrService.hasConfiguredKey());
 
   logout(): void {
     this.authService.logout();
@@ -1252,4 +1268,178 @@ export class CompanyRegisterComponent implements OnInit {
       }
     });
   }
+
+  // ==========================================
+  // OCR BUSINESS CARD SCANNER HANDLERS
+  // ==========================================
+  openOcrModal(): void {
+    this.isOcrModalOpen.set(true);
+    this.ocrApiKeyInput.set(this.ocrService.getApiKey());
+  }
+
+  closeOcrModal(): void {
+    if (this.isScanningCard()) return;
+    this.isOcrModalOpen.set(false);
+  }
+
+  resetOcrScan(): void {
+    this.scannedCardResult.set(null);
+    this.scannedCardPreview.set(null);
+    this.scannedCardFile.set(null);
+    this.showRawOcrText.set(false);
+  }
+
+  onOcrFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.processCardOcr(input.files[0]);
+      input.value = '';
+    }
+  }
+
+  onOcrDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.ocrDragOver.set(false);
+    if (event.dataTransfer && event.dataTransfer.files.length > 0) {
+      this.processCardOcr(event.dataTransfer.files[0]);
+    }
+  }
+
+  onOcrDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.ocrDragOver.set(true);
+  }
+
+  onOcrDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.ocrDragOver.set(false);
+  }
+
+  processCardOcr(file: File): void {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Unsupported Image Format',
+        message: 'Please upload a JPG, PNG, or WEBP image of the business card for OCR processing.'
+      });
+      return;
+    }
+
+    this.scannedCardFile.set(file);
+    this.isScanningCard.set(true);
+    this.isOcrModalOpen.set(true);
+
+    // Read and create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.scannedCardPreview.set(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    this.ocrService.scanBusinessCard(file).subscribe({
+      next: (result) => {
+        this.scannedCardResult.set(result);
+        this.isScanningCard.set(false);
+      },
+      error: (err) => {
+        console.error('OCR scanning error:', err);
+        this.isScanningCard.set(false);
+        this.feedback.set({
+          type: 'error',
+          title: 'Scanning Error',
+          message: err?.message || 'Could not extract text from the business card. Please try a clearer picture.'
+        });
+      }
+    });
+  }
+
+  scanExistingCard(item: BusinessCardItem, event?: Event): void {
+    if (event) event.stopPropagation();
+    if (item.file) {
+      this.processCardOcr(item.file);
+    } else if (item.url) {
+      fetch(item.url)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], item.name, { type: blob.type || 'image/jpeg' });
+          this.processCardOcr(file);
+        })
+        .catch(err => {
+          console.error('Failed to load card for OCR:', err);
+          this.feedback.set({
+            type: 'error',
+            title: 'Image Load Error',
+            message: 'Unable to access the visiting card image for scanning.'
+          });
+        });
+    }
+  }
+
+  applyOcrResult(): void {
+    const res = this.scannedCardResult();
+    if (!res) return;
+
+    // Apply values to reactive form
+    const currentValues = this.companyForm.value;
+    this.companyForm.patchValue({
+      companyName: res.companyName || currentValues.companyName,
+      contactName: res.contactName || currentValues.contactName,
+      contactDesignation: res.contactDesignation || currentValues.contactDesignation,
+      email: res.email || currentValues.email,
+      contactEmail: res.contactEmail || res.email || currentValues.contactEmail,
+      contactMobileNumber: res.contactMobileNumber || currentValues.contactMobileNumber,
+      landline: res.landline || currentValues.landline,
+      website: res.website || currentValues.website,
+      address: res.address || currentValues.address,
+      city: res.city || currentValues.city,
+      country: res.country || currentValues.country || 'United States'
+    });
+
+    // Automatically attach the card file to Section 07 if selected
+    const file = this.scannedCardFile();
+    if (this.autoAttachScannedCard() && file) {
+      const alreadyAdded = this.businessCardItems().some(c => c.name === file.name && c.size === file.size);
+      if (!alreadyAdded) {
+        this.handleFiles([file]);
+      }
+    }
+
+    this.isOcrModalOpen.set(false);
+    this.feedback.set({
+      type: 'success',
+      title: 'Business Card Details Applied! 🎉',
+      message: `Extracted company "${res.companyName || 'Detected'}", contact "${res.contactName || 'Detected'}" and related details have auto-filled into the form.`
+    });
+  }
+
+  toggleOcrSettings(): void {
+    this.isOcrSettingsOpen.update(v => !v);
+  }
+
+  saveOcrApiKey(): void {
+    const key = this.ocrApiKeyInput().trim();
+    this.ocrService.setApiKey(key);
+    this.isOcrSettingsOpen.set(false);
+    this.feedback.set({
+      type: 'success',
+      title: 'Vision API Key Updated',
+      message: key ? 'Google Cloud Vision API key saved locally in browser.' : 'Custom API key removed. Using default simulation.'
+    });
+  }
+
+  clearOcrApiKey(): void {
+    this.ocrApiKeyInput.set('');
+    this.ocrService.setApiKey('');
+    this.isOcrSettingsOpen.set(false);
+    this.feedback.set({
+      type: 'success',
+      title: 'Vision API Key Cleared',
+      message: 'Reverted to intelligent fallback mode.'
+    });
+  }
 }
+

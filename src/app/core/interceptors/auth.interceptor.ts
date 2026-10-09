@@ -12,10 +12,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
   }
 
+  // Never send internal auth tokens to external third-party APIs (like Google Cloud Vision)
+  const isExternalUrl = req.url.includes('googleapis.com') || (req.url.startsWith('http') && !req.url.includes('/api/'));
   const isPublicAuthEndpoint = req.url.includes('/api/auth/login') || req.url.includes('/api/auth/register');
 
   let authReq = req;
-  if (token && !isPublicAuthEndpoint) {
+  if (token && !isPublicAuthEndpoint && !isExternalUrl) {
     authReq = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -25,7 +27,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !isPublicAuthEndpoint) {
+      // Only trigger logout on 401 from our internal application backend, not external services
+      if (error.status === 401 && !isPublicAuthEndpoint && !isExternalUrl) {
         authService.logout();
       }
       return throwError(() => error);

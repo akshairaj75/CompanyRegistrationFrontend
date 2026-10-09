@@ -159,6 +159,38 @@
 
       <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" class="registration-form" novalidate>
 
+        <!-- Smart AI OCR Business Card Scanner Banner -->
+        <div class="ocr-smart-banner">
+          <div class="ocr-banner-left">
+            <div class="ocr-icon-sparkle">
+              <i class="bi bi-camera-viewfinder"></i>
+            </div>
+            <div class="ocr-banner-text">
+              <div class="ocr-badge-row">
+                <span class="ocr-pill-ai"><i class="bi bi-stars"></i> Smart Card OCR</span>
+                @if (isUsingLiveVision()) {
+                <span class="ocr-pill-mode live" title="Direct Google Cloud Vision REST Active"><i class="bi bi-check-circle-fill"></i> Cloud Vision Active</span>
+                } @else {
+                <span class="ocr-pill-mode sim" title="Instant Smart Simulation Active"><i class="bi bi-lightning-charge-fill"></i> Instant Simulation Mode</span>
+                }
+              </div>
+              <h4 class="ocr-banner-heading">Scan Visiting Card to Auto-Fill Registration</h4>
+              <p class="ocr-banner-desc">
+                Upload or capture a business card to automatically extract company, contact person, phone, email, and address.
+              </p>
+            </div>
+          </div>
+          <div class="ocr-banner-actions">
+            <button type="button" class="btn-ocr-scan-banner" (click)="ocrCardInputBanner.click()">
+              <i class="bi bi-camera-fill"></i> Scan Business Card
+            </button>
+            <button type="button" class="btn-ocr-settings-cog" (click)="toggleOcrSettings()" title="Configure Google Cloud Vision API Key">
+              <i class="bi bi-gear-fill"></i>
+            </button>
+            <input #ocrCardInputBanner type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
+          </div>
+        </div>
+
         <!-- Section 1: Corporate Identity -->
         <div class="form-card">
           <div class="card-legend">
@@ -168,6 +200,7 @@
               <p class="card-subtitle">Official registered enterprise identity & operational status</p>
             </div>
           </div>
+
 
           <!-- Quick Template Autofill Option for New Registrations -->
           @if (!editingCompanyId() && companies().length > 0) {
@@ -724,6 +757,12 @@
                 <span class="format-tag">PDF</span>
                 <span class="format-limit">Max 20MB / file</span>
               </div>
+              <div class="dropzone-ocr-quick">
+                <button type="button" class="btn-dropzone-ocr" (click)="$event.stopPropagation(); ocrCardInputSection7.click()">
+                  <i class="bi bi-camera-fill"></i> Scan Card with OCR to Auto-Fill Form
+                </button>
+                <input #ocrCardInputSection7 type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
+              </div>
             </div>
             } @else {
             <div class="multi-cards-container" (click)="$event.stopPropagation()">
@@ -736,6 +775,11 @@
                   </span>
                 </div>
                 <div class="toolbar-actions">
+                  <button type="button" class="btn-toolbar-ocr" (click)="ocrCardInputToolbar.click()"
+                    title="Scan visiting card to extract and auto-fill details">
+                    <i class="bi bi-camera-fill"></i> Scan with OCR
+                  </button>
+                  <input #ocrCardInputToolbar type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
                   <button type="button" class="btn-toolbar-add" (click)="fileInput.click()"
                     title="Add more visiting cards">
                     <i class="bi bi-plus-lg"></i> Add More
@@ -763,6 +807,12 @@
                       title="Remove file" aria-label="Remove file">
                       <i class="bi bi-x-lg"></i>
                     </button>
+                    @if (!item.isPdf) {
+                    <button type="button" class="card-ocr-quick-btn" (click)="scanExistingCard(item, $event)"
+                      title="Auto-fill form using this visiting card">
+                      <i class="bi bi-magic"></i>
+                    </button>
+                    }
                     @if (idx === 0) {
                     <span class="primary-badge" title="Primary display card">Primary</span>
                     }
@@ -1757,6 +1807,275 @@
 
       <div class="modal-footer share-modal-footer">
         <button type="button" class="btn-secondary" (click)="closeShareModal()">Done</button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- OCR BUSINESS CARD SCANNER & REVIEW MODAL   -->
+  <!-- ========================================== -->
+  @if (isOcrModalOpen()) {
+  <div class="modal-backdrop ocr-modal-backdrop" (click)="closeOcrModal()">
+    <div class="modal-dialog ocr-modal-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal-content ocr-modal-content">
+        <!-- Modal Header -->
+        <div class="modal-header ocr-modal-header">
+          <div class="ocr-header-left">
+            <div class="ocr-header-icon" [class.scanning]="isScanningCard()">
+              <i class="bi" [class.bi-cpu-fill]="isScanningCard()" [class.bi-card-heading]="!isScanningCard()"></i>
+            </div>
+            <div>
+              <h3 class="modal-title">
+                {{ isScanningCard() ? 'Scanning Business Card...' : 'Business Card OCR Verification' }}
+              </h3>
+              <p class="modal-subtitle">
+                {{ isScanningCard() ? 'AI vision is analyzing text, typography, and contact entities' : 'Review and edit extracted fields before applying to registration' }}
+              </p>
+            </div>
+          </div>
+          <div class="ocr-header-right">
+            @if (scannedCardResult(); as result) {
+            <div class="ocr-score-badge" [class.high]="result.confidenceScore >= 70" [class.medium]="result.confidenceScore >= 40 && result.confidenceScore < 70" [class.low]="result.confidenceScore < 40">
+              <i class="bi bi-shield-check"></i>
+              <span>{{ result.confidenceScore }}% Confidence</span>
+            </div>
+            }
+            <button type="button" class="btn-modal-close" (click)="closeOcrModal()" [disabled]="isScanningCard()" aria-label="Close modal">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body ocr-modal-body">
+          <div class="ocr-layout-grid">
+            <!-- Left Pane: Card Image Preview & Laser Scan Animation -->
+            <div class="ocr-card-preview-pane">
+              <div class="ocr-preview-card-wrap" [class.is-scanning]="isScanningCard()">
+                @if (scannedCardPreview()) {
+                <img [src]="scannedCardPreview()" alt="Scanned Business Card" class="ocr-card-img" />
+                @if (isScanningCard()) {
+                <div class="ocr-laser-scan-line"></div>
+                <div class="ocr-scan-overlay">
+                  <div class="ocr-scan-pulse-ring"></div>
+                  <span class="ocr-scan-pulse-text">Recognizing Text...</span>
+                </div>
+                }
+                } @else {
+                <div class="ocr-preview-empty" (click)="ocrModalFileInput.click()">
+                  <i class="bi bi-camera"></i>
+                  <span>Click to choose business card</span>
+                </div>
+                }
+              </div>
+
+              <!-- Retake / Select Another Button -->
+              <div class="ocr-preview-actions">
+                <input #ocrModalFileInput type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
+                <button type="button" class="btn-retake-card" (click)="ocrModalFileInput.click()" [disabled]="isScanningCard()">
+                  <i class="bi bi-arrow-repeat"></i> {{ scannedCardPreview() ? 'Change Card Image' : 'Select Card' }}
+                </button>
+                @if (scannedCardFile()) {
+                <span class="ocr-file-name-tag">{{ scannedCardFile()?.name }}</span>
+                }
+              </div>
+            </div>
+
+            <!-- Right Pane: Extracted Entities Review & Edit -->
+            <div class="ocr-extracted-fields-pane">
+              @if (isScanningCard()) {
+              <div class="ocr-scanning-skeleton">
+                <div class="ocr-skeleton-header">
+                  <div class="skeleton-shimmer skeleton-title-bar"></div>
+                  <div class="skeleton-shimmer skeleton-sub-bar"></div>
+                </div>
+                <div class="ocr-skeleton-grid">
+                  <div class="skeleton-shimmer skeleton-input-box"></div>
+                  <div class="skeleton-shimmer skeleton-input-box"></div>
+                  <div class="skeleton-shimmer skeleton-input-box"></div>
+                  <div class="skeleton-shimmer skeleton-input-box"></div>
+                  <div class="skeleton-shimmer skeleton-input-box"></div>
+                  <div class="skeleton-shimmer skeleton-input-box"></div>
+                </div>
+                <div class="ocr-scanning-notice">
+                  <div class="spinner-border spinner-border-sm text-primary"></div>
+                  <span>Extracting company, contacts, phone numbers, and address...</span>
+                </div>
+              </div>
+              } @else if (scannedCardResult(); as result) {
+              <div class="ocr-fields-form">
+                <div class="ocr-fields-intro">
+                  <i class="bi bi-info-circle"></i>
+                  <span>Fields detected by OCR. You can refine any value below before applying:</span>
+                </div>
+
+                <div class="ocr-fields-grid">
+                  <!-- Company Name -->
+                  <div class="ocr-field-item span-2">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-building"></i> Company Name
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.companyName" placeholder="e.g. Apex Global Corp" />
+                  </div>
+
+                  <!-- Contact Person Name -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-person"></i> Contact Name
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.contactName" placeholder="e.g. Elena Rostova" />
+                  </div>
+
+                  <!-- Contact Designation -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-briefcase"></i> Designation / Title
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.contactDesignation" placeholder="e.g. Managing Director" />
+                  </div>
+
+                  <!-- Mobile Number -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-phone"></i> Mobile Number
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.contactMobileNumber" placeholder="e.g. +1 917 433-2890" />
+                  </div>
+
+                  <!-- Landline / Office -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-telephone"></i> Landline / Office
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.landline" placeholder="e.g. +1 212 650-8910" />
+                  </div>
+
+                  <!-- Email Address -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-envelope"></i> Email Address
+                    </label>
+                    <input type="email" class="ocr-input" [(ngModel)]="result.email" placeholder="e.g. info@apexgroup.com" />
+                  </div>
+
+                  <!-- Direct Contact Email -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-envelope-at"></i> Direct Contact Email
+                    </label>
+                    <input type="email" class="ocr-input" [(ngModel)]="result.contactEmail" placeholder="e.g. elena@apexgroup.com" />
+                  </div>
+
+                  <!-- Website -->
+                  <div class="ocr-field-item span-2">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-globe"></i> Website URL
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.website" placeholder="e.g. https://www.apexgroup.com" />
+                  </div>
+
+                  <!-- Address -->
+                  <div class="ocr-field-item span-2">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-geo-alt"></i> Address
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.address" placeholder="e.g. 1250 Avenue of the Americas, 18th Floor" />
+                  </div>
+
+                  <!-- City -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-pin-map"></i> City
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.city" placeholder="e.g. New York" />
+                  </div>
+
+                  <!-- Country -->
+                  <div class="ocr-field-item">
+                    <label class="ocr-field-label">
+                      <i class="bi bi-flag"></i> Country
+                    </label>
+                    <input type="text" class="ocr-input" [(ngModel)]="result.country" placeholder="e.g. United States" />
+                  </div>
+                </div>
+
+                <!-- Raw OCR Text Accordion -->
+                <div class="ocr-raw-section">
+                  <button type="button" class="btn-toggle-raw" (click)="showRawOcrText.set(!showRawOcrText())">
+                    <i class="bi" [class.bi-chevron-down]="!showRawOcrText()" [class.bi-chevron-up]="showRawOcrText()"></i>
+                    <span>{{ showRawOcrText() ? 'Hide Raw OCR Text' : 'Inspect Raw Detected Text' }}</span>
+                  </button>
+                  @if (showRawOcrText()) {
+                  <pre class="ocr-raw-display">{{ result.rawText }}</pre>
+                  }
+                </div>
+
+                <!-- Auto Attach Option -->
+                <label class="ocr-attach-checkbox-label">
+                  <input type="checkbox" [checked]="autoAttachScannedCard()" (change)="autoAttachScannedCard.set(!autoAttachScannedCard())" />
+                  <span>Attach this card image to Section 07 (Visiting Cards) on form apply</span>
+                </label>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer ocr-modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeOcrModal()" [disabled]="isScanningCard()">
+            Cancel
+          </button>
+          <button type="button" class="btn-primary btn-apply-ocr" (click)="applyOcrResult()" [disabled]="isScanningCard() || !scannedCardResult()">
+            <i class="bi bi-check2-circle"></i> Apply Details to Form
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- OCR SETTINGS / API KEY MODAL               -->
+  <!-- ========================================== -->
+  @if (isOcrSettingsOpen()) {
+  <div class="modal-backdrop ocr-settings-backdrop" (click)="toggleOcrSettings()">
+    <div class="modal-dialog ocr-settings-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-header-icon">
+            <i class="bi bi-key-fill"></i>
+          </div>
+          <div>
+            <h3 class="modal-title">Google Cloud Vision Settings</h3>
+            <p class="modal-subtitle">Configure client-side Vision API key for live production OCR</p>
+          </div>
+          <button type="button" class="btn-modal-close" (click)="toggleOcrSettings()" aria-label="Close settings">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="ocr-settings-info">
+            <p>
+              When a valid Google Cloud Vision API key is supplied, Angular sends high-resolution business card images directly to
+              <code>https://vision.googleapis.com/v1/images:annotate</code> from your browser.
+            </p>
+            <p>
+              If left blank, the app will run in <strong>Instant Simulation Mode</strong> with realistic corporate card data.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label for="googleApiKeyInput" class="form-label">Google Cloud Vision API Key</label>
+            <input id="googleApiKeyInput" type="password" class="form-control" [value]="ocrApiKeyInput()" (input)="ocrApiKeyInput.set($any($event.target).value)" placeholder="AIzaSy..." />
+            <span class="form-hint">Stored securely in your browser's LocalStorage only. Never logged to backend.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="clearOcrApiKey()">Clear Key (Use Simulation)</button>
+          <button type="button" class="btn-primary" (click)="saveOcrApiKey()">Save Settings</button>
+        </div>
       </div>
     </div>
   </div>
