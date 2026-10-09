@@ -5025,48 +5025,7 @@
 .ocr-banner-text {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-}
-
-.ocr-badge-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.15rem;
-}
-
-.ocr-pill-ai {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
-  background: #e0e7ff;
-  color: #4338ca;
-}
-
-.ocr-pill-mode {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
-}
-
-.ocr-pill-mode.live {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.ocr-pill-mode.sim {
-  background: #fef3c7;
-  color: #b45309;
+  gap: 0.35rem;
 }
 
 .ocr-banner-heading {
@@ -5109,25 +5068,6 @@
 .btn-ocr-scan-banner:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
-}
-
-.btn-ocr-settings-cog {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  background: white;
-  color: #6366f1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-ocr-settings-cog:hover {
-  background: #eef2ff;
-  transform: rotate(30deg);
 }
 
 /* Quick OCR action in Dropzone */
@@ -5512,44 +5452,6 @@
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-/* Raw OCR Collapsible */
-.ocr-raw-section {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px dashed #e2e8f0;
-}
-
-.btn-toggle-raw {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-}
-
-.btn-toggle-raw:hover {
-  color: #4f46e5;
-}
-
-.ocr-raw-display {
-  margin-top: 0.75rem;
-  padding: 0.85rem;
-  background: #0f172a;
-  color: #e2e8f0;
-  border-radius: var(--radius-sm, 6px);
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  max-height: 160px;
-  overflow-y: auto;
-}
-
 /* Auto-attach Checkbox */
 .ocr-attach-checkbox-label {
   display: flex;
@@ -5653,31 +5555,49 @@
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
-/* OCR Settings Modal */
-.ocr-settings-backdrop {
-  z-index: 1070;
-}
-
-.ocr-settings-dialog {
-  max-width: 520px;
-}
-
-.ocr-settings-info {
-  background: #f1f5f9;
-  padding: 0.95rem;
-  border-radius: var(--radius-sm, 6px);
-  font-size: 0.85rem;
-  color: #475569;
+/* Unrecognized / Low-confidence Warning Banner */
+.ocr-unrecognized-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.9rem 1.15rem;
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: var(--radius-md, 8px);
   margin-bottom: 1.25rem;
-  line-height: 1.5;
 }
 
-.ocr-settings-info p {
-  margin: 0 0 0.5rem 0;
+.ocr-unrecognized-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
 }
 
-.ocr-settings-info p:last-child {
-  margin-bottom: 0;
+.ocr-unrecognized-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.unrecognized-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.unrecognized-desc {
+  font-size: 0.8rem;
+  color: #b45309;
+  margin: 0;
+  line-height: 1.4;
 }
 
 /* Responsive adjustments for OCR elements */

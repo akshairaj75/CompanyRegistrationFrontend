@@ -46,18 +46,32 @@ export class CompanyRegisterComponent implements OnInit {
 
   readonly currentUser = this.authService.currentUser;
 
-  // OCR Business Card Scanner State
+  // Business Card Scanner State
   readonly isOcrModalOpen = signal<boolean>(false);
   readonly isScanningCard = signal<boolean>(false);
   readonly scannedCardResult = signal<BusinessCardScanResult | null>(null);
   readonly scannedCardPreview = signal<string | null>(null);
   readonly scannedCardFile = signal<File | null>(null);
-  readonly showRawOcrText = signal<boolean>(false);
-  readonly isOcrSettingsOpen = signal<boolean>(false);
-  readonly ocrApiKeyInput = signal<string>('');
   readonly autoAttachScannedCard = signal<boolean>(true);
   readonly ocrDragOver = signal<boolean>(false);
-  readonly isUsingLiveVision = computed(() => this.ocrService.hasConfiguredKey());
+
+  readonly hasOcrExtractedFields = computed(() => {
+    const res = this.scannedCardResult();
+    if (!res) return false;
+    return !!(
+      res.companyName?.trim() ||
+      res.contactName?.trim() ||
+      res.contactDesignation?.trim() ||
+      res.email?.trim() ||
+      res.contactEmail?.trim() ||
+      res.contactMobileNumber?.trim() ||
+      res.landline?.trim() ||
+      res.website?.trim() ||
+      res.address?.trim() ||
+      res.city?.trim() ||
+      res.country?.trim()
+    );
+  });
 
   logout(): void {
     this.authService.logout();
@@ -1274,7 +1288,6 @@ export class CompanyRegisterComponent implements OnInit {
   // ==========================================
   openOcrModal(): void {
     this.isOcrModalOpen.set(true);
-    this.ocrApiKeyInput.set(this.ocrService.getApiKey());
   }
 
   closeOcrModal(): void {
@@ -1286,7 +1299,6 @@ export class CompanyRegisterComponent implements OnInit {
     this.scannedCardResult.set(null);
     this.scannedCardPreview.set(null);
     this.scannedCardFile.set(null);
-    this.showRawOcrText.set(false);
   }
 
   onOcrFileSelected(event: Event): void {
@@ -1344,14 +1356,22 @@ export class CompanyRegisterComponent implements OnInit {
       next: (result) => {
         this.scannedCardResult.set(result);
         this.isScanningCard.set(false);
+        if (result.confidenceScore === 0) {
+          this.feedback.set({
+            type: 'error',
+            title: 'Unrecognized Image',
+            message: 'No contact or corporate details could be recognized on this image. Please review or try a clearer business card.'
+          });
+        }
       },
       error: (err) => {
         console.error('OCR scanning error:', err);
         this.isScanningCard.set(false);
+        this.closeOcrModal();
         this.feedback.set({
           type: 'error',
-          title: 'Scanning Error',
-          message: err?.message || 'Could not extract text from the business card. Please try a clearer picture.'
+          title: 'Scanning Failed',
+          message: err?.message || 'Could not extract text from the image. Please upload a clear photo of a business card.'
         });
       }
     });
@@ -1413,32 +1433,6 @@ export class CompanyRegisterComponent implements OnInit {
       type: 'success',
       title: 'Business Card Details Applied! 🎉',
       message: `Extracted company "${res.companyName || 'Detected'}", contact "${res.contactName || 'Detected'}" and related details have auto-filled into the form.`
-    });
-  }
-
-  toggleOcrSettings(): void {
-    this.isOcrSettingsOpen.update(v => !v);
-  }
-
-  saveOcrApiKey(): void {
-    const key = this.ocrApiKeyInput().trim();
-    this.ocrService.setApiKey(key);
-    this.isOcrSettingsOpen.set(false);
-    this.feedback.set({
-      type: 'success',
-      title: 'Vision API Key Updated',
-      message: key ? 'Google Cloud Vision API key saved locally in browser.' : 'Custom API key removed. Using default simulation.'
-    });
-  }
-
-  clearOcrApiKey(): void {
-    this.ocrApiKeyInput.set('');
-    this.ocrService.setApiKey('');
-    this.isOcrSettingsOpen.set(false);
-    this.feedback.set({
-      type: 'success',
-      title: 'Vision API Key Cleared',
-      message: 'Reverted to intelligent fallback mode.'
     });
   }
 }

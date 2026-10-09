@@ -159,33 +159,22 @@
 
       <form [formGroup]="companyForm" (ngSubmit)="onSubmit()" class="registration-form" novalidate>
 
-        <!-- Smart AI OCR Business Card Scanner Banner -->
+        <!-- Smart Visiting Card Auto-Fill Banner -->
         <div class="ocr-smart-banner">
           <div class="ocr-banner-left">
             <div class="ocr-icon-sparkle">
               <i class="bi bi-camera-viewfinder"></i>
             </div>
             <div class="ocr-banner-text">
-              <div class="ocr-badge-row">
-                <span class="ocr-pill-ai"><i class="bi bi-stars"></i> Smart Card OCR</span>
-                @if (isUsingLiveVision()) {
-                <span class="ocr-pill-mode live" title="Direct Google Cloud Vision REST Active"><i class="bi bi-check-circle-fill"></i> Cloud Vision Active</span>
-                } @else {
-                <span class="ocr-pill-mode sim" title="Instant Smart Simulation Active"><i class="bi bi-lightning-charge-fill"></i> Instant Simulation Mode</span>
-                }
-              </div>
-              <h4 class="ocr-banner-heading">Scan Visiting Card to Auto-Fill Registration</h4>
+              <h4 class="ocr-banner-heading">Have a Business Card?</h4>
               <p class="ocr-banner-desc">
-                Upload or capture a business card to automatically extract company, contact person, phone, email, and address.
+                Upload or capture a photo of your visiting card to instantly auto-fill company and contact details.
               </p>
             </div>
           </div>
           <div class="ocr-banner-actions">
             <button type="button" class="btn-ocr-scan-banner" (click)="ocrCardInputBanner.click()">
-              <i class="bi bi-camera-fill"></i> Scan Business Card
-            </button>
-            <button type="button" class="btn-ocr-settings-cog" (click)="toggleOcrSettings()" title="Configure Google Cloud Vision API Key">
-              <i class="bi bi-gear-fill"></i>
+              <i class="bi bi-camera-fill"></i> Upload Visiting Card
             </button>
             <input #ocrCardInputBanner type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
           </div>
@@ -1827,10 +1816,10 @@
             </div>
             <div>
               <h3 class="modal-title">
-                {{ isScanningCard() ? 'Scanning Business Card...' : 'Business Card OCR Verification' }}
+                {{ isScanningCard() ? 'Scanning Visiting Card...' : 'Review Visiting Card Details' }}
               </h3>
               <p class="modal-subtitle">
-                {{ isScanningCard() ? 'AI vision is analyzing text, typography, and contact entities' : 'Review and edit extracted fields before applying to registration' }}
+                {{ isScanningCard() ? 'Reading company and contact details from card...' : 'Confirm or refine the recognized details below before applying to your form' }}
               </p>
             </div>
           </div>
@@ -1905,6 +1894,20 @@
               </div>
               } @else if (scannedCardResult(); as result) {
               <div class="ocr-fields-form">
+                @if (result.confidenceScore < 35) {
+                <div class="ocr-unrecognized-banner">
+                  <div class="ocr-unrecognized-icon">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                  </div>
+                  <div class="ocr-unrecognized-text">
+                    <span class="unrecognized-title">Low Confidence / Unrecognized Card</span>
+                    <p class="unrecognized-desc">
+                      Could not detect standard business card contact entities (contact person, phone, or email). You can fill in fields manually or try uploading a clearer, higher-contrast image.
+                    </p>
+                  </div>
+                </div>
+                }
+
                 <div class="ocr-fields-intro">
                   <i class="bi bi-info-circle"></i>
                   <span>Fields detected by OCR. You can refine any value below before applying:</span>
@@ -2000,17 +2003,6 @@
                   </div>
                 </div>
 
-                <!-- Raw OCR Text Accordion -->
-                <div class="ocr-raw-section">
-                  <button type="button" class="btn-toggle-raw" (click)="showRawOcrText.set(!showRawOcrText())">
-                    <i class="bi" [class.bi-chevron-down]="!showRawOcrText()" [class.bi-chevron-up]="showRawOcrText()"></i>
-                    <span>{{ showRawOcrText() ? 'Hide Raw OCR Text' : 'Inspect Raw Detected Text' }}</span>
-                  </button>
-                  @if (showRawOcrText()) {
-                  <pre class="ocr-raw-display">{{ result.rawText }}</pre>
-                  }
-                </div>
-
                 <!-- Auto Attach Option -->
                 <label class="ocr-attach-checkbox-label">
                   <input type="checkbox" [checked]="autoAttachScannedCard()" (change)="autoAttachScannedCard.set(!autoAttachScannedCard())" />
@@ -2027,54 +2019,9 @@
           <button type="button" class="btn-secondary" (click)="closeOcrModal()" [disabled]="isScanningCard()">
             Cancel
           </button>
-          <button type="button" class="btn-primary btn-apply-ocr" (click)="applyOcrResult()" [disabled]="isScanningCard() || !scannedCardResult()">
+          <button type="button" class="btn-primary btn-apply-ocr" (click)="applyOcrResult()" [disabled]="isScanningCard() || !scannedCardResult() || !hasOcrExtractedFields()" [title]="hasOcrExtractedFields() ? 'Apply extracted details to form' : 'Enter or detect at least one detail to apply'">
             <i class="bi bi-check2-circle"></i> Apply Details to Form
           </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  }
-
-  <!-- ========================================== -->
-  <!-- OCR SETTINGS / API KEY MODAL               -->
-  <!-- ========================================== -->
-  @if (isOcrSettingsOpen()) {
-  <div class="modal-backdrop ocr-settings-backdrop" (click)="toggleOcrSettings()">
-    <div class="modal-dialog ocr-settings-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div class="modal-header-icon">
-            <i class="bi bi-key-fill"></i>
-          </div>
-          <div>
-            <h3 class="modal-title">Google Cloud Vision Settings</h3>
-            <p class="modal-subtitle">Configure client-side Vision API key for live production OCR</p>
-          </div>
-          <button type="button" class="btn-modal-close" (click)="toggleOcrSettings()" aria-label="Close settings">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="ocr-settings-info">
-            <p>
-              When a valid Google Cloud Vision API key is supplied, Angular sends high-resolution business card images directly to
-              <code>https://vision.googleapis.com/v1/images:annotate</code> from your browser.
-            </p>
-            <p>
-              If left blank, the app will run in <strong>Instant Simulation Mode</strong> with realistic corporate card data.
-            </p>
-          </div>
-
-          <div class="form-group">
-            <label for="googleApiKeyInput" class="form-label">Google Cloud Vision API Key</label>
-            <input id="googleApiKeyInput" type="password" class="form-control" [value]="ocrApiKeyInput()" (input)="ocrApiKeyInput.set($any($event.target).value)" placeholder="AIzaSy..." />
-            <span class="form-hint">Stored securely in your browser's LocalStorage only. Never logged to backend.</span>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" (click)="clearOcrApiKey()">Clear Key (Use Simulation)</button>
-          <button type="button" class="btn-primary" (click)="saveOcrApiKey()">Save Settings</button>
         </div>
       </div>
     </div>

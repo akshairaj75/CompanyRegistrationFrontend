@@ -14,6 +14,7 @@ export interface BusinessCardScanResult {
   confidenceScore: number;
   rawText: string;
   lines: string[];
+  isLowConfidence?: boolean;
 }
 
 export interface GoogleVisionAnnotateRequest {

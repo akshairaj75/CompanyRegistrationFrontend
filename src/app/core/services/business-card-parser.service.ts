@@ -174,7 +174,7 @@ export class BusinessCardParserService {
     }
 
     // 6. Extract Company Name
-    // Strategy: Look for company suffixes, or look at the top/prominent lines
+    let hasCompanyWithSuffix = false;
     for (let i = 0; i < lines.length; i++) {
       if (claimedIndices.has(i)) continue;
       const lower = lines[i].toLowerCase();
@@ -186,13 +186,23 @@ export class BusinessCardParserService {
 
       if (hasSuffix) {
         result.companyName = lines[i].trim();
+        hasCompanyWithSuffix = true;
         claimedIndices.add(i);
         break;
       }
     }
 
-    // If no company name identified with suffix, choose first unclaimed line (often logo/company title at top)
-    if (!result.companyName) {
+    // Only fallback to top line if other business card cues exist (phone, email, person, or website)
+    const hasAnyCardCues = !!(
+      result.email ||
+      result.contactMobileNumber ||
+      result.landline ||
+      result.contactName ||
+      result.contactDesignation ||
+      result.website
+    );
+
+    if (!result.companyName && hasAnyCardCues) {
       for (let i = 0; i < lines.length; i++) {
         if (!claimedIndices.has(i)) {
           const text = lines[i].trim();
@@ -206,7 +216,7 @@ export class BusinessCardParserService {
       }
     }
 
-    // 7. Extract Address, City, Country from remaining lines
+    // 7. Extract Address, City, Country from remaining lines (only if card cues exist)
     const remainingLines: string[] = [];
     lines.forEach((line, idx) => {
       if (!claimedIndices.has(idx)) {
@@ -214,7 +224,7 @@ export class BusinessCardParserService {
       }
     });
 
-    if (remainingLines.length > 0) {
+    if (remainingLines.length > 0 && hasAnyCardCues) {
       // Find Country
       remainingLines.forEach(line => {
         const lower = line.toLowerCase();
@@ -248,16 +258,29 @@ export class BusinessCardParserService {
       }
     }
 
-    // 8. Calculate Confidence Score (0% to 100%)
+    // 8. Calculate Strict Confidence Score (0% to 100%)
     let score = 0;
-    if (result.companyName) score += 25;
-    if (result.email) score += 20;
-    if (result.contactMobileNumber || result.landline) score += 20;
+    if (result.email) score += 25;
+    if (result.contactMobileNumber) score += 20;
+    if (result.landline) score += 10;
     if (result.contactName) score += 15;
+    if (result.contactDesignation) score += 10;
     if (result.website) score += 10;
     if (result.address || result.city || result.country) score += 10;
 
+    if (hasCompanyWithSuffix) {
+      score += 20;
+    } else if (result.companyName && hasAnyCardCues) {
+      score += 10;
+    }
+
+    // If an image had no phone, no email, and no person name, it's not a recognizable business card
+    if (!result.email && !result.contactMobileNumber && !result.landline && !result.contactName) {
+      score = hasCompanyWithSuffix ? 25 : 0;
+    }
+
     result.confidenceScore = Math.min(100, score);
+    result.isLowConfidence = result.confidenceScore < 35;
     return result;
   }
 
