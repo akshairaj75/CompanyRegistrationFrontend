@@ -176,7 +176,8 @@
             <button type="button" class="btn-ocr-scan-banner" (click)="ocrCardInputBanner.click()">
               <i class="bi bi-camera-fill"></i> Upload Visiting Card
             </button>
-            <input #ocrCardInputBanner type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
+            <input #ocrCardInputBanner type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
+              accept="image/jpeg,image/png,image/webp" />
           </div>
         </div>
 
@@ -747,10 +748,12 @@
                 <span class="format-limit">Max 20MB / file</span>
               </div>
               <div class="dropzone-ocr-quick">
-                <button type="button" class="btn-dropzone-ocr" (click)="$event.stopPropagation(); ocrCardInputSection7.click()">
+                <button type="button" class="btn-dropzone-ocr"
+                  (click)="$event.stopPropagation(); ocrCardInputSection7.click()">
                   <i class="bi bi-camera-fill"></i> Scan Card with OCR to Auto-Fill Form
                 </button>
-                <input #ocrCardInputSection7 type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
+                <input #ocrCardInputSection7 type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
+                  accept="image/jpeg,image/png,image/webp" />
               </div>
             </div>
             } @else {
@@ -768,7 +771,8 @@
                     title="Scan visiting card to extract and auto-fill details">
                     <i class="bi bi-camera-fill"></i> Scan with OCR
                   </button>
-                  <input #ocrCardInputToolbar type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
+                  <input #ocrCardInputToolbar type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
+                    accept="image/jpeg,image/png,image/webp" />
                   <button type="button" class="btn-toolbar-add" (click)="fileInput.click()"
                     title="Add more visiting cards">
                     <i class="bi bi-plus-lg"></i> Add More
@@ -1819,18 +1823,22 @@
                 {{ isScanningCard() ? 'Scanning Visiting Card...' : 'Review Visiting Card Details' }}
               </h3>
               <p class="modal-subtitle">
-                {{ isScanningCard() ? 'Reading company and contact details from card...' : 'Confirm or refine the recognized details below before applying to your form' }}
+                {{ isScanningCard() ? 'Reading company and contact details from card...' : 'Confirm or refine the
+                recognized details below before applying to your form' }}
               </p>
             </div>
           </div>
           <div class="ocr-header-right">
             @if (scannedCardResult(); as result) {
-            <div class="ocr-score-badge" [class.high]="result.confidenceScore >= 70" [class.medium]="result.confidenceScore >= 40 && result.confidenceScore < 70" [class.low]="result.confidenceScore < 40">
+            <div class="ocr-score-badge" [class.high]="result.confidenceScore >= 70"
+              [class.medium]="result.confidenceScore >= 40 && result.confidenceScore < 70"
+              [class.low]="result.confidenceScore < 40">
               <i class="bi bi-shield-check"></i>
               <span>{{ result.confidenceScore }}% Confidence</span>
             </div>
             }
-            <button type="button" class="btn-modal-close" (click)="closeOcrModal()" [disabled]="isScanningCard()" aria-label="Close modal">
+            <button type="button" class="btn-modal-close" (click)="closeOcrModal()" [disabled]="isScanningCard()"
+              aria-label="Close modal">
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
@@ -1861,8 +1869,10 @@
 
               <!-- Retake / Select Another Button -->
               <div class="ocr-preview-actions">
-                <input #ocrModalFileInput type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)" accept="image/jpeg,image/png,image/webp" />
-                <button type="button" class="btn-retake-card" (click)="ocrModalFileInput.click()" [disabled]="isScanningCard()">
+                <input #ocrModalFileInput type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
+                  accept="image/jpeg,image/png,image/webp" />
+                <button type="button" class="btn-retake-card" (click)="ocrModalFileInput.click()"
+                  [disabled]="isScanningCard()">
                   <i class="bi bi-arrow-repeat"></i> {{ scannedCardPreview() ? 'Change Card Image' : 'Select Card' }}
                 </button>
                 @if (scannedCardFile()) {
@@ -1894,137 +1904,149 @@
               </div>
               } @else if (scannedCardResult(); as result) {
               <div class="ocr-fields-form">
-                @if (result.confidenceScore < 35) {
-                <div class="ocr-unrecognized-banner">
+                @if (result.confidenceScore < 35) { <div class="ocr-unrecognized-banner">
                   <div class="ocr-unrecognized-icon">
                     <i class="bi bi-exclamation-triangle-fill"></i>
                   </div>
                   <div class="ocr-unrecognized-text">
                     <span class="unrecognized-title">Low Confidence / Unrecognized Card</span>
                     <p class="unrecognized-desc">
-                      Could not detect standard business card contact entities (contact person, phone, or email). You can fill in fields manually or try uploading a clearer, higher-contrast image.
+                      Could not detect standard business card contact entities (contact person, phone, or email). You
+                      can fill in fields manually or try uploading a clearer, higher-contrast image.
                     </p>
                   </div>
-                </div>
-                }
-
-                <div class="ocr-fields-intro">
-                  <i class="bi bi-info-circle"></i>
-                  <span>Fields detected by OCR. You can refine any value below before applying:</span>
-                </div>
-
-                <div class="ocr-fields-grid">
-                  <!-- Company Name -->
-                  <div class="ocr-field-item span-2">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-building"></i> Company Name
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.companyName" placeholder="e.g. Apex Global Corp" />
-                  </div>
-
-                  <!-- Contact Person Name -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-person"></i> Contact Name
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.contactName" placeholder="e.g. Elena Rostova" />
-                  </div>
-
-                  <!-- Contact Designation -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-briefcase"></i> Designation / Title
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.contactDesignation" placeholder="e.g. Managing Director" />
-                  </div>
-
-                  <!-- Mobile Number -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-phone"></i> Mobile Number
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.contactMobileNumber" placeholder="e.g. +1 917 433-2890" />
-                  </div>
-
-                  <!-- Landline / Office -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-telephone"></i> Landline / Office
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.landline" placeholder="e.g. +1 212 650-8910" />
-                  </div>
-
-                  <!-- Email Address -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-envelope"></i> Email Address
-                    </label>
-                    <input type="email" class="ocr-input" [(ngModel)]="result.email" placeholder="e.g. info@apexgroup.com" />
-                  </div>
-
-                  <!-- Direct Contact Email -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-envelope-at"></i> Direct Contact Email
-                    </label>
-                    <input type="email" class="ocr-input" [(ngModel)]="result.contactEmail" placeholder="e.g. elena@apexgroup.com" />
-                  </div>
-
-                  <!-- Website -->
-                  <div class="ocr-field-item span-2">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-globe"></i> Website URL
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.website" placeholder="e.g. https://www.apexgroup.com" />
-                  </div>
-
-                  <!-- Address -->
-                  <div class="ocr-field-item span-2">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-geo-alt"></i> Address
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.address" placeholder="e.g. 1250 Avenue of the Americas, 18th Floor" />
-                  </div>
-
-                  <!-- City -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-pin-map"></i> City
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.city" placeholder="e.g. New York" />
-                  </div>
-
-                  <!-- Country -->
-                  <div class="ocr-field-item">
-                    <label class="ocr-field-label">
-                      <i class="bi bi-flag"></i> Country
-                    </label>
-                    <input type="text" class="ocr-input" [(ngModel)]="result.country" placeholder="e.g. United States" />
-                  </div>
-                </div>
-
-                <!-- Auto Attach Option -->
-                <label class="ocr-attach-checkbox-label">
-                  <input type="checkbox" [checked]="autoAttachScannedCard()" (change)="autoAttachScannedCard.set(!autoAttachScannedCard())" />
-                  <span>Attach this card image to Section 07 (Visiting Cards) on form apply</span>
-                </label>
               </div>
               }
+
+              <div class="ocr-fields-intro">
+                <i class="bi bi-info-circle"></i>
+                <span>Fields detected by OCR. You can refine any value below before applying:</span>
+              </div>
+
+              <div class="ocr-fields-grid">
+                <!-- Company Name -->
+                <div class="ocr-field-item span-2">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-building"></i> Company Name
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.companyName"
+                    placeholder="e.g. Apex Global Corp" />
+                </div>
+
+                <!-- Contact Person Name -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-person"></i> Contact Name
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.contactName"
+                    placeholder="e.g. Elena Rostova" />
+                </div>
+
+                <!-- Contact Designation -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-briefcase"></i> Designation / Title
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.contactDesignation"
+                    placeholder="e.g. Managing Director" />
+                </div>
+
+                <!-- Mobile Number -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-phone"></i> Mobile Number
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.contactMobileNumber"
+                    placeholder="e.g. +1 917 433-2890" />
+                </div>
+
+                <!-- Landline / Office -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-telephone"></i> Landline / Office
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.landline"
+                    placeholder="e.g. +1 212 650-8910" />
+                </div>
+
+                <!-- Email Address -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-envelope"></i> Email Address
+                  </label>
+                  <input type="email" class="ocr-input" [(ngModel)]="result.email"
+                    placeholder="e.g. info@apexgroup.com" />
+                </div>
+
+                <!-- Direct Contact Email -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-envelope-at"></i> Direct Contact Email
+                  </label>
+                  <input type="email" class="ocr-input" [(ngModel)]="result.contactEmail"
+                    placeholder="e.g. elena@apexgroup.com" />
+                </div>
+
+                <!-- Website -->
+                <div class="ocr-field-item span-2">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-globe"></i> Website URL
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.website"
+                    placeholder="e.g. https://www.apexgroup.com" />
+                </div>
+
+                <!-- Address -->
+                <div class="ocr-field-item span-2">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-geo-alt"></i> Address
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.address"
+                    placeholder="e.g. 1250 Avenue of the Americas, 18th Floor" />
+                </div>
+
+                <!-- City -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-pin-map"></i> City
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.city" placeholder="e.g. New York" />
+                </div>
+
+                <!-- Country -->
+                <div class="ocr-field-item">
+                  <label class="ocr-field-label">
+                    <i class="bi bi-flag"></i> Country
+                  </label>
+                  <input type="text" class="ocr-input" [(ngModel)]="result.country" placeholder="e.g. United States" />
+                </div>
+              </div>
+
+              <!-- Auto Attach Option -->
+              <label class="ocr-attach-checkbox-label">
+                <input type="checkbox" [checked]="autoAttachScannedCard()"
+                  (change)="autoAttachScannedCard.set(!autoAttachScannedCard())" />
+                <span>Attach this card image to Section 07 (Visiting Cards) on form apply</span>
+              </label>
             </div>
+            }
           </div>
         </div>
+      </div>
 
-        <!-- Modal Footer -->
-        <div class="modal-footer ocr-modal-footer">
-          <button type="button" class="btn-secondary" (click)="closeOcrModal()" [disabled]="isScanningCard()">
-            Cancel
-          </button>
-          <button type="button" class="btn-primary btn-apply-ocr" (click)="applyOcrResult()" [disabled]="isScanningCard() || !scannedCardResult() || !hasOcrExtractedFields()" [title]="hasOcrExtractedFields() ? 'Apply extracted details to form' : 'Enter or detect at least one detail to apply'">
-            <i class="bi bi-check2-circle"></i> Apply Details to Form
-          </button>
-        </div>
+      <!-- Modal Footer -->
+      <div class="modal-footer ocr-modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeOcrModal()" [disabled]="isScanningCard()">
+          Cancel
+        </button>
+        <button type="button" class="btn-primary btn-apply-ocr" (click)="applyOcrResult()"
+          [disabled]="isScanningCard() || !scannedCardResult() || !hasOcrExtractedFields()"
+          [title]="hasOcrExtractedFields() ? 'Apply extracted details to form' : 'Enter or detect at least one detail to apply'">
+          <i class="bi bi-check2-circle"></i> Apply Details to Form
+        </button>
       </div>
     </div>
   </div>
-  }
+</div>
+}
 </div>

@@ -5308,10 +5308,12 @@
     top: 5%;
     opacity: 0.7;
   }
+
   50% {
     top: 92%;
     opacity: 1;
   }
+
   100% {
     top: 5%;
     opacity: 0.7;
@@ -5489,6 +5491,7 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
