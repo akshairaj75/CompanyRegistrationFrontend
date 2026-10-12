@@ -171,6 +171,31 @@ export class CompanyRegisterComponent implements OnInit {
     ).slice(0, 5);
   });
 
+  // Company Name Live Suggestions State (Section 01)
+  readonly isCompanyNameFocused = signal<boolean>(false);
+  readonly companyNameInput = signal<string>('');
+  readonly activeCompanyNameSuggestionIndex = signal<number>(-1);
+
+  // Suggestions filtered when typing in the Company Name input
+  readonly companyNameSuggestions = computed(() => {
+    const q = this.companyNameInput().trim().toLowerCase();
+    if (q.length < 2) return [];
+    return this.companies()
+      .filter(c => {
+        const name = (c.companyName || '').toLowerCase().trim();
+        // Match substring, but avoid suggesting the exact identical name already typed
+        return name.includes(q) && name !== q;
+      })
+      .slice(0, 6);
+  });
+
+  // Check if current companyName input exactly matches an existing registered company
+  readonly exactMatchedCompany = computed(() => {
+    const q = this.companyNameInput().trim().toLowerCase();
+    if (!q) return null;
+    return this.companies().find(c => (c.companyName || '').toLowerCase().trim() === q) || null;
+  });
+
   // Brand Association State (Brands Dealt With)
   readonly availableBrands = signal<BrandResponse[]>([]);
   readonly selectedBrandIds = signal<number[]>([]);
@@ -300,6 +325,11 @@ export class CompanyRegisterComponent implements OnInit {
     this.fetchBrands();
     this.fetchProducts();
     this.fetchCategories();
+
+    // Synchronize companyNameInput signal with reactive form control value changes
+    this.companyForm.get('companyName')?.valueChanges.subscribe(val => {
+      this.companyNameInput.set(val || '');
+    });
   }
 
   fetchCompanies(): void {
@@ -1082,6 +1112,53 @@ export class CompanyRegisterComponent implements OnInit {
     });
   }
 
+  // --- Company Name Live Search Handlers (Section 01) ---
+  onCompanyNameFocus(): void {
+    this.isCompanyNameFocused.set(true);
+    this.activeCompanyNameSuggestionIndex.set(-1);
+  }
+
+  onCompanyNameBlur(): void {
+    setTimeout(() => {
+      this.isCompanyNameFocused.set(false);
+      this.activeCompanyNameSuggestionIndex.set(-1);
+    }, 220);
+  }
+
+  selectCompanyNameSuggestion(company: CompanyResponse): void {
+    this.companyForm.patchValue({ companyName: company.companyName });
+    this.companyForm.get('companyName')?.markAsDirty();
+    this.companyNameInput.set(company.companyName);
+    this.isCompanyNameFocused.set(false);
+    this.activeCompanyNameSuggestionIndex.set(-1);
+  }
+
+  onCompanyNameKeydown(event: KeyboardEvent): void {
+    const suggestions = this.companyNameSuggestions();
+    if (!this.isCompanyNameFocused() || suggestions.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const current = this.activeCompanyNameSuggestionIndex();
+      const next = current + 1 >= suggestions.length ? 0 : current + 1;
+      this.activeCompanyNameSuggestionIndex.set(next);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const current = this.activeCompanyNameSuggestionIndex();
+      const prev = current <= 0 ? suggestions.length - 1 : current - 1;
+      this.activeCompanyNameSuggestionIndex.set(prev);
+    } else if (event.key === 'Enter') {
+      const idx = this.activeCompanyNameSuggestionIndex();
+      if (idx >= 0 && idx < suggestions.length) {
+        event.preventDefault();
+        this.selectCompanyNameSuggestion(suggestions[idx]);
+      }
+    } else if (event.key === 'Escape') {
+      this.isCompanyNameFocused.set(false);
+      this.activeCompanyNameSuggestionIndex.set(-1);
+    }
+  }
+
   // Helpers for validation styling
   isInvalid(controlName: string): boolean {
     const control = this.companyForm.get(controlName);
@@ -1331,12 +1408,13 @@ export class CompanyRegisterComponent implements OnInit {
   }
 
   processCardOcr(file: File): void {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) {
+    const isPdf = this.ocrService.isPdfFile(file);
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowed.includes(file.type) && !isPdf) {
       this.feedback.set({
         type: 'error',
-        title: 'Unsupported Image Format',
-        message: 'Please upload a JPG, PNG, or WEBP image of the business card for OCR processing.'
+        title: 'Unsupported File Format',
+        message: 'Please upload a JPG, PNG, WEBP, or PDF file of the business card for OCR processing.'
       });
       return;
     }
@@ -1345,12 +1423,23 @@ export class CompanyRegisterComponent implements OnInit {
     this.isScanningCard.set(true);
     this.isOcrModalOpen.set(true);
 
-    // Read and create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this.scannedCardPreview.set(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (isPdf) {
+      // Render Page 1 to high-res canvas image for immediate visual preview in review modal
+      this.ocrService.renderPdfPageToImage(file, 1)
+        .then(res => {
+          this.scannedCardPreview.set(res.imageUrl);
+        })
+        .catch(err => {
+          console.warn('PDF preview render warning:', err);
+        });
+    } else {
+      // Read and create preview for images
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.scannedCardPreview.set(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
 
     this.ocrService.scanBusinessCard(file).subscribe({
       next: (result) => {
@@ -1359,8 +1448,8 @@ export class CompanyRegisterComponent implements OnInit {
         if (result.confidenceScore === 0) {
           this.feedback.set({
             type: 'error',
-            title: 'Unrecognized Image',
-            message: 'No contact or corporate details could be recognized on this image. Please review or try a clearer business card.'
+            title: 'Unrecognized Document',
+            message: 'No contact or corporate details could be recognized on this file. Please review or try a clearer business card.'
           });
         }
       },
@@ -1371,7 +1460,7 @@ export class CompanyRegisterComponent implements OnInit {
         this.feedback.set({
           type: 'error',
           title: 'Scanning Failed',
-          message: err?.message || 'Could not extract text from the image. Please upload a clear photo of a business card.'
+          message: err?.message || 'Could not extract text from the file. Please upload a clear photo or PDF of a business card.'
         });
       }
     });
@@ -1385,15 +1474,16 @@ export class CompanyRegisterComponent implements OnInit {
       fetch(item.url)
         .then(res => res.blob())
         .then(blob => {
-          const file = new File([blob], item.name, { type: blob.type || 'image/jpeg' });
+          const mimeType = item.isPdf ? 'application/pdf' : (blob.type || 'image/jpeg');
+          const file = new File([blob], item.name, { type: mimeType });
           this.processCardOcr(file);
         })
         .catch(err => {
           console.error('Failed to load card for OCR:', err);
           this.feedback.set({
             type: 'error',
-            title: 'Image Load Error',
-            message: 'Unable to access the visiting card image for scanning.'
+            title: 'File Load Error',
+            message: 'Unable to access the visiting card file for scanning.'
           });
         });
     }

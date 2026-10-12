@@ -174,10 +174,10 @@
           </div>
           <div class="ocr-banner-actions">
             <button type="button" class="btn-ocr-scan-banner" (click)="ocrCardInputBanner.click()">
-              <i class="bi bi-camera-fill"></i> Upload Visiting Card
+              <i class="bi bi-camera-fill"></i> Upload Visiting Card (Image / PDF)
             </button>
             <input #ocrCardInputBanner type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
-              accept="image/jpeg,image/png,image/webp" />
+              accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
           </div>
         </div>
 
@@ -237,16 +237,75 @@
           </div>
           }
 
-          <!-- Company Name -->
-          <div class="form-group" [class.has-error]="isInvalid('companyName')">
+          <!-- Company Name (With Autocomplete Suggestions) -->
+          <div class="form-group company-autocomplete-group" [class.has-error]="isInvalid('companyName')">
             <label for="companyName" class="form-label">
               Company Name <span class="required-mark">*</span>
             </label>
             <div class="input-wrap">
               <i class="bi bi-building input-icon"></i>
               <input type="text" id="companyName" formControlName="companyName" class="form-control"
-                placeholder="e.g. Apex Global Technologies Inc." />
+                placeholder="e.g. Apex Global Technologies Inc." autocomplete="off"
+                (focus)="onCompanyNameFocus()" (blur)="onCompanyNameBlur()"
+                (keydown)="onCompanyNameKeydown($event)" />
             </div>
+
+            <!-- Live Search Suggestions Dropdown -->
+            @if (isCompanyNameFocused() && companyNameSuggestions().length > 0) {
+            <div class="company-suggestions-dropdown" (mousedown)="$event.preventDefault()">
+              <div class="suggestions-header">
+                <i class="bi bi-buildings"></i>
+                <span>Existing Companies in Directory ({{ companyNameSuggestions().length }} matches)</span>
+              </div>
+              <div class="suggestions-list">
+                @for (comp of companyNameSuggestions(); track comp.id; let idx = $index) {
+                <button type="button" class="suggestion-item"
+                  [class.active]="activeCompanyNameSuggestionIndex() === idx"
+                  (click)="selectCompanyNameSuggestion(comp)"
+                  [title]="'Select ' + comp.companyName">
+                  <div class="suggestion-icon">
+                    <i class="bi bi-building"></i>
+                  </div>
+                  <div class="suggestion-body">
+                    <div class="suggestion-name-row">
+                      <span class="suggestion-name">{{ comp.companyName }}</span>
+                      <span class="suggestion-status-chip status-{{ comp.status.toLowerCase() }}">
+                        {{ comp.status }}
+                      </span>
+                    </div>
+                    <span class="suggestion-meta">
+                      {{ comp.city || comp.country || 'Global' }}
+                      @if (comp.contactName) { • {{ comp.contactName }} }
+                      @if (comp.email) { • {{ comp.email }} }
+                    </span>
+                  </div>
+                  <span class="suggestion-select-btn">
+                    <i class="bi bi-arrow-up-left"></i> Select
+                  </span>
+                </button>
+                }
+              </div>
+            </div>
+            }
+
+            <!-- Exact Match / Duplicate Notice -->
+            @if (exactMatchedCompany(); as existing) {
+            <div class="duplicate-company-notice">
+              <div class="duplicate-notice-left">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>Company <strong>"{{ existing.companyName }}"</strong> is already registered in directory.</span>
+              </div>
+              <div class="duplicate-notice-actions">
+                <button type="button" class="btn-copy-existing" (click)="autofillFormWithCompany(existing)" title="Copy details into form">
+                  <i class="bi bi-copy"></i> Copy Details
+                </button>
+                <button type="button" class="btn-view-existing" (click)="openCompanyDetail(existing)" title="View in modal">
+                  <i class="bi bi-eye"></i> View
+                </button>
+              </div>
+            </div>
+            }
+
             @if (isInvalid('companyName')) {
             <span class="field-error">
               <i class="bi bi-info-circle"></i> Valid company name is required (min 2 characters)
@@ -750,10 +809,10 @@
               <div class="dropzone-ocr-quick">
                 <button type="button" class="btn-dropzone-ocr"
                   (click)="$event.stopPropagation(); ocrCardInputSection7.click()">
-                  <i class="bi bi-camera-fill"></i> Scan Card with OCR to Auto-Fill Form
+                  <i class="bi bi-camera-fill"></i> Scan Card with OCR to Auto-Fill Form (Image or PDF)
                 </button>
                 <input #ocrCardInputSection7 type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
-                  accept="image/jpeg,image/png,image/webp" />
+                  accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
               </div>
             </div>
             } @else {
@@ -768,11 +827,11 @@
                 </div>
                 <div class="toolbar-actions">
                   <button type="button" class="btn-toolbar-ocr" (click)="ocrCardInputToolbar.click()"
-                    title="Scan visiting card to extract and auto-fill details">
+                    title="Scan visiting card (Image or PDF) to extract and auto-fill details">
                     <i class="bi bi-camera-fill"></i> Scan with OCR
                   </button>
                   <input #ocrCardInputToolbar type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
-                    accept="image/jpeg,image/png,image/webp" />
+                    accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
                   <button type="button" class="btn-toolbar-add" (click)="fileInput.click()"
                     title="Add more visiting cards">
                     <i class="bi bi-plus-lg"></i> Add More
@@ -800,12 +859,10 @@
                       title="Remove file" aria-label="Remove file">
                       <i class="bi bi-x-lg"></i>
                     </button>
-                    @if (!item.isPdf) {
                     <button type="button" class="card-ocr-quick-btn" (click)="scanExistingCard(item, $event)"
-                      title="Auto-fill form using this visiting card">
+                      [title]="item.isPdf ? 'Auto-fill form by scanning this PDF document' : 'Auto-fill form using this visiting card'">
                       <i class="bi bi-magic"></i>
                     </button>
-                    }
                     @if (idx === 0) {
                     <span class="primary-badge" title="Primary display card">Primary</span>
                     }
@@ -1852,6 +1909,9 @@
               <div class="ocr-preview-card-wrap" [class.is-scanning]="isScanningCard()">
                 @if (scannedCardPreview()) {
                 <img [src]="scannedCardPreview()" alt="Scanned Business Card" class="ocr-card-img" />
+                @if (scannedCardFile() && ocrService.isPdfFile(scannedCardFile()!)) {
+                <span class="ocr-pdf-badge"><i class="bi bi-file-earmark-pdf-fill"></i> PDF Page 1</span>
+                }
                 @if (isScanningCard()) {
                 <div class="ocr-laser-scan-line"></div>
                 <div class="ocr-scan-overlay">
@@ -1862,7 +1922,7 @@
                 } @else {
                 <div class="ocr-preview-empty" (click)="ocrModalFileInput.click()">
                   <i class="bi bi-camera"></i>
-                  <span>Click to choose business card</span>
+                  <span>Click to choose business card (Image or PDF)</span>
                 </div>
                 }
               </div>
@@ -1870,10 +1930,10 @@
               <!-- Retake / Select Another Button -->
               <div class="ocr-preview-actions">
                 <input #ocrModalFileInput type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
-                  accept="image/jpeg,image/png,image/webp" />
+                  accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
                 <button type="button" class="btn-retake-card" (click)="ocrModalFileInput.click()"
                   [disabled]="isScanningCard()">
-                  <i class="bi bi-arrow-repeat"></i> {{ scannedCardPreview() ? 'Change Card Image' : 'Select Card' }}
+                  <i class="bi bi-arrow-repeat"></i> {{ scannedCardPreview() ? 'Change Card / PDF' : 'Select Card / PDF' }}
                 </button>
                 @if (scannedCardFile()) {
                 <span class="ocr-file-name-tag">{{ scannedCardFile()?.name }}</span>
