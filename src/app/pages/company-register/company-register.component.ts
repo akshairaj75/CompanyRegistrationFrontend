@@ -7,7 +7,7 @@ import { ProductService } from '../../core/services/product';
 import { CategoryService } from '../../core/services/category';
 import { CompanyRequest, CompanyResponse } from '../../core/models/company.model';
 import { BrandResponse } from '../../core/models/brand.model';
-import { ProductResponse } from '../../core/models/product.model';
+import { ProductResponse, ScrapedProduct, ScrapeProductsResponse } from '../../core/models/product.model';
 import { CategoryResponse } from '../../core/models/category.model';
 import { AuthService } from '../../core/services/auth.service';
 import { OcrService } from '../../core/services/ocr.service';
@@ -215,6 +215,14 @@ export class CompanyRegisterComponent implements OnInit {
   readonly activeProductBrandFilter = signal<string>('all');
   readonly activeProductCategoryFilter = signal<string>('all');
   readonly activeProductSubCategoryFilter = signal<string>('all');
+
+  // Website Product Scraping State
+  readonly isScrapingWebsite = signal<boolean>(false);
+  readonly scrapedProducts = signal<ScrapedProduct[]>([]);
+  readonly scrapedWebsiteUrl = signal<string>('');
+  readonly scrapedStrategyUsed = signal<string>('');
+  readonly selectedScrapedIndices = signal<Set<number>>(new Set<number>());
+  readonly isScrapedDrawerOpen = signal<boolean>(false);
 
   // Selected Company for View Modal
   readonly selectedCompany = signal<CompanyResponse | null>(null);
@@ -592,6 +600,140 @@ export class CompanyRegisterComponent implements OnInit {
   setProductCategoryFilter(catIdStr: string): void {
     this.activeProductCategoryFilter.set(catIdStr);
     this.activeProductSubCategoryFilter.set('all');
+  }
+
+  // --- Website Product Scraping Methods ---
+  triggerWebsiteProductScrape(): void {
+    const website = this.companyForm.get('website')?.value?.trim();
+    if (!website) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Website Required',
+        message: 'Please provide a valid official website URL in Section 03 before discovering products.'
+      });
+      return;
+    }
+
+    this.isScrapingWebsite.set(true);
+    this.isScrapedDrawerOpen.set(true);
+
+    this.companyService.scrapeProductsFromWebsite(website).subscribe({
+      next: (res: ScrapeProductsResponse) => {
+        console.log(res)
+        this.isScrapingWebsite.set(false);
+        this.scrapedProducts.set(res.products || []);
+        this.scrapedWebsiteUrl.set(res.scannedUrl || website);
+        this.scrapedStrategyUsed.set(res.strategyUsed || 'Website Crawler');
+
+        // Automatically pre-select any products that matched existing catalog products
+        const preselectedIndices = new Set<number>();
+        res.products.forEach((p, idx) => {
+          if (p.matchedCatalogProductId) {
+            preselectedIndices.add(idx);
+            // Also select them into our main selectedProductIds if not already selected
+            const currentIds = this.selectedProductIds();
+            if (!currentIds.includes(p.matchedCatalogProductId)) {
+              const matchedCatalogProd = this.availableProducts().find(ap => ap.id === p.matchedCatalogProductId);
+              if (matchedCatalogProd) {
+                this.toggleProduct(matchedCatalogProd);
+              }
+            }
+          }
+        });
+        this.selectedScrapedIndices.set(preselectedIndices);
+
+        if (res.products && res.products.length > 0) {
+          this.feedback.set({
+            type: 'success',
+            title: 'Products Discovered!',
+            message: `Found ${res.products.length} product(s) from ${website} via ${res.strategyUsed}. Select the ones you want to link.`
+          });
+          setTimeout(() => {
+            const el = document.getElementById('scrapedProductsDrawer');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 150);
+        } else {
+          this.feedback.set({
+            type: 'error',
+            title: 'No Products Detected',
+            message: res.message || 'We could not detect standard eCommerce products on this website. You can manually choose products below.'
+          });
+        }
+      },
+      error: (err) => {
+        this.isScrapingWebsite.set(false);
+        console.error('Error scraping products:', err);
+        this.feedback.set({
+          type: 'error',
+          title: 'Website Scan Failed',
+          message: err?.error?.message || 'Could not fetch or scan the website. Please ensure the domain is publicly accessible.'
+        });
+      }
+    });
+  }
+
+  toggleScrapedProduct(index: number): void {
+    const current = new Set(this.selectedScrapedIndices());
+    const product = this.scrapedProducts()[index];
+    if (!product) return;
+
+    if (current.has(index)) {
+      current.delete(index);
+      // If it has a matchedCatalogProductId, also deselect from catalog selection
+      if (product.matchedCatalogProductId) {
+        this.removeProductAndCheckBrand(product.matchedCatalogProductId);
+      }
+    } else {
+      current.add(index);
+      // If it matches an existing catalog product, automatically link it!
+      if (product.matchedCatalogProductId) {
+        const catalogProd = this.availableProducts().find(p => p.id === product.matchedCatalogProductId);
+        if (catalogProd && !this.selectedProductIds().includes(product.matchedCatalogProductId)) {
+          this.toggleProduct(catalogProd);
+        }
+      }
+    }
+    this.selectedScrapedIndices.set(current);
+  }
+
+  selectAllScrapedProducts(): void {
+    const all = new Set<number>();
+    this.scrapedProducts().forEach((p, idx) => {
+      all.add(idx);
+      if (p.matchedCatalogProductId) {
+        const catalogProd = this.availableProducts().find(cp => cp.id === p.matchedCatalogProductId);
+        if (catalogProd && !this.selectedProductIds().includes(p.matchedCatalogProductId)) {
+          this.toggleProduct(catalogProd);
+        }
+      }
+    });
+    this.selectedScrapedIndices.set(all);
+  }
+
+  deselectAllScrapedProducts(): void {
+    const current = this.selectedScrapedIndices();
+    this.scrapedProducts().forEach((p, idx) => {
+      if (current.has(idx) && p.matchedCatalogProductId) {
+        this.removeProductAndCheckBrand(p.matchedCatalogProductId);
+      }
+    });
+    this.selectedScrapedIndices.set(new Set());
+  }
+
+  openScrapedDrawerWithScroll(): void {
+    this.isScrapedDrawerOpen.set(true);
+    setTimeout(() => {
+      const el = document.getElementById('scrapedProductsDrawer');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }
+
+  closeScrapedDrawer(): void {
+    this.isScrapedDrawerOpen.set(false);
   }
 
   // --- File Drag & Drop & Multi-Selection Handlers ---

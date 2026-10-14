@@ -435,13 +435,34 @@
             </div>
 
             <!-- Website URL -->
-            <div class="form-group">
-              <label for="website" class="form-label">Official Website</label>
+            <div class="form-group website-group">
+              <div class="field-label-row">
+                <label for="website" class="form-label">Official Website</label>
+                @if (companyForm.get('website')?.value) {
+                <button type="button" class="btn-discover-products" (click)="triggerWebsiteProductScrape()"
+                  [disabled]="isScrapingWebsite()" title="Scan website and auto-discover products">
+                  @if (isScrapingWebsite()) {
+                  <span class="spinner-border spinner-border-sm" role="status"></span>
+                  <span>Scanning...</span>
+                  } @else {
+                  <i class="bi bi-magic"></i>
+                  <span>Discover Products</span>
+                  }
+                </button>
+                }
+              </div>
               <div class="input-wrap">
                 <i class="bi bi-globe2 input-icon"></i>
                 <input type="url" id="website" formControlName="website" class="form-control"
                   placeholder="https://company.example.com" />
               </div>
+              @if (scrapedProducts().length > 0) {
+              <div class="website-discovered-badge" (click)="openScrapedDrawerWithScroll()">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>{{ scrapedProducts().length }} products discovered</span>
+                <span class="view-drawer-link">View List</span>
+              </div>
+              }
             </div>
           </div>
         </div>
@@ -574,12 +595,113 @@
         <div class="form-card">
           <div class="card-legend">
             <span class="step-num">06</span>
-            <div>
-              <h3 class="card-title">Authorized Products Catalog</h3>
-              <p class="card-subtitle">Choose products from brands through categories that this enterprise offers or
-                distributes</p>
+            <div class="card-legend-header-flex">
+              <div>
+                <h3 class="card-title">Authorized Products Catalog</h3>
+                <p class="card-subtitle">Choose products from brands through categories that this enterprise offers or distributes</p>
+              </div>
+              @if (companyForm.get('website')?.value) {
+              <button type="button" class="btn-scan-website-header" (click)="triggerWebsiteProductScrape()"
+                [disabled]="isScrapingWebsite()">
+                @if (isScrapingWebsite()) {
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+                <span>Scraping Website...</span>
+                } @else {
+                <i class="bi bi-magic"></i>
+                <span>Scan Website for Products</span>
+                }
+              </button>
+              }
             </div>
           </div>
+
+          <!-- Website Product Scraping Results Drawer / Panel -->
+          @if (isScrapedDrawerOpen()) {
+          <div id="scrapedProductsDrawer" class="scraped-products-drawer">
+            <div class="scraped-drawer-header">
+              <div class="scraped-drawer-title-group">
+                <div class="scraped-icon-badge">
+                  <i class="bi bi-globe2"></i>
+                </div>
+                <div>
+                  <h4 class="scraped-drawer-heading">Discovered Products from Website</h4>
+                  <p class="scraped-drawer-sub">
+                    Scanned: <a [href]="scrapedWebsiteUrl()" target="_blank" class="scraped-site-link">{{ scrapedWebsiteUrl() }}</a>
+                    @if (scrapedStrategyUsed()) {
+                    <span class="strategy-badge"><i class="bi bi-cpu"></i> {{ scrapedStrategyUsed() }}</span>
+                    }
+                  </p>
+                </div>
+              </div>
+              <div class="scraped-drawer-actions">
+                <button type="button" class="btn-scraped-helper" (click)="selectAllScrapedProducts()"
+                  [disabled]="scrapedProducts().length === 0">
+                  <i class="bi bi-check-all"></i> Select All ({{ scrapedProducts().length }})
+                </button>
+                <button type="button" class="btn-scraped-helper" (click)="deselectAllScrapedProducts()"
+                  [disabled]="selectedScrapedIndices().size === 0">
+                  <i class="bi bi-dash-circle"></i> Clear ({{ selectedScrapedIndices().size }})
+                </button>
+                <button type="button" class="btn-close-drawer" (click)="closeScrapedDrawer()" title="Close discovered drawer">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+
+            @if (isScrapingWebsite()) {
+            <div class="scraped-loading-state">
+              <div class="scanner-radar"></div>
+              <p class="scraped-loading-text">Crawling website & discovering product structured data...</p>
+              <span class="scraped-loading-sub">Analyzing Schema.org JSON-LD, OpenGraph, and product collections</span>
+            </div>
+            } @else if (scrapedProducts().length === 0) {
+            <div class="scraped-empty-state">
+              <i class="bi bi-search"></i>
+              <p>No products could be automatically extracted from this domain.</p>
+              <span>Please pick products from the master catalog below or register new ones.</span>
+            </div>
+            } @else {
+            <div class="scraped-products-grid">
+              @for (item of scrapedProducts(); track $index) {
+              <div class="scraped-product-card"
+                [class.is-selected]="selectedScrapedIndices().has($index)"
+                (click)="toggleScrapedProduct($index)">
+                <div class="scraped-checkbox-wrap">
+                  <input type="checkbox" [checked]="selectedScrapedIndices().has($index)" (click)="$event.stopPropagation()"
+                    (change)="toggleScrapedProduct($index)" />
+                </div>
+                <div class="scraped-card-img-wrap">
+                  @if (item.imageUrl) {
+                  <img [src]="item.imageUrl" alt="" class="scraped-img" (error)="item.imageUrl = ''" />
+                  } @else {
+                  <div class="scraped-placeholder-icon">
+                    <i class="bi bi-box"></i>
+                  </div>
+                  }
+                </div>
+                <div class="scraped-card-info">
+                  <span class="scraped-name" [title]="item.name">{{ item.name }}</span>
+                  @if (item.price) {
+                  <span class="scraped-price">{{ item.price }}</span>
+                  }
+                  @if (item.matchedCatalogProductId) {
+                  <span class="scraped-matched-badge" title="Matched to internal catalog product">
+                    <i class="bi bi-link-45deg"></i> In Catalog
+                  </span>
+                  }
+                </div>
+              </div>
+              }
+            </div>
+            <div class="scraped-drawer-footer">
+              <span class="scraped-selected-count">
+                <strong>{{ selectedScrapedIndices().size }}</strong> of {{ scrapedProducts().length }} website products selected
+              </span>
+              <span class="scraped-footer-hint">Selected items will be linked with this company upon registration.</span>
+            </div>
+            }
+          </div>
+          }
 
           <!-- Product Selection Filter & Search Controls -->
           <div class="product-selection-controls">

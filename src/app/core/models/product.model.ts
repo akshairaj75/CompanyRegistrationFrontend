@@ -25,3 +25,21 @@ export interface ProductResponse {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface ScrapedProduct {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  price?: string;
+  productUrl?: string;
+  matchedCatalogProductId?: number | null;
+}
+
+export interface ScrapeProductsResponse {
+  websiteUrl: string;
+  scannedUrl: string;
+  totalDiscovered: number;
+  products: ScrapedProduct[];
+  strategyUsed: string;
+  message: string;
+}

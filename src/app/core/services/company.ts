@@ -99,6 +99,16 @@ export class CompanyService {
   }
 
   /**
+   * Scrape and discover products sold by a company from its official website
+   */
+  scrapeProductsFromWebsite(url: string): Observable<import('../models/product.model').ScrapeProductsResponse> {
+    return this.http.post<import('../models/product.model').ScrapeProductsResponse>(
+      `${this.apiUrl}/scrape-products?url=${encodeURIComponent(url)}`,
+      {}
+    );
+  }
+
+  /**
    * Formats the business card / file URL if stored path is relative
    */
   getFileUrl(path?: string): string {
