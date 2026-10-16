@@ -345,4 +345,79 @@ Address: Riyadh- ksa`;
     expect(res.city).toBe('Riyadh');
     expect(res.country).toBe('Saudi Arabia');
   });
+
+  // 19. Invoice document rejection
+  it('should reject an invoice document and avoid extracting false business card fields', () => {
+    const invoiceText = `
+TAX INVOICE
+Acme Supplies Corporation
+Invoice #: INV-2026-091
+Bill To: Enterprise Trading LLC
+Date: 15/10/2026
+Due Date: 30/10/2026
+Description: Consulting Services
+Qty: 10   Rate: $150.00   Amount: $1500.00
+Subtotal: $1500.00
+Total Due: $1500.00
+Contact: billing@acmesupplies.com
+Phone: +1 800 555 1234
+    `;
+
+    const res = service.parse(invoiceText);
+
+    expect(res.confidenceScore).toBe(0);
+    expect(res.isLowConfidence).toBe(true);
+    expect(res.companyName).toBeUndefined();
+    expect(res.contactName).toBeUndefined();
+    expect(res.email).toBeUndefined();
+    expect(res.contactMobileNumber).toBeUndefined();
+  });
+
+  // 20. Resume / CV rejection
+  it('should reject a resume / CV and avoid populating false contact fields', () => {
+    const resumeText = `
+Curriculum Vitae
+Alexander Wright
+Senior Software Architect
+Summary: Over 12 years of work experience in enterprise software.
+Employment History:
+Lead Engineer at Apex Systems (2018 - 2024)
+Education: Master of Science in Computer Engineering
+Contact: alexander.wright@gmail.com
+Phone: +1 415 555 0199
+    `;
+
+    const res = service.parse(resumeText);
+
+    expect(res.confidenceScore).toBe(0);
+    expect(res.isLowConfidence).toBe(true);
+    expect(res.companyName).toBeUndefined();
+    expect(res.contactName).toBeUndefined();
+    expect(res.email).toBeUndefined();
+  });
+
+  // 21. POS / Retail receipt rejection
+  it('should reject a retail store receipt and avoid populating false fields', () => {
+    const receiptText = `
+STORE RECEIPT
+Metro Supermarket #104
+Cashier: Jennifer M.
+Item 1: Organic Milk    $4.50
+Item 2: Whole Wheat Bread $3.20
+Subtotal: $7.70
+Sales Tax: $0.62
+Total Amount: $8.32
+Tendered: $10.00   Change Due: $1.68
+Transaction ID: TXN-9928172
+Thank you for shopping with us!
+    `;
+
+    const res = service.parse(receiptText);
+
+    expect(res.confidenceScore).toBe(0);
+    expect(res.isLowConfidence).toBe(true);
+    expect(res.companyName).toBeUndefined();
+    expect(res.contactName).toBeUndefined();
+  });
 });
+
