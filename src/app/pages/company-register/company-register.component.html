@@ -496,8 +496,12 @@
             <!-- Country -->
             <div class="form-group">
               <label for="country" class="form-label">Country</label>
-              <input type="text" id="country" formControlName="country" class="form-control"
-                placeholder="United States" />
+              <select id="country" formControlName="country" class="form-control form-select">
+                <option value="" disabled>Select Country</option>
+                @for (c of countryOptions; track c.code) {
+                  <option [value]="c.code">{{ c.code }} - {{ c.name }}</option>
+                }
+              </select>
             </div>
           </div>
         </div>
@@ -2200,7 +2204,12 @@
                   <label class="ocr-field-label">
                     <i class="bi bi-flag"></i> Country
                   </label>
-                  <input type="text" class="ocr-input" [(ngModel)]="result.country" placeholder="e.g. United States" />
+                  <select class="ocr-input form-select" [(ngModel)]="result.country">
+                    <option value="">Select Country</option>
+                    @for (c of countryOptions; track c.code) {
+                      <option [value]="c.code">{{ c.code }} - {{ c.name }}</option>
+                    }
+                  </select>
                 </div>
               </div>
 

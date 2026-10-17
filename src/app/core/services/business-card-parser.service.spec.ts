@@ -37,7 +37,7 @@ United States
     expect(res.landline).toContain('+1 (555) 987-6543');
     expect(res.website).toBe('https://www.acmeglobal.com');
     expect(res.city).toBe('San Francisco');
-    expect(res.country).toBe('United States');
+    expect(res.country).toBe('USA');
     expect(res.confidenceScore).toBeGreaterThanOrEqual(80);
     expect(res.isLowConfidence).toBe(false);
   });
@@ -59,7 +59,7 @@ London, UK
     expect(res.contactEmail).toBe('contact@techcorp.io');
     expect(res.contactMobileNumber).toContain('+44 20 7946 0958');
     expect(res.landline).toBeUndefined();
-    expect(res.country).toBe('United Kingdom');
+    expect(res.country).toBe('UK');
   });
 
   // 3. A card with multiple emails and phone numbers
@@ -81,7 +81,7 @@ Dubai, UAE
     expect(res.contactEmail).toBe('info@apexdynamics.com');
     expect(res.contactMobileNumber).toContain('+971 50 123 4567');
     expect(res.landline).toContain('+971 4 321 0000');
-    expect(res.country).toBe('United Arab Emirates');
+    expect(res.country).toBe('UAE');
   });
 
   // 4. International phone number and separately labelled landline
@@ -100,7 +100,7 @@ Berlin, Germany
 
     expect(res.contactMobileNumber).toContain('+49 170 1234567');
     expect(res.landline).toContain('+49 89 123456');
-    expect(res.country).toBe('Germany');
+    expect(res.country).toBe('DEU');
   });
 
   // 5. Company name without a legal suffix (e.g. Knotix)
@@ -172,7 +172,7 @@ United States
     expect(res.address).toContain('Building 5');
     expect(res.address).toContain('Technology Parkway');
     expect(res.city).toBe('Austin');
-    expect(res.country).toBe('United States');
+    expect(res.country).toBe('USA');
   });
 
   // 9. Location formatted as "Chennai, Tamil Nadu, India"
@@ -190,7 +190,7 @@ Chennai, Tamil Nadu, India
     const res = service.parse(rawText);
 
     expect(res.city).toBe('Chennai');
-    expect(res.country).toBe('India');
+    expect(res.country).toBe('IND');
     expect(res.contactMobileNumber).toContain('+91 98400 12345');
   });
 
@@ -343,7 +343,7 @@ Address: Riyadh- ksa`;
     expect(res.email).toBe('khaleedaljundy@yahoo.com');
     expect(res.address).toBeUndefined();
     expect(res.city).toBe('Riyadh');
-    expect(res.country).toBe('Saudi Arabia');
+    expect(res.country).toBe('KSA');
   });
 
   // 19. Invoice document rejection
@@ -399,17 +399,17 @@ Phone: +1 415 555 0199
   // 21. POS / Retail receipt rejection
   it('should reject a retail store receipt and avoid populating false fields', () => {
     const receiptText = `
-STORE RECEIPT
-Metro Supermarket #104
-Cashier: Jennifer M.
-Item 1: Organic Milk    $4.50
-Item 2: Whole Wheat Bread $3.20
-Subtotal: $7.70
-Sales Tax: $0.62
-Total Amount: $8.32
-Tendered: $10.00   Change Due: $1.68
-Transaction ID: TXN-9928172
-Thank you for shopping with us!
+  STORE RECEIPT
+  Metro Supermarket #104
+  Cashier: Jennifer M.
+  Item 1: Organic Milk    $4.50
+  Item 2: Whole Wheat Bread $3.20
+  Subtotal: $7.70
+  Sales Tax: $0.62
+  Total Amount: $8.32
+  Tendered: $10.00   Change Due: $1.68
+  Transaction ID: TXN-9928172
+  Thank you for shopping with us!
     `;
 
     const res = service.parse(receiptText);

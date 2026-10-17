@@ -15,6 +15,7 @@ import { BusinessCardScanResult } from '../../core/models/ocr.model';
 import { environment } from '../../../environments/environment';
 
 import { RouterLink } from '@angular/router';
+import { COUNTRY_OPTIONS, normalizeToCountryCode } from '../../core/models/country.model';
 
 export interface BusinessCardItem {
   id: string;
@@ -43,6 +44,8 @@ export class CompanyRegisterComponent implements OnInit {
   readonly authService = inject(AuthService);
   readonly ocrService = inject(OcrService);
   readonly environment = environment;
+  readonly countryOptions = COUNTRY_OPTIONS;
+  readonly normalizeToCountryCode = normalizeToCountryCode;
 
   readonly currentUser = this.authService.currentUser;
 
@@ -318,7 +321,7 @@ export class CompanyRegisterComponent implements OnInit {
     landline: ['', [Validators.maxLength(30)]],
     address: ['', [Validators.maxLength(255)]],
     city: ['', [Validators.maxLength(100)]],
-    country: ['United States', [Validators.maxLength(100)]],
+    country: ['USA', [Validators.required, Validators.maxLength(100)]],
     website: ['', [Validators.maxLength(255)]],
     description: ['', [Validators.maxLength(1000)]],
     status: ['ACTIVE', [Validators.required]],
@@ -344,7 +347,11 @@ export class CompanyRegisterComponent implements OnInit {
     this.isLoadingList.set(true);
     this.companyService.getAllCompanies().subscribe({
       next: (data) => {
-        this.companies.set(data || []);
+        const mapped = (data || []).map(c => ({
+          ...c,
+          country: normalizeToCountryCode(c.country)
+        }));
+        this.companies.set(mapped);
         this.isLoadingList.set(false);
       },
       error: (err) => {
@@ -869,7 +876,7 @@ export class CompanyRegisterComponent implements OnInit {
       landline: formValues.landline ? formValues.landline.trim() : '',
       address: formValues.address ? formValues.address.trim() : '',
       city: formValues.city ? formValues.city.trim() : '',
-      country: formValues.country ? formValues.country.trim() : '',
+      country: formValues.country ? normalizeToCountryCode(formValues.country) : '',
       website: formValues.website ? formValues.website.trim() : '',
       description: formValues.description ? formValues.description.trim() : '',
       status: formValues.status || 'ACTIVE',
@@ -956,7 +963,7 @@ export class CompanyRegisterComponent implements OnInit {
       landline: company.landline || '',
       address: company.address || '',
       city: company.city || '',
-      country: company.country || 'United States',
+      country: normalizeToCountryCode(company.country) || 'USA',
       website: company.website || '',
       description: company.description || '',
       status: company.status || 'ACTIVE',
@@ -1067,7 +1074,7 @@ export class CompanyRegisterComponent implements OnInit {
       landline: '',
       address: '',
       city: '',
-      country: 'United States',
+      country: 'USA',
       website: '',
       description: '',
       status: 'ACTIVE',
@@ -1223,7 +1230,7 @@ export class CompanyRegisterComponent implements OnInit {
       landline: company.landline || '',
       address: company.address || '',
       city: company.city || '',
-      country: company.country || 'United States',
+      country: normalizeToCountryCode(company.country) || 'USA',
       website: company.website || '',
       description: company.description || '',
       status: company.status || 'ACTIVE',
@@ -1648,7 +1655,7 @@ export class CompanyRegisterComponent implements OnInit {
       website: res.website || currentValues.website,
       address: res.address || currentValues.address,
       city: res.city || currentValues.city,
-      country: res.country || currentValues.country || 'United States'
+      country: normalizeToCountryCode(res.country) || normalizeToCountryCode(currentValues.country) || 'USA'
     });
 
     // Automatically attach the card file to Section 07 if selected
