@@ -245,9 +245,8 @@
             <div class="input-wrap">
               <i class="bi bi-building input-icon"></i>
               <input type="text" id="companyName" formControlName="companyName" class="form-control"
-                placeholder="e.g. Apex Global Technologies Inc." autocomplete="off"
-                (focus)="onCompanyNameFocus()" (blur)="onCompanyNameBlur()"
-                (keydown)="onCompanyNameKeydown($event)" />
+                placeholder="e.g. Apex Global Technologies Inc." autocomplete="off" (focus)="onCompanyNameFocus()"
+                (blur)="onCompanyNameBlur()" (keydown)="onCompanyNameKeydown($event)" />
             </div>
 
             <!-- Live Search Suggestions Dropdown -->
@@ -261,8 +260,7 @@
                 @for (comp of companyNameSuggestions(); track comp.id; let idx = $index) {
                 <button type="button" class="suggestion-item"
                   [class.active]="activeCompanyNameSuggestionIndex() === idx"
-                  (click)="selectCompanyNameSuggestion(comp)"
-                  [title]="'Select ' + comp.companyName">
+                  (click)="selectCompanyNameSuggestion(comp)" [title]="'Select ' + comp.companyName">
                   <div class="suggestion-icon">
                     <i class="bi bi-building"></i>
                   </div>
@@ -296,10 +294,12 @@
                 <span>Company <strong>"{{ existing.companyName }}"</strong> is already registered in directory.</span>
               </div>
               <div class="duplicate-notice-actions">
-                <button type="button" class="btn-copy-existing" (click)="autofillFormWithCompany(existing)" title="Copy details into form">
+                <button type="button" class="btn-copy-existing" (click)="autofillFormWithCompany(existing)"
+                  title="Copy details into form">
                   <i class="bi bi-copy"></i> Copy Details
                 </button>
-                <button type="button" class="btn-view-existing" (click)="openCompanyDetail(existing)" title="View in modal">
+                <button type="button" class="btn-view-existing" (click)="openCompanyDetail(existing)"
+                  title="View in modal">
                   <i class="bi bi-eye"></i> View
                 </button>
               </div>
@@ -385,13 +385,19 @@
             </div>
 
             <!-- Contact Mobile Number -->
-            <div class="form-group">
+            <div class="form-group" [class.has-error]="isInvalid('contactMobileNumber')">
               <label for="contactMobileNumber" class="form-label">Mobile Number</label>
               <div class="input-wrap">
                 <i class="bi bi-phone input-icon"></i>
                 <input type="tel" id="contactMobileNumber" formControlName="contactMobileNumber" class="form-control"
-                  placeholder="+1 (555) 987-6543" />
+                  placeholder="+1 (555) 987-6543" (keydown)="allowOnlyPhoneChars($event)"
+                  (input)="sanitizePhoneInput($event, 'contactMobileNumber')" />
               </div>
+              @if (isInvalid('contactMobileNumber')) {
+              <span class="field-error">
+                <i class="bi bi-info-circle"></i> Mobile number cannot contain letters (numbers, +, -, and () only)
+              </span>
+              }
             </div>
           </div>
         </div>
@@ -425,13 +431,19 @@
             </div>
 
             <!-- Landline -->
-            <div class="form-group">
+            <div class="form-group" [class.has-error]="isInvalid('landline')">
               <label for="landline" class="form-label">Landline Number</label>
               <div class="input-wrap">
                 <i class="bi bi-telephone-inbound input-icon"></i>
                 <input type="tel" id="landline" formControlName="landline" class="form-control"
-                  placeholder="+1 (555) 019-2834" />
+                  placeholder="+1 (555) 019-2834" (keydown)="allowOnlyPhoneChars($event)"
+                  (input)="sanitizePhoneInput($event, 'landline')" />
               </div>
+              @if (isInvalid('landline')) {
+              <span class="field-error">
+                <i class="bi bi-info-circle"></i> Landline number cannot contain letters (numbers, +, -, and () only)
+              </span>
+              }
             </div>
 
             <!-- Website URL -->
@@ -493,15 +505,77 @@
               <input type="text" id="city" formControlName="city" class="form-control" placeholder="San Francisco" />
             </div>
 
-            <!-- Country -->
-            <div class="form-group">
-              <label for="country" class="form-label">Country</label>
-              <select id="country" formControlName="country" class="form-control form-select">
-                <option value="" disabled>Select Country</option>
-                @for (c of countryOptions; track c.code) {
-                  <option [value]="c.code">{{ c.code }} - {{ c.name }}</option>
+            <!-- Country Searchable Dropdown -->
+            <div class="form-group country-form-group" [class.has-error]="isInvalid('country')">
+              <label for="country-trigger-btn" class="form-label">
+                Country Jurisdiction <span class="required-mark">*</span>
+              </label>
+              <div class="country-dropdown-container" [class.is-open]="isCountryDropdownOpen()">
+                <!-- Trigger Button -->
+                <button type="button" class="country-select-trigger form-control" id="country-trigger-btn"
+                  (click)="toggleCountryDropdown()" [class.has-value]="!!companyForm.get('country')?.value"
+                  [class.is-invalid]="isInvalid('country')">
+                  <div class="country-trigger-content">
+                    @if (selectedCountryOption(); as opt) {
+                    <span class="country-code-pill">{{ opt.code }}</span>
+                    <span class="country-name-text">{{ opt.name }}</span>
+                    } @else {
+                    <span class="country-placeholder">Select Country...</span>
+                    }
+                  </div>
+                  <div class="country-trigger-actions">
+                    @if (companyForm.get('country')?.value) {
+                    <span class="country-clear-btn" (click)="clearCountry($event)" title="Clear country">
+                      <i class="bi bi-x-lg"></i>
+                    </span>
+                    }
+                    <i class="bi bi-chevron-down country-chevron" [class.rotate]="isCountryDropdownOpen()"></i>
+                  </div>
+                </button>
+
+                <!-- Dropdown Search Menu Panel -->
+                @if (isCountryDropdownOpen()) {
+                <div class="country-dropdown-menu animate-fade-in" (click)="$event.stopPropagation()">
+                  <!-- Search Bar -->
+                  <div class="country-search-bar">
+                    <i class="bi bi-search country-search-icon"></i>
+                    <input type="text" id="country-search-input" class="country-search-input"
+                      placeholder="Search country by code or name..." [value]="countrySearchQuery()"
+                      (input)="countrySearchQuery.set($any($event.target).value)"
+                      (keydown.escape)="closeCountryDropdown()" />
+                    @if (countrySearchQuery()) {
+                    <button type="button" class="search-clear-mini" (click)="countrySearchQuery.set('')">
+                      <i class="bi bi-x"></i>
+                    </button>
+                    }
+                  </div>
+
+                  <!-- Options List -->
+                  <div class="country-options-list custom-scrollbar">
+                    @for (c of filteredCountryOptions(); track c.code) {
+                    <div class="country-option-item" [class.is-selected]="companyForm.get('country')?.value === c.code"
+                      (click)="selectCountry(c.code)">
+                      <span class="country-code-pill">{{ c.code }}</span>
+                      <span class="country-full-name">{{ c.name }}</span>
+                      @if (companyForm.get('country')?.value === c.code) {
+                      <i class="bi bi-check2 country-check-icon"></i>
+                      }
+                    </div>
+                    } @empty {
+                    <div class="country-no-results">
+                      <i class="bi bi-geo-alt"></i>
+                      <span>No country found matching "{{ countrySearchQuery() }}"</span>
+                    </div>
+                    }
+                  </div>
+                </div>
                 }
-              </select>
+              </div>
+              @if (isInvalid('country')) {
+              <span class="field-error">
+                <i class="bi bi-info-circle"></i> Country jurisdiction is required
+              </span>
+              }
             </div>
           </div>
         </div>
@@ -602,7 +676,8 @@
             <div class="card-legend-header-flex">
               <div>
                 <h3 class="card-title">Authorized Products Catalog</h3>
-                <p class="card-subtitle">Choose products from brands through categories that this enterprise offers or distributes</p>
+                <p class="card-subtitle">Choose products from brands through categories that this enterprise offers or
+                  distributes</p>
               </div>
               @if (companyForm.get('website')?.value) {
               <button type="button" class="btn-scan-website-header" (click)="triggerWebsiteProductScrape()"
@@ -630,7 +705,8 @@
                 <div>
                   <h4 class="scraped-drawer-heading">Discovered Products from Website</h4>
                   <p class="scraped-drawer-sub">
-                    Scanned: <a [href]="scrapedWebsiteUrl()" target="_blank" class="scraped-site-link">{{ scrapedWebsiteUrl() }}</a>
+                    Scanned: <a [href]="scrapedWebsiteUrl()" target="_blank" class="scraped-site-link">{{
+                      scrapedWebsiteUrl() }}</a>
                     @if (scrapedStrategyUsed()) {
                     <span class="strategy-badge"><i class="bi bi-cpu"></i> {{ scrapedStrategyUsed() }}</span>
                     }
@@ -646,7 +722,8 @@
                   [disabled]="selectedScrapedIndices().size === 0">
                   <i class="bi bi-dash-circle"></i> Clear ({{ selectedScrapedIndices().size }})
                 </button>
-                <button type="button" class="btn-close-drawer" (click)="closeScrapedDrawer()" title="Close discovered drawer">
+                <button type="button" class="btn-close-drawer" (click)="closeScrapedDrawer()"
+                  title="Close discovered drawer">
                   <i class="bi bi-x-lg"></i>
                 </button>
               </div>
@@ -667,12 +744,11 @@
             } @else {
             <div class="scraped-products-grid">
               @for (item of scrapedProducts(); track $index) {
-              <div class="scraped-product-card"
-                [class.is-selected]="selectedScrapedIndices().has($index)"
+              <div class="scraped-product-card" [class.is-selected]="selectedScrapedIndices().has($index)"
                 (click)="toggleScrapedProduct($index)">
                 <div class="scraped-checkbox-wrap">
-                  <input type="checkbox" [checked]="selectedScrapedIndices().has($index)" (click)="$event.stopPropagation()"
-                    (change)="toggleScrapedProduct($index)" />
+                  <input type="checkbox" [checked]="selectedScrapedIndices().has($index)"
+                    (click)="$event.stopPropagation()" (change)="toggleScrapedProduct($index)" />
                 </div>
                 <div class="scraped-card-img-wrap">
                   @if (item.imageUrl) {
@@ -699,9 +775,11 @@
             </div>
             <div class="scraped-drawer-footer">
               <span class="scraped-selected-count">
-                <strong>{{ selectedScrapedIndices().size }}</strong> of {{ scrapedProducts().length }} website products selected
+                <strong>{{ selectedScrapedIndices().size }}</strong> of {{ scrapedProducts().length }} website products
+                selected
               </span>
-              <span class="scraped-footer-hint">Selected items will be linked with this company upon registration.</span>
+              <span class="scraped-footer-hint">Selected items will be linked with this company upon
+                registration.</span>
             </div>
             }
           </div>
@@ -2059,7 +2137,8 @@
                   accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
                 <button type="button" class="btn-retake-card" (click)="ocrModalFileInput.click()"
                   [disabled]="isScanningCard()">
-                  <i class="bi bi-arrow-repeat"></i> {{ scannedCardPreview() ? 'Change Card / PDF' : 'Select Card / PDF' }}
+                  <i class="bi bi-arrow-repeat"></i> {{ scannedCardPreview() ? 'Change Card / PDF' : 'Select Card / PDF'
+                  }}
                 </button>
                 @if (scannedCardFile()) {
                 <span class="ocr-file-name-tag">{{ scannedCardFile()?.name }}</span>
@@ -2142,8 +2221,9 @@
                   <label class="ocr-field-label">
                     <i class="bi bi-phone"></i> Mobile Number
                   </label>
-                  <input type="text" class="ocr-input" [(ngModel)]="result.contactMobileNumber"
-                    placeholder="e.g. +1 917 433-2890" />
+                  <input type="tel" class="ocr-input" [(ngModel)]="result.contactMobileNumber"
+                    placeholder="e.g. +1 917 433-2890" (keydown)="allowOnlyPhoneChars($event)"
+                    (input)="sanitizeOcrPhoneInput($event, 'contactMobileNumber')" />
                 </div>
 
                 <!-- Landline / Office -->
@@ -2151,8 +2231,8 @@
                   <label class="ocr-field-label">
                     <i class="bi bi-telephone"></i> Landline / Office
                   </label>
-                  <input type="text" class="ocr-input" [(ngModel)]="result.landline"
-                    placeholder="e.g. +1 212 650-8910" />
+                  <input type="tel" class="ocr-input" [(ngModel)]="result.landline" placeholder="e.g. +1 212 650-8910"
+                    (keydown)="allowOnlyPhoneChars($event)" (input)="sanitizeOcrPhoneInput($event, 'landline')" />
                 </div>
 
                 <!-- Email Address -->
@@ -2199,17 +2279,46 @@
                   <input type="text" class="ocr-input" [(ngModel)]="result.city" placeholder="e.g. New York" />
                 </div>
 
-                <!-- Country -->
-                <div class="ocr-field-item">
+                <!-- Country Searchable in OCR Modal -->
+                <div class="ocr-field-item ocr-country-dropdown-container" [class.is-open]="isOcrCountryDropdownOpen()">
                   <label class="ocr-field-label">
                     <i class="bi bi-flag"></i> Country
                   </label>
-                  <select class="ocr-input form-select" [(ngModel)]="result.country">
-                    <option value="">Select Country</option>
-                    @for (c of countryOptions; track c.code) {
-                      <option [value]="c.code">{{ c.code }} - {{ c.name }}</option>
-                    }
-                  </select>
+                  <button type="button" class="ocr-input country-select-trigger" (click)="toggleOcrCountryDropdown()">
+                    <div class="country-trigger-content">
+                      @if (selectedOcrCountryOption(); as opt) {
+                      <span class="country-code-pill">{{ opt.code }}</span>
+                      <span class="country-name-text">{{ opt.name }}</span>
+                      } @else {
+                      <span class="country-placeholder">Select Country</span>
+                      }
+                    </div>
+                    <i class="bi bi-chevron-down country-chevron" [class.rotate]="isOcrCountryDropdownOpen()"></i>
+                  </button>
+
+                  @if (isOcrCountryDropdownOpen()) {
+                  <div class="country-dropdown-menu ocr-country-menu animate-fade-in"
+                    (click)="$event.stopPropagation()">
+                    <div class="country-search-bar">
+                      <i class="bi bi-search country-search-icon"></i>
+                      <input type="text" id="ocr-country-search-input" class="country-search-input"
+                        placeholder="Search country..." [value]="ocrCountrySearchQuery()"
+                        (input)="ocrCountrySearchQuery.set($any($event.target).value)" />
+                    </div>
+                    <div class="country-options-list custom-scrollbar">
+                      @for (c of filteredOcrCountryOptions(); track c.code) {
+                      <div class="country-option-item" [class.is-selected]="result.country === c.code"
+                        (click)="selectOcrCountry(c.code)">
+                        <span class="country-code-pill">{{ c.code }}</span>
+                        <span class="country-full-name">{{ c.name }}</span>
+                        @if (result.country === c.code) {
+                        <i class="bi bi-check2 country-check-icon"></i>
+                        }
+                      </div>
+                      }
+                    </div>
+                  </div>
+                  }
                 </div>
               </div>
 

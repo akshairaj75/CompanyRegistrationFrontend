@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CompanyService } from '../../core/services/company';
 import { BrandService } from '../../core/services/brand';
 import { ProductService } from '../../core/services/product';
@@ -28,6 +28,30 @@ export interface BusinessCardItem {
   size?: number;
 }
 
+export function phoneValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const val = control.value;
+    if (!val || typeof val !== 'string' || !val.trim()) {
+      return null;
+    }
+    const trimmed = val.trim();
+    // Strictly reject any letters or words
+    if (/[a-zA-Z]/.test(trimmed)) {
+      return { containsLetters: true };
+    }
+    // Only allow digits and phone format symbols: +, -, (), spaces, .
+    if (!/^[+]?[0-9\s\-().]{5,30}$/.test(trimmed)) {
+      return { invalidPhoneFormat: true };
+    }
+    // Must contain at least 5 numeric digits
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits.length < 5) {
+      return { minDigits: true };
+    }
+    return null;
+  };
+}
+
 @Component({
   selector: 'app-company-register',
   standalone: true,
@@ -46,6 +70,114 @@ export class CompanyRegisterComponent implements OnInit {
   readonly environment = environment;
   readonly countryOptions = COUNTRY_OPTIONS;
   readonly normalizeToCountryCode = normalizeToCountryCode;
+
+  // Country Searchable Dropdown State
+  readonly countrySearchQuery = signal<string>('');
+  readonly isCountryDropdownOpen = signal<boolean>(false);
+  readonly selectedCountryCode = signal<string>('');
+
+  readonly filteredCountryOptions = computed(() => {
+    const q = this.countrySearchQuery().toLowerCase().trim();
+    if (!q) {
+      return this.countryOptions;
+    }
+    return this.countryOptions.filter(c =>
+      c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
+    );
+  });
+
+  readonly selectedCountryOption = computed(() => {
+    const code = this.selectedCountryCode();
+    if (!code) return null;
+    return this.countryOptions.find(c => c.code.toUpperCase() === code.toUpperCase()) || { code, name: code };
+  });
+
+  // OCR Modal Country Searchable Dropdown State
+  readonly ocrCountrySearchQuery = signal<string>('');
+  readonly isOcrCountryDropdownOpen = signal<boolean>(false);
+  readonly ocrSelectedCountry = signal<string>('');
+
+  readonly filteredOcrCountryOptions = computed(() => {
+    const q = this.ocrCountrySearchQuery().toLowerCase().trim();
+    if (!q) {
+      return this.countryOptions;
+    }
+    return this.countryOptions.filter(c =>
+      c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
+    );
+  });
+
+  readonly selectedOcrCountryOption = computed(() => {
+    const code = this.ocrSelectedCountry() || this.scannedCardResult()?.country;
+    if (!code) return null;
+    return this.countryOptions.find(c => c.code.toUpperCase() === code.toUpperCase()) || { code, name: code };
+  });
+
+  toggleCountryDropdown(): void {
+    this.isCountryDropdownOpen.update(v => !v);
+    if (this.isCountryDropdownOpen()) {
+      this.countrySearchQuery.set('');
+      setTimeout(() => {
+        const input = document.getElementById('country-search-input') as HTMLInputElement;
+        if (input) input.focus();
+      }, 50);
+    }
+  }
+
+  closeCountryDropdown(): void {
+    this.isCountryDropdownOpen.set(false);
+  }
+
+  selectCountry(code: string): void {
+    this.selectedCountryCode.set(code);
+    this.companyForm.patchValue({ country: code });
+    this.companyForm.get('country')?.markAsDirty();
+    this.companyForm.get('country')?.markAsTouched();
+    this.isCountryDropdownOpen.set(false);
+    this.countrySearchQuery.set('');
+  }
+
+  clearCountry(event: Event): void {
+    event.stopPropagation();
+    this.selectedCountryCode.set('');
+    this.companyForm.patchValue({ country: '' });
+    this.companyForm.get('country')?.markAsDirty();
+    this.companyForm.get('country')?.markAsTouched();
+    this.countrySearchQuery.set('');
+  }
+
+  toggleOcrCountryDropdown(): void {
+    this.isOcrCountryDropdownOpen.update(v => !v);
+    if (this.isOcrCountryDropdownOpen()) {
+      this.ocrCountrySearchQuery.set('');
+      setTimeout(() => {
+        const input = document.getElementById('ocr-country-search-input') as HTMLInputElement;
+        if (input) input.focus();
+      }, 50);
+    }
+  }
+
+  selectOcrCountry(code: string): void {
+    this.ocrSelectedCountry.set(code);
+    const res = this.scannedCardResult();
+    if (res) {
+      res.country = code;
+      this.scannedCardResult.set({ ...res });
+    }
+    this.isOcrCountryDropdownOpen.set(false);
+    this.ocrCountrySearchQuery.set('');
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.country-dropdown-container')) {
+      this.isCountryDropdownOpen.set(false);
+    }
+    if (!target.closest('.ocr-country-dropdown-container')) {
+      this.isOcrCountryDropdownOpen.set(false);
+    }
+  }
 
   readonly currentUser = this.authService.currentUser;
 
@@ -318,17 +450,17 @@ export class CompanyRegisterComponent implements OnInit {
   companyForm: FormGroup = this.fb.group({
     companyName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
-    landline: ['', [Validators.maxLength(30)]],
+    landline: ['', [Validators.maxLength(30), phoneValidator()]],
     address: ['', [Validators.maxLength(255)]],
     city: ['', [Validators.maxLength(100)]],
-    country: ['USA', [Validators.required, Validators.maxLength(100)]],
+    country: ['', [Validators.required, Validators.maxLength(100)]],
     website: ['', [Validators.maxLength(255)]],
     description: ['', [Validators.maxLength(1000)]],
     status: ['ACTIVE', [Validators.required]],
     contactName: ['', [Validators.maxLength(150)]],
     contactDesignation: ['', [Validators.maxLength(100)]],
     contactEmail: ['', [Validators.email, Validators.maxLength(150)]],
-    contactMobileNumber: ['', [Validators.maxLength(30)]]
+    contactMobileNumber: ['', [Validators.maxLength(30), phoneValidator()]]
   });
 
   ngOnInit(): void {
@@ -340,6 +472,11 @@ export class CompanyRegisterComponent implements OnInit {
     // Synchronize companyNameInput signal with reactive form control value changes
     this.companyForm.get('companyName')?.valueChanges.subscribe(val => {
       this.companyNameInput.set(val || '');
+    });
+
+    // Synchronize selectedCountryCode signal with reactive form control value changes
+    this.companyForm.get('country')?.valueChanges.subscribe(val => {
+      this.selectedCountryCode.set(val || '');
     });
   }
 
@@ -963,7 +1100,7 @@ export class CompanyRegisterComponent implements OnInit {
       landline: company.landline || '',
       address: company.address || '',
       city: company.city || '',
-      country: normalizeToCountryCode(company.country) || 'USA',
+      country: normalizeToCountryCode(company.country) || '',
       website: company.website || '',
       description: company.description || '',
       status: company.status || 'ACTIVE',
@@ -1074,7 +1211,7 @@ export class CompanyRegisterComponent implements OnInit {
       landline: '',
       address: '',
       city: '',
-      country: 'USA',
+      country: '',
       website: '',
       description: '',
       status: 'ACTIVE',
@@ -1230,7 +1367,7 @@ export class CompanyRegisterComponent implements OnInit {
       landline: company.landline || '',
       address: company.address || '',
       city: company.city || '',
-      country: normalizeToCountryCode(company.country) || 'USA',
+      country: normalizeToCountryCode(company.country) || '',
       website: company.website || '',
       description: company.description || '',
       status: company.status || 'ACTIVE',
@@ -1312,6 +1449,57 @@ export class CompanyRegisterComponent implements OnInit {
   isInvalid(controlName: string): boolean {
     const control = this.companyForm.get(controlName);
     return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  // --- Phone Number Input Restriction & Sanitization ---
+  allowOnlyPhoneChars(event: KeyboardEvent): void {
+    // Allow navigational and control shortcut keys (Backspace, Delete, Tab, Arrow keys, etc.)
+    if (
+      event.key === 'Backspace' ||
+      event.key === 'Delete' ||
+      event.key === 'Tab' ||
+      event.key === 'Escape' ||
+      event.key === 'Enter' ||
+      event.key === 'ArrowLeft' ||
+      event.key === 'ArrowRight' ||
+      event.key === 'Home' ||
+      event.key === 'End' ||
+      event.ctrlKey ||
+      event.metaKey
+    ) {
+      return;
+    }
+
+    // Block any key that is not a numeric digit or standard phone symbol (+, -, (, ), spaces, .)
+    if (!/^[0-9+\-\s().]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  sanitizePhoneInput(event: Event, controlName: 'contactMobileNumber' | 'landline'): void {
+    const input = event.target as HTMLInputElement;
+    const original = input.value;
+    // Strip any letters or disallowed characters immediately (handles pastes & autocomplete)
+    const sanitized = original.replace(/[^0-9+\-\s().]/g, '');
+    if (original !== sanitized) {
+      input.value = sanitized;
+      this.companyForm.get(controlName)?.setValue(sanitized);
+      this.companyForm.get(controlName)?.markAsDirty();
+      this.companyForm.get(controlName)?.updateValueAndValidity();
+    }
+  }
+
+  sanitizeOcrPhoneInput(event: Event, field: 'contactMobileNumber' | 'landline'): void {
+    const input = event.target as HTMLInputElement;
+    const original = input.value;
+    const sanitized = original.replace(/[^0-9+\-\s().]/g, '');
+    if (original !== sanitized) {
+      input.value = sanitized;
+    }
+    const res = this.scannedCardResult();
+    if (res) {
+      res[field] = sanitized;
+    }
   }
 
   // ==========================================
@@ -1592,6 +1780,12 @@ export class CompanyRegisterComponent implements OnInit {
 
     this.ocrService.scanBusinessCard(file).subscribe({
       next: (result) => {
+        if (result && result.country) {
+          result.country = normalizeToCountryCode(result.country);
+          this.ocrSelectedCountry.set(result.country);
+        } else {
+          this.ocrSelectedCountry.set('');
+        }
         this.scannedCardResult.set(result);
         this.isScanningCard.set(false);
         if (result.confidenceScore === 0) {
@@ -1642,21 +1836,33 @@ export class CompanyRegisterComponent implements OnInit {
     const res = this.scannedCardResult();
     if (!res) return;
 
+    const chosenCountry = this.ocrSelectedCountry() || res.country;
+    const finalCountry = normalizeToCountryCode(chosenCountry) || '';
+
     // Apply values to reactive form
     const currentValues = this.companyForm.value;
+
+    const rawMobile = res.contactMobileNumber || currentValues.contactMobileNumber || '';
+    const cleanMobile = rawMobile ? rawMobile.replace(/[^0-9+\-\s().]/g, '').trim() : '';
+
+    const rawLandline = res.landline || currentValues.landline || '';
+    const cleanLandline = rawLandline ? rawLandline.replace(/[^0-9+\-\s().]/g, '').trim() : '';
     this.companyForm.patchValue({
       companyName: res.companyName || currentValues.companyName,
       contactName: res.contactName || currentValues.contactName,
       contactDesignation: res.contactDesignation || currentValues.contactDesignation,
       email: res.email || currentValues.email,
       contactEmail: res.contactEmail || res.email || currentValues.contactEmail,
-      contactMobileNumber: res.contactMobileNumber || currentValues.contactMobileNumber,
-      landline: res.landline || currentValues.landline,
+      contactMobileNumber: cleanMobile,
+      landline: cleanLandline,
       website: res.website || currentValues.website,
       address: res.address || currentValues.address,
       city: res.city || currentValues.city,
-      country: normalizeToCountryCode(res.country) || normalizeToCountryCode(currentValues.country) || 'USA'
+      country: finalCountry
     });
+    this.companyForm.get('country')?.markAsDirty();
+    this.companyForm.get('country')?.markAsTouched();
+    this.selectedCountryCode.set(finalCountry);
 
     // Automatically attach the card file to Section 07 if selected
     const file = this.scannedCardFile();
