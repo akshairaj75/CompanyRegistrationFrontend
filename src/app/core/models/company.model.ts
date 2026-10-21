@@ -19,6 +19,7 @@ export interface CompanyRequest {
   brandIds?: number[];
   productIds?: number[];
   existingBusinessCards?: string[];
+  userId?: number;
 }
 
 export interface CompanyResponse {
@@ -44,4 +45,7 @@ export interface CompanyResponse {
   brands?: BrandResponse[];
   productIds?: number[];
   products?: ProductResponse[];
+  userId?: number;
+  userEmail?: string;
+  userFullName?: string;
 }

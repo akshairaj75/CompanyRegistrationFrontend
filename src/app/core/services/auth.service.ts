@@ -26,6 +26,16 @@ export class AuthService {
     return !!t && !this.isTokenExpired(t);
   });
 
+  readonly isSuperAdmin = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'SUPER_ADMIN' || role === 'ROLE_SUPER_ADMIN';
+  });
+
+  readonly isCompanyUser = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'COMPANY_USER' || role === 'ROLE_COMPANY_USER';
+  });
+
   constructor() {
     const token = this.token();
     if (token) {
@@ -61,6 +71,7 @@ export class AuthService {
       tap((res) => {
         if (res && res.token) {
           const userProfile: UserProfile = {
+            id: res.id,
             username: res.username,
             email: res.email,
             fullName: res.fullName,
@@ -80,6 +91,7 @@ export class AuthService {
       tap((res) => {
         if (res && res.token) {
           const userProfile: UserProfile = {
+            id: res.id,
             username: res.username,
             email: res.email,
             fullName: res.fullName,

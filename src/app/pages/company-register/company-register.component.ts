@@ -113,7 +113,11 @@ export class CompanyRegisterComponent implements OnInit {
     return this.countryOptions.find(c => c.code.toUpperCase() === code.toUpperCase()) || { code, name: code };
   });
 
-  toggleCountryDropdown(): void {
+  toggleCountryDropdown(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.isCountryDropdownOpen.update(v => !v);
     if (this.isCountryDropdownOpen()) {
       this.countrySearchQuery.set('');
@@ -463,11 +467,76 @@ export class CompanyRegisterComponent implements OnInit {
     contactMobileNumber: ['', [Validators.maxLength(30), phoneValidator()]]
   });
 
+  // Form snapshot signal for live preview & checklist
+  readonly formSnapshot = signal<any>(this.companyForm.value);
+
+  // Live preview & readiness checklist computations
+  readonly companyInitials = computed(() => {
+    const name = this.formSnapshot()?.companyName?.trim();
+    if (!name) return 'CP';
+    const words = name.split(/\s+/).filter(Boolean);
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  });
+
+  readonly hasIdentityComplete = computed(() => {
+    const v = this.formSnapshot();
+    return !!(v?.companyName && v.companyName.trim().length >= 2);
+  });
+
+  readonly hasContactComplete = computed(() => {
+    const v = this.formSnapshot();
+    return !!(v?.email && v.email.trim() && v?.country && v.country.trim());
+  });
+
+  readonly hasBrandsComplete = computed(() => {
+    return this.selectedBrandIds().length > 0;
+  });
+
+  readonly hasProductsComplete = computed(() => {
+    return this.selectedProductIds().length > 0;
+  });
+
+  readonly hasAssetsComplete = computed(() => {
+    return this.businessCardItems().length > 0;
+  });
+
+  readonly profileCompleteness = computed(() => {
+    let score = 0;
+    const v = this.formSnapshot();
+    if (v?.companyName?.trim()?.length >= 2) score += 20;
+    if (v?.description?.trim()) score += 10;
+    if (v?.email?.trim()) score += 15;
+    if (v?.country?.trim()) score += 10;
+    if (v?.city?.trim() || v?.address?.trim()) score += 5;
+    if (this.selectedBrandIds().length > 0) score += 20;
+    if (this.selectedProductIds().length > 0) score += 10;
+    if (this.businessCardItems().length > 0) score += 10;
+    return Math.min(100, score);
+  });
+
+  scrollToSection(sectionId: string, event?: Event): void {
+    if (event) event.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  setStatus(status: 'ACTIVE' | 'PENDING' | 'INACTIVE'): void {
+    this.companyForm.patchValue({ status });
+    this.companyForm.get('status')?.markAsDirty();
+    this.companyForm.get('status')?.markAsTouched();
+    this.formSnapshot.set(this.companyForm.value);
+  }
+
   ngOnInit(): void {
     this.fetchCompanies();
     this.fetchBrands();
     this.fetchProducts();
     this.fetchCategories();
+
+    this.formSnapshot.set(this.companyForm.value);
 
     // Synchronize companyNameInput signal with reactive form control value changes
     this.companyForm.get('companyName')?.valueChanges.subscribe(val => {
@@ -477,6 +546,11 @@ export class CompanyRegisterComponent implements OnInit {
     // Synchronize selectedCountryCode signal with reactive form control value changes
     this.companyForm.get('country')?.valueChanges.subscribe(val => {
       this.selectedCountryCode.set(val || '');
+    });
+
+    // Synchronize form snapshot for live preview
+    this.companyForm.valueChanges.subscribe(val => {
+      this.formSnapshot.set(val);
     });
   }
 
@@ -1089,9 +1163,41 @@ export class CompanyRegisterComponent implements OnInit {
     }
   }
 
+  // --- Role & Ownership Permissions ---
+  canEditCompany(company?: CompanyResponse | null): boolean {
+    if (!company) return false;
+    if (this.authService.isSuperAdmin()) {
+      return true;
+    }
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) {
+      return false;
+    }
+    // Match by registered owner userId or fallback to company contact/creator email
+    if (company.userId && currentUser.id) {
+      return Number(company.userId) === Number(currentUser.id);
+    }
+    if (company.email && currentUser.email) {
+      return company.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim();
+    }
+    return false;
+  }
+
+  canDeleteCompany(): boolean {
+    return this.authService.isSuperAdmin();
+  }
+
   // --- Edit Actions ---
   startEdit(company: CompanyResponse, event?: Event): void {
     if (event) event.stopPropagation();
+    if (!this.canEditCompany(company)) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Access Restricted',
+        message: 'You are only authorized to edit and update your own company.'
+      });
+      return;
+    }
     this.editingCompanyId.set(company.id);
 
     this.companyForm.patchValue({
@@ -1162,6 +1268,14 @@ export class CompanyRegisterComponent implements OnInit {
   // --- Delete Actions ---
   promptDelete(company: CompanyResponse, event?: Event): void {
     if (event) event.stopPropagation();
+    if (!this.canDeleteCompany()) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Access Restricted',
+        message: 'Only SUPER_ADMIN is authorized to delete company records.'
+      });
+      return;
+    }
     this.companyToDelete.set(company);
   }
 
