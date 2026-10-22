@@ -203,11 +203,7 @@ export class CategoryRegisterComponent implements OnInit {
   onSubmit(): void {
     if (this.categoryForm.invalid) {
       this.categoryForm.markAllAsTouched();
-      this.feedback.set({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'Please provide a valid category name (min 2 characters).'
-      });
+      this.scrollToFirstInvalidControl();
       return;
     }
 
@@ -405,6 +401,32 @@ export class CategoryRegisterComponent implements OnInit {
   onSearchChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchQuery.set(input.value);
+  }
+
+  private scrollToFirstInvalidControl(): void {
+    if (this.categoryForm.get('name')?.invalid) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Form Incomplete',
+        message: 'Please provide a valid category name (min 2 characters). Scrolled to the field.'
+      });
+
+      setTimeout(() => {
+        const targetEl = document.querySelector<HTMLElement>('#name') ||
+          document.querySelector<HTMLElement>('.registration-form .ng-invalid:not(form)');
+        if (targetEl) {
+          const container = targetEl.closest('.form-group') || targetEl;
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          container.classList.remove('invalid-field-pulse');
+          void (container as HTMLElement).offsetWidth;
+          container.classList.add('invalid-field-pulse');
+          if (targetEl instanceof HTMLInputElement) {
+            targetEl.focus({ preventScroll: true });
+          }
+          setTimeout(() => container.classList.remove('invalid-field-pulse'), 3000);
+        }
+      }, 50);
+    }
   }
 
   isInvalid(controlName: string): boolean {

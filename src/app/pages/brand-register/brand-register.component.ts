@@ -146,11 +146,7 @@ export class BrandRegisterComponent implements OnInit {
   onSubmit(): void {
     if (this.brandForm.invalid) {
       this.brandForm.markAllAsTouched();
-      this.feedback.set({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'Please provide a valid brand name (min 2 characters).'
-      });
+      this.scrollToFirstInvalidControl();
       return;
     }
 
@@ -344,6 +340,32 @@ export class BrandRegisterComponent implements OnInit {
   onSearchChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchQuery.set(input.value);
+  }
+
+  private scrollToFirstInvalidControl(): void {
+    if (this.brandForm.get('brandName')?.invalid) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Form Incomplete',
+        message: 'Please provide a valid brand name (min 2 characters). Scrolled to the field.'
+      });
+
+      setTimeout(() => {
+        const targetEl = document.querySelector<HTMLElement>('#brandName') ||
+          document.querySelector<HTMLElement>('.brand-form .ng-invalid:not(form)');
+        if (targetEl) {
+          const container = targetEl.closest('.form-group') || targetEl;
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          container.classList.remove('invalid-field-pulse');
+          void (container as HTMLElement).offsetWidth;
+          container.classList.add('invalid-field-pulse');
+          if (targetEl instanceof HTMLInputElement) {
+            targetEl.focus({ preventScroll: true });
+          }
+          setTimeout(() => container.classList.remove('invalid-field-pulse'), 3000);
+        }
+      }, 50);
+    }
   }
 
   isInvalid(controlName: string): boolean {

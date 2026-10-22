@@ -1069,11 +1069,7 @@ export class CompanyRegisterComponent implements OnInit {
   onSubmit(): void {
     if (this.companyForm.invalid) {
       this.companyForm.markAllAsTouched();
-      this.feedback.set({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'Please fill in all mandatory fields correctly before proceeding.'
-      });
+      this.scrollToFirstInvalidControl();
       return;
     }
 
@@ -1556,6 +1552,139 @@ export class CompanyRegisterComponent implements OnInit {
     } else if (event.key === 'Escape') {
       this.isCompanyNameFocused.set(false);
       this.activeCompanyNameSuggestionIndex.set(-1);
+    }
+  }
+
+  // Auto-scrolls and highlights the first invalid or empty required field
+  private scrollToFirstInvalidControl(): void {
+    const fieldLabels: Record<string, string> = {
+      companyName: 'Company Legal Name',
+      email: 'Corporate Email',
+      country: 'Country Jurisdiction',
+      status: 'Operational Status',
+      contactEmail: 'Direct Executive Email',
+      contactMobileNumber: 'Mobile Number',
+      landline: 'Landline Number',
+      address: 'Street Address',
+      city: 'City',
+      website: 'Official Website',
+      description: 'Company Overview & Scope',
+      contactName: 'Contact Person Name',
+      contactDesignation: 'Designation / Role'
+    };
+
+    const controlOrder = [
+      'companyName',
+      'status',
+      'description',
+      'contactName',
+      'contactDesignation',
+      'contactEmail',
+      'contactMobileNumber',
+      'email',
+      'landline',
+      'website',
+      'address',
+      'city',
+      'country'
+    ];
+
+    const selectorMap: Record<string, string> = {
+      companyName: '#companyName',
+      email: '#email',
+      country: '#country-trigger-btn',
+      contactEmail: '#contactEmail',
+      contactMobileNumber: '#contactMobileNumber',
+      landline: '#landline',
+      status: '.status-segmented-control',
+      address: '#address',
+      city: '#city',
+      website: '#website',
+      description: '#description',
+      contactName: '#contactName',
+      contactDesignation: '#contactDesignation'
+    };
+
+    const invalidControls: string[] = [];
+    for (const name of controlOrder) {
+      const ctrl = this.companyForm.get(name);
+      if (ctrl && ctrl.invalid) {
+        invalidControls.push(name);
+      }
+    }
+    for (const name in this.companyForm.controls) {
+      if (!controlOrder.includes(name)) {
+        const ctrl = this.companyForm.get(name);
+        if (ctrl && ctrl.invalid) {
+          invalidControls.push(name);
+        }
+      }
+    }
+
+    if (invalidControls.length > 0) {
+      const missingLabels = invalidControls.map(k => fieldLabels[k] || k);
+      const firstName = missingLabels[0];
+      const message = missingLabels.length === 1
+        ? `Please fill in or correct "${firstName}". We've automatically scrolled to it.`
+        : `Required fields incomplete (${missingLabels.slice(0, 3).join(', ')}${missingLabels.length > 3 ? '...' : ''}). Scrolled to "${firstName}".`;
+
+      this.feedback.set({
+        type: 'error',
+        title: 'Form Incomplete',
+        message: message
+      });
+
+      setTimeout(() => {
+        let targetEl: HTMLElement | null = null;
+        const firstKey = invalidControls[0];
+
+        if (firstKey && selectorMap[firstKey]) {
+          targetEl = document.querySelector<HTMLElement>(selectorMap[firstKey]);
+        }
+
+        if (!targetEl) {
+          targetEl = document.querySelector<HTMLElement>(
+            '.registration-form .ng-invalid:not(form), .registration-form .has-error, .registration-form .is-invalid'
+          );
+        }
+
+        if (targetEl) {
+          const containerToHighlight = targetEl.closest(
+            '.form-group, .company-autocomplete-group, .asym-col-main, .country-form-group, .country-dropdown-container'
+          ) || targetEl;
+
+          // Smoothly scroll the element to the center of the viewport
+          targetEl.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+
+          // Apply animated attention pulse glow
+          containerToHighlight.classList.remove('invalid-field-pulse');
+          void (containerToHighlight as HTMLElement).offsetWidth;
+          containerToHighlight.classList.add('invalid-field-pulse');
+
+          // Focus input or action button
+          if (
+            targetEl instanceof HTMLInputElement ||
+            targetEl instanceof HTMLTextAreaElement ||
+            targetEl instanceof HTMLSelectElement ||
+            targetEl instanceof HTMLButtonElement
+          ) {
+            targetEl.focus({ preventScroll: true });
+          } else {
+            const innerFocusable = targetEl.querySelector<HTMLElement>('input, textarea, select, button');
+            if (innerFocusable) {
+              innerFocusable.focus({ preventScroll: true });
+            }
+          }
+
+          // Remove pulse animation after 3 seconds
+          setTimeout(() => {
+            containerToHighlight.classList.remove('invalid-field-pulse');
+          }, 3000);
+        }
+      }, 50);
     }
   }
 

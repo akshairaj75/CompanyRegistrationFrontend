@@ -225,11 +225,7 @@ export class ProductRegisterComponent implements OnInit {
   onSubmit(): void {
     if (this.productForm.invalid) {
       this.productForm.markAllAsTouched();
-      this.feedback.set({
-        type: 'error',
-        title: 'Validation Error',
-        message: 'Please fill in all required fields (Product Name, Category, and Brand).'
-      });
+      this.scrollToFirstInvalidControl();
       return;
     }
 
@@ -471,6 +467,70 @@ export class ProductRegisterComponent implements OnInit {
 
       return true;
     });
+  }
+
+  private scrollToFirstInvalidControl(): void {
+    const fieldLabels: Record<string, string> = {
+      name: 'Product Name',
+      categoryId: 'Category',
+      brandId: 'Brand',
+      description: 'Product Description'
+    };
+
+    const selectorMap: Record<string, string> = {
+      name: '#name',
+      categoryId: '#categoryId',
+      brandId: '#brandId',
+      description: '#description'
+    };
+
+    const controlOrder = ['name', 'categoryId', 'subCategoryId', 'brandId', 'description'];
+    const invalidControls: string[] = [];
+
+    for (const name of controlOrder) {
+      const ctrl = this.productForm.get(name);
+      if (ctrl && ctrl.invalid) {
+        invalidControls.push(name);
+      }
+    }
+
+    if (invalidControls.length > 0) {
+      const missingLabels = invalidControls.map(k => fieldLabels[k] || k);
+      const firstName = missingLabels[0];
+      this.feedback.set({
+        type: 'error',
+        title: 'Form Incomplete',
+        message: `Please complete or correct "${firstName}". Scrolled to the field.`
+      });
+
+      setTimeout(() => {
+        let targetEl: HTMLElement | null = null;
+        const firstNameKey = invalidControls[0];
+        if (firstNameKey && selectorMap[firstNameKey]) {
+          targetEl = document.querySelector<HTMLElement>(selectorMap[firstNameKey]);
+        }
+        if (!targetEl) {
+          targetEl = document.querySelector<HTMLElement>(
+            '.product-form .ng-invalid:not(form), .product-form .has-error, .product-form .is-invalid'
+          );
+        }
+        if (targetEl) {
+          const container = targetEl.closest('.form-group') || targetEl;
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          container.classList.remove('invalid-field-pulse');
+          void (container as HTMLElement).offsetWidth;
+          container.classList.add('invalid-field-pulse');
+          if (
+            targetEl instanceof HTMLInputElement ||
+            targetEl instanceof HTMLSelectElement ||
+            targetEl instanceof HTMLTextAreaElement
+          ) {
+            targetEl.focus({ preventScroll: true });
+          }
+          setTimeout(() => container.classList.remove('invalid-field-pulse'), 3000);
+        }
+      }, 50);
+    }
   }
 
   isInvalid(controlName: string): boolean {
