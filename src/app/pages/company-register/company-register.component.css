@@ -307,15 +307,16 @@
   opacity: 1;
 }
 
-/* Main Content Layout (2-Column Grid) */
+/* Main Content Layout (Full-Width Page Container) */
 .page-content {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(340px, 0.85fr);
-  gap: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
   padding: 2rem 2.5rem 4rem;
   max-width: 1440px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 /* Left Form Section */
@@ -2419,10 +2420,11 @@ select.ocr-input {
   .navbar {
     padding: 1rem 1.5rem;
     gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .page-content {
-    gap: 1.5rem;
+    gap: 1.75rem;
     padding: 1.75rem 1.5rem 3.5rem;
   }
 
@@ -2440,18 +2442,19 @@ select.ocr-input {
   }
 
   .page-content {
-    grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 1.5rem;
     padding: 1.5rem 1.25rem 3rem;
   }
 
-  .preview-sidebar {
+  .preview-sidebar,
+  .preview-sidebar-modern {
     width: 100%;
     max-width: 580px;
     margin: 0 auto;
   }
 
-  .preview-sticky {
+  .preview-sticky,
+  .preview-sidebar-sticky {
     position: static;
     width: 100%;
   }
@@ -6715,19 +6718,20 @@ select.ocr-input {
 
 @media (max-width: 992px) {
   .page-content {
-    grid-template-columns: 1fr !important;
-    gap: 1.75rem !important;
+    gap: 1.5rem !important;
     padding: 1.25rem 1.25rem 3.5rem !important;
     max-width: 100% !important;
   }
 
-  .preview-sidebar {
+  .preview-sidebar,
+  .preview-sidebar-modern {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
   }
 
-  .preview-sticky {
+  .preview-sticky,
+  .preview-sidebar-sticky {
     position: static !important;
     width: 100% !important;
   }

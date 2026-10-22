@@ -1888,6 +1888,14 @@ input:checked + .slider:before {
 }
 
 /* Responsive Breakpoints */
+@media (max-width: 1200px) {
+  .navbar {
+    padding: 0.85rem 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+  }
+}
+
 @media (max-width: 1080px) {
   .register-view-layout {
     grid-template-columns: 1fr;
