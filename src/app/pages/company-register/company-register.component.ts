@@ -1,11 +1,11 @@
-import { Component, OnInit, inject, signal, computed, HostListener } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CompanyService } from '../../core/services/company';
 import { BrandService } from '../../core/services/brand';
 import { ProductService } from '../../core/services/product';
 import { CategoryService } from '../../core/services/category';
-import { CompanyRequest, CompanyResponse } from '../../core/models/company.model';
+import { CompanyRequest, CompanyResponse, BusinessCardItem } from '../../core/models/company.model';
 import { BrandResponse } from '../../core/models/brand.model';
 import { ProductResponse, ScrapedProduct, ScrapeProductsResponse } from '../../core/models/product.model';
 import { CategoryResponse } from '../../core/models/category.model';
@@ -13,53 +13,40 @@ import { AuthService } from '../../core/services/auth.service';
 import { OcrService } from '../../core/services/ocr.service';
 import { BusinessCardScanResult } from '../../core/models/ocr.model';
 import { environment } from '../../../environments/environment';
-
 import { RouterLink } from '@angular/router';
 import { COUNTRY_OPTIONS, normalizeToCountryCode } from '../../core/models/country.model';
+import { phoneValidator } from '../../core/validators/phone.validator';
+import { scrollToFirstInvalidControl, isFormControlInvalid, allowOnlyPhoneChars, sanitizePhoneInput, handleFormEnterKey } from '../../core/utils/company-form.util';
 
-export interface BusinessCardItem {
-  id: string;
-  name: string;
-  url?: string;
-  path?: string;
-  isPdf: boolean;
-  isExisting: boolean;
-  file?: File;
-  size?: number;
-}
-
-export function phoneValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const val = control.value;
-    if (!val || typeof val !== 'string' || !val.trim()) {
-      return null;
-    }
-    const trimmed = val.trim();
-    // Strictly reject any letters or words
-    if (/[a-zA-Z]/.test(trimmed)) {
-      return { containsLetters: true };
-    }
-    // Only allow digits and phone format symbols: +, -, (), spaces, .
-    if (!/^[+]?[0-9\s\-().]{5,30}$/.test(trimmed)) {
-      return { invalidPhoneFormat: true };
-    }
-    // Must contain at least 5 numeric digits
-    const digits = trimmed.replace(/\D/g, '');
-    if (digits.length < 5) {
-      return { minDigits: true };
-    }
-    return null;
-  };
-}
+import { CompanyShareModalComponent } from './components/company-share-modal/company-share-modal.component';
+import { CompanyOcrModalComponent } from './components/company-ocr-modal/company-ocr-modal.component';
+import { CompanyLivePreviewComponent } from './components/company-live-preview/company-live-preview.component';
+import { SearchableCountrySelectComponent } from '../../core/components/searchable-country-select/searchable-country-select.component';
+import { CompanyCatalogPickerComponent } from './components/company-catalog-picker/company-catalog-picker.component';
+import { CompanyDirectoryComponent } from './components/company-directory/company-directory.component';
+import { CompanyAssetUploadComponent } from './components/company-asset-upload/company-asset-upload.component';
 
 @Component({
   selector: 'app-company-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    CompanyShareModalComponent,
+    CompanyOcrModalComponent,
+    CompanyLivePreviewComponent,
+    SearchableCountrySelectComponent,
+    CompanyCatalogPickerComponent,
+    CompanyDirectoryComponent,
+    CompanyAssetUploadComponent
+  ],
   templateUrl: './company-register.component.html',
   styleUrl: './company-register.component.css'
 })
 export class CompanyRegisterComponent implements OnInit {
+  @ViewChild('assetUpload') assetUploadComponent?: CompanyAssetUploadComponent;
   private readonly fb = inject(FormBuilder);
   readonly companyService = inject(CompanyService);
   readonly brandService = inject(BrandService);
@@ -71,20 +58,8 @@ export class CompanyRegisterComponent implements OnInit {
   readonly countryOptions = COUNTRY_OPTIONS;
   readonly normalizeToCountryCode = normalizeToCountryCode;
 
-  // Country Searchable Dropdown State
-  readonly countrySearchQuery = signal<string>('');
-  readonly isCountryDropdownOpen = signal<boolean>(false);
+  // Selected country tracking for preview & validation
   readonly selectedCountryCode = signal<string>('');
-
-  readonly filteredCountryOptions = computed(() => {
-    const q = this.countrySearchQuery().toLowerCase().trim();
-    if (!q) {
-      return this.countryOptions;
-    }
-    return this.countryOptions.filter(c =>
-      c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
-    );
-  });
 
   readonly selectedCountryOption = computed(() => {
     const code = this.selectedCountryCode();
@@ -92,155 +67,40 @@ export class CompanyRegisterComponent implements OnInit {
     return this.countryOptions.find(c => c.code.toUpperCase() === code.toUpperCase()) || { code, name: code };
   });
 
-  // OCR Modal Country Searchable Dropdown State
-  readonly ocrCountrySearchQuery = signal<string>('');
-  readonly isOcrCountryDropdownOpen = signal<boolean>(false);
-  readonly ocrSelectedCountry = signal<string>('');
-
-  readonly filteredOcrCountryOptions = computed(() => {
-    const q = this.ocrCountrySearchQuery().toLowerCase().trim();
-    if (!q) {
-      return this.countryOptions;
-    }
-    return this.countryOptions.filter(c =>
-      c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)
-    );
-  });
-
-  readonly selectedOcrCountryOption = computed(() => {
-    const code = this.ocrSelectedCountry() || this.scannedCardResult()?.country;
-    if (!code) return null;
-    return this.countryOptions.find(c => c.code.toUpperCase() === code.toUpperCase()) || { code, name: code };
-  });
-
-  toggleCountryDropdown(event?: Event): void {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    this.isCountryDropdownOpen.update(v => !v);
-    if (this.isCountryDropdownOpen()) {
-      this.countrySearchQuery.set('');
-      setTimeout(() => {
-        const input = document.getElementById('country-search-input') as HTMLInputElement;
-        if (input) input.focus();
-      }, 50);
-    }
-  }
-
-  closeCountryDropdown(): void {
-    this.isCountryDropdownOpen.set(false);
-  }
-
-  selectCountry(code: string): void {
+  onCountryChange(code: string): void {
     this.selectedCountryCode.set(code);
     this.companyForm.patchValue({ country: code });
     this.companyForm.get('country')?.markAsDirty();
     this.companyForm.get('country')?.markAsTouched();
-    this.isCountryDropdownOpen.set(false);
-    this.countrySearchQuery.set('');
   }
-
-  clearCountry(event: Event): void {
-    event.stopPropagation();
-    this.selectedCountryCode.set('');
-    this.companyForm.patchValue({ country: '' });
-    this.companyForm.get('country')?.markAsDirty();
-    this.companyForm.get('country')?.markAsTouched();
-    this.countrySearchQuery.set('');
-  }
-
-  toggleOcrCountryDropdown(): void {
-    this.isOcrCountryDropdownOpen.update(v => !v);
-    if (this.isOcrCountryDropdownOpen()) {
-      this.ocrCountrySearchQuery.set('');
-      setTimeout(() => {
-        const input = document.getElementById('ocr-country-search-input') as HTMLInputElement;
-        if (input) input.focus();
-      }, 50);
-    }
-  }
-
-  selectOcrCountry(code: string): void {
-    this.ocrSelectedCountry.set(code);
-    const res = this.scannedCardResult();
-    if (res) {
-      res.country = code;
-      this.scannedCardResult.set({ ...res });
-    }
-    this.isOcrCountryDropdownOpen.set(false);
-    this.ocrCountrySearchQuery.set('');
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.country-dropdown-container')) {
-      this.isCountryDropdownOpen.set(false);
-    }
-    if (!target.closest('.ocr-country-dropdown-container')) {
-      this.isOcrCountryDropdownOpen.set(false);
-    }
-  }
-
-  readonly currentUser = this.authService.currentUser;
 
   // Business Card Scanner State
   readonly isOcrModalOpen = signal<boolean>(false);
-  readonly isScanningCard = signal<boolean>(false);
-  readonly scannedCardResult = signal<BusinessCardScanResult | null>(null);
-  readonly scannedCardPreview = signal<string | null>(null);
-  readonly scannedCardFile = signal<File | null>(null);
-  readonly autoAttachScannedCard = signal<boolean>(true);
-  readonly ocrDragOver = signal<boolean>(false);
-
-  readonly hasOcrExtractedFields = computed(() => {
-    const res = this.scannedCardResult();
-    if (!res) return false;
-    return !!(
-      res.companyName?.trim() ||
-      res.contactName?.trim() ||
-      res.contactDesignation?.trim() ||
-      res.email?.trim() ||
-      res.contactEmail?.trim() ||
-      res.contactMobileNumber?.trim() ||
-      res.landline?.trim() ||
-      res.website?.trim() ||
-      res.address?.trim() ||
-      res.city?.trim() ||
-      res.country?.trim()
-    );
-  });
+  readonly ocrInitialFile = signal<File | null>(null);
 
   logout(): void {
     this.authService.logout();
   }
 
 
+  readonly currentUser = this.authService.currentUser;
+
   // State Signals
   readonly isSubmitting = signal<boolean>(false);
   readonly isLoadingList = signal<boolean>(false);
-  readonly isExportingExcel = signal<boolean>(false);
-  readonly isExportingPdf = signal<boolean>(false);
   readonly isExportingCompanyPdf = signal<number | null>(null);
   readonly activeTab = signal<'register' | 'directory'>('register');
   readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
 
   // Edit State
   readonly editingCompanyId = signal<number | null>(null);
-
-  // Delete Confirmation State
-  readonly companyToDelete = signal<CompanyResponse | null>(null);
-  readonly isDeleting = signal<boolean>(false);
+  readonly directorySelectedCompany = signal<CompanyResponse | null>(null);
 
   // Share Modal State
   readonly companyToShare = signal<CompanyResponse | null>(null);
-  readonly isCopied = signal<boolean>(false);
-  readonly canNativeShare = signal<boolean>(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
 
   // File Upload State (Multiple Visiting Cards & Brand Assets)
   readonly businessCardItems = signal<BusinessCardItem[]>([]);
-  readonly isDragOver = signal<boolean>(false);
 
   // Computations for multiple files
   readonly selectedNewFiles = computed(() =>
@@ -256,48 +116,14 @@ export class CompanyRegisterComponent implements OnInit {
     return firstImg ? firstImg.url || null : null;
   });
 
-  // Signal-like compatibility accessors for existing template bindings
-  readonly selectedFile = computed(() => {
-    const newFiles = this.selectedNewFiles();
-    return newFiles.length > 0 ? newFiles[0] : null;
-  });
-
   readonly filePreviewUrl = computed(() => this.primaryCardPreviewUrl());
-
-  readonly isPdfFile = computed(() => {
-    const items = this.businessCardItems();
-    return items.length > 0 && items[0].isPdf;
-  });
 
   // Companies List State
   readonly companies = signal<CompanyResponse[]>([]);
-  readonly searchQuery = signal<string>('');
-  readonly isSearchFocused = signal<boolean>(false);
-  readonly activeAutofillIndex = signal<number>(-1);
 
   // Form Autofill State
   readonly formSearchQuery = signal<string>('');
   readonly isFormSearchFocused = signal<boolean>(false);
-
-  // Searchbar Suggestions (Directory Search)
-  readonly searchSuggestions = computed(() => {
-    const q = this.searchQuery().toLowerCase().trim();
-    const list = this.companies();
-    if (!q) {
-      // Suggest top 5 recent/active companies when search input is focused
-      return list.slice(0, 5);
-    }
-    return list.filter(c =>
-      c.companyName?.toLowerCase().includes(q) ||
-      c.contactName?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q) ||
-      c.contactEmail?.toLowerCase().includes(q) ||
-      c.city?.toLowerCase().includes(q) ||
-      c.country?.toLowerCase().includes(q) ||
-      c.brands?.some(b => b.brandName?.toLowerCase().includes(q)) ||
-      c.products?.some(p => p.name?.toLowerCase().includes(q))
-    ).slice(0, 7);
-  });
 
   // Registration Form Autofill Suggestions
   readonly formAutofillSuggestions = computed(() => {
@@ -335,116 +161,24 @@ export class CompanyRegisterComponent implements OnInit {
     return this.companies().find(c => (c.companyName || '').toLowerCase().trim() === q) || null;
   });
 
-  // Brand Association State (Brands Dealt With)
+  // Brand & Product Selection State (Shared with Catalog Picker and Live Preview)
   readonly availableBrands = signal<BrandResponse[]>([]);
   readonly selectedBrandIds = signal<number[]>([]);
-  readonly manuallySelectedBrandIds = signal<Set<number>>(new Set<number>());
   readonly isLoadingBrands = signal<boolean>(false);
-  readonly brandSearchQuery = signal<string>('');
 
-  // Product & Category Association State (Choose Products from Brands through Categories)
   readonly availableProducts = signal<ProductResponse[]>([]);
   readonly selectedProductIds = signal<number[]>([]);
   readonly isLoadingProducts = signal<boolean>(false);
+
   readonly availableCategories = signal<CategoryResponse[]>([]);
   readonly isLoadingCategories = signal<boolean>(false);
 
-  // Product Selection Filters
-  readonly productSearchQuery = signal<string>('');
-  readonly activeProductBrandFilter = signal<string>('all');
-  readonly activeProductCategoryFilter = signal<string>('all');
-  readonly activeProductSubCategoryFilter = signal<string>('all');
+  // Selected entities for live preview, form submission, and PDF export
+  get selectedBrandsList(): BrandResponse[] {
+    const ids = new Set(this.selectedBrandIds());
+    return this.availableBrands().filter(b => ids.has(b.id));
+  }
 
-  // Website Product Scraping State
-  readonly isScrapingWebsite = signal<boolean>(false);
-  readonly scrapedProducts = signal<ScrapedProduct[]>([]);
-  readonly scrapedWebsiteUrl = signal<string>('');
-  readonly scrapedStrategyUsed = signal<string>('');
-  readonly selectedScrapedIndices = signal<Set<number>>(new Set<number>());
-  readonly isScrapedDrawerOpen = signal<boolean>(false);
-
-  // Selected Company for View Modal
-  readonly selectedCompany = signal<CompanyResponse | null>(null);
-
-  // Hierarchy Data Computations
-  readonly parentCategories = computed(() =>
-    this.availableCategories().filter(c => c.parentId == null)
-  );
-
-  readonly subCategories = computed(() => {
-    const parents = this.parentCategories();
-    return this.availableCategories()
-      .filter(c => c.parentId != null)
-      .map(sub => ({
-        ...sub,
-        parentName: parents.find(p => p.id === sub.parentId)?.name || 'None'
-      }));
-  });
-
-  // Brands with Product Counts
-  readonly brandsWithProducts = computed(() => {
-    const products = this.availableProducts();
-    return this.availableBrands().map(b => ({
-      ...b,
-      productCount: products.filter(p => p.brandId === b.id).length
-    }));
-  });
-
-  // Categories with products for the currently active brand filter
-  readonly availableCategoriesForBrand = computed(() => {
-    const brandFilter = this.activeProductBrandFilter();
-    let prods = this.availableProducts();
-    if (brandFilter !== 'all') {
-      const bId = Number(brandFilter);
-      prods = prods.filter(p => p.brandId === bId);
-    }
-    const catIds = new Set(prods.map(p => p.categoryId));
-    return this.parentCategories().filter(c => catIds.has(c.id));
-  });
-
-  // Subcategories available under the selected Brand and Main Category
-  readonly availableSubCategoriesForSelection = computed(() => {
-    const brandFilter = this.activeProductBrandFilter();
-    const catFilter = this.activeProductCategoryFilter();
-    let prods = this.availableProducts();
-    if (brandFilter !== 'all') {
-      const bId = Number(brandFilter);
-      prods = prods.filter(p => p.brandId === bId);
-    }
-    if (catFilter !== 'all') {
-      const cId = Number(catFilter);
-      prods = prods.filter(p => p.categoryId === cId);
-    }
-    const subCatIds = new Set(prods.filter(p => p.subCategoryId).map(p => p.subCategoryId as number));
-    return this.subCategories().filter(s => subCatIds.has(s.id));
-  });
-
-  // Filtered Products for selection in "Choose products from brands through categories"
-  readonly filteredAvailableProducts = computed(() => {
-    const brandFilter = this.activeProductBrandFilter();
-    const catFilter = this.activeProductCategoryFilter();
-    const subCatFilter = this.activeProductSubCategoryFilter();
-    const query = this.productSearchQuery().toLowerCase().trim();
-
-    return this.availableProducts().filter(p => {
-      if (brandFilter !== 'all' && p.brandId !== Number(brandFilter)) return false;
-      if (catFilter !== 'all' && p.categoryId !== Number(catFilter)) return false;
-      if (subCatFilter !== 'all' && p.subCategoryId !== Number(subCatFilter)) return false;
-
-      if (query) {
-        const matches =
-          p.name?.toLowerCase().includes(query) ||
-          p.brandName?.toLowerCase().includes(query) ||
-          p.categoryName?.toLowerCase().includes(query) ||
-          p.subCategoryName?.toLowerCase().includes(query) ||
-          p.id?.toString().includes(query);
-        if (!matches) return false;
-      }
-      return true;
-    });
-  });
-
-  // List of selected product entities
   readonly selectedProductsList = computed(() => {
     const ids = new Set(this.selectedProductIds());
     return this.availableProducts().filter(p => ids.has(p.id));
@@ -467,54 +201,6 @@ export class CompanyRegisterComponent implements OnInit {
     contactMobileNumber: ['', [Validators.maxLength(30), phoneValidator()]]
   });
 
-  // Form snapshot signal for live preview & checklist
-  readonly formSnapshot = signal<any>(this.companyForm.value);
-
-  // Live preview & readiness checklist computations
-  readonly companyInitials = computed(() => {
-    const name = this.formSnapshot()?.companyName?.trim();
-    if (!name) return 'CP';
-    const words = name.split(/\s+/).filter(Boolean);
-    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-    return (words[0][0] + words[1][0]).toUpperCase();
-  });
-
-  readonly hasIdentityComplete = computed(() => {
-    const v = this.formSnapshot();
-    return !!(v?.companyName && v.companyName.trim().length >= 2);
-  });
-
-  readonly hasContactComplete = computed(() => {
-    const v = this.formSnapshot();
-    return !!(v?.email && v.email.trim() && v?.country && v.country.trim());
-  });
-
-  readonly hasBrandsComplete = computed(() => {
-    return this.selectedBrandIds().length > 0;
-  });
-
-  readonly hasProductsComplete = computed(() => {
-    return this.selectedProductIds().length > 0;
-  });
-
-  readonly hasAssetsComplete = computed(() => {
-    return this.businessCardItems().length > 0;
-  });
-
-  readonly profileCompleteness = computed(() => {
-    let score = 0;
-    const v = this.formSnapshot();
-    if (v?.companyName?.trim()?.length >= 2) score += 20;
-    if (v?.description?.trim()) score += 10;
-    if (v?.email?.trim()) score += 15;
-    if (v?.country?.trim()) score += 10;
-    if (v?.city?.trim() || v?.address?.trim()) score += 5;
-    if (this.selectedBrandIds().length > 0) score += 20;
-    if (this.selectedProductIds().length > 0) score += 10;
-    if (this.businessCardItems().length > 0) score += 10;
-    return Math.min(100, score);
-  });
-
   scrollToSection(sectionId: string, event?: Event): void {
     if (event) event.preventDefault();
     const element = document.getElementById(sectionId);
@@ -527,7 +213,6 @@ export class CompanyRegisterComponent implements OnInit {
     this.companyForm.patchValue({ status });
     this.companyForm.get('status')?.markAsDirty();
     this.companyForm.get('status')?.markAsTouched();
-    this.formSnapshot.set(this.companyForm.value);
   }
 
   ngOnInit(): void {
@@ -535,8 +220,6 @@ export class CompanyRegisterComponent implements OnInit {
     this.fetchBrands();
     this.fetchProducts();
     this.fetchCategories();
-
-    this.formSnapshot.set(this.companyForm.value);
 
     // Synchronize companyNameInput signal with reactive form control value changes
     this.companyForm.get('companyName')?.valueChanges.subscribe(val => {
@@ -546,11 +229,6 @@ export class CompanyRegisterComponent implements OnInit {
     // Synchronize selectedCountryCode signal with reactive form control value changes
     this.companyForm.get('country')?.valueChanges.subscribe(val => {
       this.selectedCountryCode.set(val || '');
-    });
-
-    // Synchronize form snapshot for live preview
-    this.companyForm.valueChanges.subscribe(val => {
-      this.formSnapshot.set(val);
     });
   }
 
@@ -572,73 +250,7 @@ export class CompanyRegisterComponent implements OnInit {
     });
   }
 
-  exportToExcel(): void {
-    if (this.isExportingExcel()) return;
-    this.isExportingExcel.set(true);
-    this.companyService.exportCompaniesToExcel().subscribe({
-      next: (blob: Blob) => {
-        this.isExportingExcel.set(false);
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        a.download = `companies_directory_${dateStr}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        this.feedback.set({
-          type: 'success',
-          title: 'Excel Export Successful',
-          message: 'The companies directory spreadsheet has been generated and downloaded.'
-        });
-      },
-      error: (err) => {
-        this.isExportingExcel.set(false);
-        console.error('Excel export failed:', err);
-        this.feedback.set({
-          type: 'error',
-          title: 'Export Failed',
-          message: 'Could not generate the Excel file. Please ensure the backend server is reachable.'
-        });
-      }
-    });
-  }
 
-  exportToPdf(): void {
-    if (this.isExportingPdf()) return;
-    this.isExportingPdf.set(true);
-    this.companyService.exportCompaniesToPdf().subscribe({
-      next: (blob: Blob) => {
-        this.isExportingPdf.set(false);
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        a.download = `companies_directory_${dateStr}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        this.feedback.set({
-          type: 'success',
-          title: 'PDF Export Successful',
-          message: 'The companies directory official PDF document has been generated and downloaded.'
-        });
-      },
-      error: (err) => {
-        this.isExportingPdf.set(false);
-        console.error('PDF export failed:', err);
-        this.feedback.set({
-          type: 'error',
-          title: 'Export Failed',
-          message: 'Could not generate the PDF file. Please ensure the backend server is reachable.'
-        });
-      }
-    });
-  }
 
   fetchBrands(): void {
     this.isLoadingBrands.set(true);
@@ -682,380 +294,15 @@ export class CompanyRegisterComponent implements OnInit {
     });
   }
 
-  // --- Brand Selection Handlers ---
-  toggleBrand(brandId: number): void {
-    const current = this.selectedBrandIds();
-    if (current.includes(brandId)) {
-      // 1. Unselect brand
-      this.selectedBrandIds.set(current.filter(id => id !== brandId));
-      this.manuallySelectedBrandIds.update(set => {
-        const next = new Set(set);
-        next.delete(brandId);
-        return next;
-      });
-      // 2. Cascade: automatically unselect all products belonging to this brand
-      const productsOfThisBrand = new Set(
-        this.availableProducts().filter(p => p.brandId === brandId).map(p => p.id)
-      );
-      this.selectedProductIds.set(
-        this.selectedProductIds().filter(id => !productsOfThisBrand.has(id))
-      );
-    } else {
-      // User explicitly selected this brand in Section 05
-      this.selectedBrandIds.set([...current, brandId]);
-      this.manuallySelectedBrandIds.update(set => new Set(set).add(brandId));
-    }
-  }
-
-  isBrandSelected(brandId: number): boolean {
-    return this.selectedBrandIds().includes(brandId);
-  }
-
-  selectAllBrands(): void {
-    const allIds = this.availableBrands().map(b => b.id);
-    this.selectedBrandIds.set(allIds);
-    this.manuallySelectedBrandIds.set(new Set(allIds));
-  }
-
-  clearSelectedBrands(): void {
-    this.selectedBrandIds.set([]);
-    this.manuallySelectedBrandIds.set(new Set());
-    // Cascade: clearing all brands also clears all chosen products
-    this.selectedProductIds.set([]);
-  }
-
-  get filteredAvailableBrands(): BrandResponse[] {
-    const query = this.brandSearchQuery().toLowerCase().trim();
-    if (!query) return this.availableBrands();
-    return this.availableBrands().filter(b => b.brandName?.toLowerCase().includes(query));
-  }
-
-  get selectedBrandsList(): BrandResponse[] {
-    const ids = new Set(this.selectedBrandIds());
-    return this.availableBrands().filter(b => ids.has(b.id));
-  }
-
-  // --- Product Selection Handlers (From Brands through Categories) ---
-  toggleProduct(product: ProductResponse): void {
-    const current = this.selectedProductIds();
-    if (current.includes(product.id)) {
-      this.removeProductAndCheckBrand(product.id, product.brandId);
-    } else {
-      this.selectedProductIds.set([...current, product.id]);
-      // Ensure product's brand is also selected in company brands
-      if (product.brandId && !this.selectedBrandIds().includes(product.brandId)) {
-        this.selectedBrandIds.set([...this.selectedBrandIds(), product.brandId]);
-      }
-    }
-  }
-
-  private removeProductAndCheckBrand(productId: number, brandId?: number): void {
-    const updatedProdIds = this.selectedProductIds().filter(id => id !== productId);
-    this.selectedProductIds.set(updatedProdIds);
-
-    const bId = brandId || this.availableProducts().find(p => p.id === productId)?.brandId;
-    if (bId) {
-      // Check if any other selected product belongs to this brand
-      const hasOtherProductsOfBrand = this.availableProducts().some(
-        p => p.brandId === bId && updatedProdIds.includes(p.id)
-      );
-      // If no other products from this brand are selected and it wasn't manually selected in Section 05, auto-unselect brand
-      if (!hasOtherProductsOfBrand && !this.manuallySelectedBrandIds().has(bId)) {
-        this.selectedBrandIds.set(this.selectedBrandIds().filter(id => id !== bId));
-      }
-    }
-  }
-
-  isProductSelected(productId: number): boolean {
-    return this.selectedProductIds().includes(productId);
-  }
-
-  selectAllFilteredProducts(): void {
-    const currentProdIds = new Set(this.selectedProductIds());
-    const brandIds = new Set(this.selectedBrandIds());
-    for (const p of this.filteredAvailableProducts()) {
-      currentProdIds.add(p.id);
-      if (p.brandId) brandIds.add(p.brandId);
-    }
-    this.selectedProductIds.set(Array.from(currentProdIds));
-    this.selectedBrandIds.set(Array.from(brandIds));
-  }
-
-  deselectFilteredProducts(): void {
-    const filteredIds = new Set(this.filteredAvailableProducts().map(p => p.id));
-    const remainingProdIds = this.selectedProductIds().filter(id => !filteredIds.has(id));
-    this.selectedProductIds.set(remainingProdIds);
-
-    // Synchronize brands: if brand was only auto-selected by a product and has 0 products remaining, unselect it
-    const remainingProds = this.availableProducts().filter(p => remainingProdIds.includes(p.id));
-    const activeBrandIdsFromProds = new Set(remainingProds.map(p => p.brandId).filter(Boolean));
-
-    this.selectedBrandIds.set(
-      this.selectedBrandIds().filter(bId =>
-        this.manuallySelectedBrandIds().has(bId) || activeBrandIdsFromProds.has(bId)
-      )
-    );
-  }
-
-  clearSelectedProducts(): void {
-    this.selectedProductIds.set([]);
-    // Remove brands that were only auto-selected by products
-    this.selectedBrandIds.set(
-      this.selectedBrandIds().filter(bId => this.manuallySelectedBrandIds().has(bId))
-    );
-  }
-
-  removeSelectedProduct(productId: number): void {
-    this.removeProductAndCheckBrand(productId);
-  }
-
-  setProductBrandFilter(brandIdStr: string): void {
-    this.activeProductBrandFilter.set(brandIdStr);
-    this.activeProductCategoryFilter.set('all');
-    this.activeProductSubCategoryFilter.set('all');
-  }
-
-  setProductCategoryFilter(catIdStr: string): void {
-    this.activeProductCategoryFilter.set(catIdStr);
-    this.activeProductSubCategoryFilter.set('all');
-  }
-
-  // --- Website Product Scraping Methods ---
-  triggerWebsiteProductScrape(): void {
-    const website = this.companyForm.get('website')?.value?.trim();
-    if (!website) {
-      this.feedback.set({
-        type: 'error',
-        title: 'Website Required',
-        message: 'Please provide a valid official website URL in Section 03 before discovering products.'
-      });
-      return;
-    }
-
-    this.isScrapingWebsite.set(true);
-    this.isScrapedDrawerOpen.set(true);
-
-    this.companyService.scrapeProductsFromWebsite(website).subscribe({
-      next: (res: ScrapeProductsResponse) => {
-        console.log(res)
-        this.isScrapingWebsite.set(false);
-        this.scrapedProducts.set(res.products || []);
-        this.scrapedWebsiteUrl.set(res.scannedUrl || website);
-        this.scrapedStrategyUsed.set(res.strategyUsed || 'Website Crawler');
-
-        // Automatically pre-select any products that matched existing catalog products
-        const preselectedIndices = new Set<number>();
-        res.products.forEach((p, idx) => {
-          if (p.matchedCatalogProductId) {
-            preselectedIndices.add(idx);
-            // Also select them into our main selectedProductIds if not already selected
-            const currentIds = this.selectedProductIds();
-            if (!currentIds.includes(p.matchedCatalogProductId)) {
-              const matchedCatalogProd = this.availableProducts().find(ap => ap.id === p.matchedCatalogProductId);
-              if (matchedCatalogProd) {
-                this.toggleProduct(matchedCatalogProd);
-              }
-            }
-          }
-        });
-        this.selectedScrapedIndices.set(preselectedIndices);
-
-        if (res.products && res.products.length > 0) {
-          this.feedback.set({
-            type: 'success',
-            title: 'Products Discovered!',
-            message: `Found ${res.products.length} product(s) from ${website} via ${res.strategyUsed}. Select the ones you want to link.`
-          });
-          setTimeout(() => {
-            const el = document.getElementById('scrapedProductsDrawer');
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 150);
-        } else {
-          this.feedback.set({
-            type: 'error',
-            title: 'No Products Detected',
-            message: res.message || 'We could not detect standard eCommerce products on this website. You can manually choose products below.'
-          });
-        }
-      },
-      error: (err) => {
-        this.isScrapingWebsite.set(false);
-        console.error('Error scraping products:', err);
-        this.feedback.set({
-          type: 'error',
-          title: 'Website Scan Failed',
-          message: err?.error?.message || 'Could not fetch or scan the website. Please ensure the domain is publicly accessible.'
-        });
-      }
-    });
-  }
-
-  toggleScrapedProduct(index: number): void {
-    const current = new Set(this.selectedScrapedIndices());
-    const product = this.scrapedProducts()[index];
-    if (!product) return;
-
-    if (current.has(index)) {
-      current.delete(index);
-      // If it has a matchedCatalogProductId, also deselect from catalog selection
-      if (product.matchedCatalogProductId) {
-        this.removeProductAndCheckBrand(product.matchedCatalogProductId);
-      }
-    } else {
-      current.add(index);
-      // If it matches an existing catalog product, automatically link it!
-      if (product.matchedCatalogProductId) {
-        const catalogProd = this.availableProducts().find(p => p.id === product.matchedCatalogProductId);
-        if (catalogProd && !this.selectedProductIds().includes(product.matchedCatalogProductId)) {
-          this.toggleProduct(catalogProd);
-        }
-      }
-    }
-    this.selectedScrapedIndices.set(current);
-  }
-
-  selectAllScrapedProducts(): void {
-    const all = new Set<number>();
-    this.scrapedProducts().forEach((p, idx) => {
-      all.add(idx);
-      if (p.matchedCatalogProductId) {
-        const catalogProd = this.availableProducts().find(cp => cp.id === p.matchedCatalogProductId);
-        if (catalogProd && !this.selectedProductIds().includes(p.matchedCatalogProductId)) {
-          this.toggleProduct(catalogProd);
-        }
-      }
-    });
-    this.selectedScrapedIndices.set(all);
-  }
-
-  deselectAllScrapedProducts(): void {
-    const current = this.selectedScrapedIndices();
-    this.scrapedProducts().forEach((p, idx) => {
-      if (current.has(idx) && p.matchedCatalogProductId) {
-        this.removeProductAndCheckBrand(p.matchedCatalogProductId);
-      }
-    });
-    this.selectedScrapedIndices.set(new Set());
-  }
-
-  openScrapedDrawerWithScroll(): void {
-    this.isScrapedDrawerOpen.set(true);
-    setTimeout(() => {
-      const el = document.getElementById('scrapedProductsDrawer');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  }
-
-  closeScrapedDrawer(): void {
-    this.isScrapedDrawerOpen.set(false);
-  }
-
-  // --- File Drag & Drop & Multi-Selection Handlers ---
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(true);
-  }
-
-  onDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(false);
-  }
-
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(false);
-
-    if (event.dataTransfer && event.dataTransfer.files.length > 0) {
-      this.handleFiles(Array.from(event.dataTransfer.files));
-    }
-  }
-
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.handleFiles(Array.from(input.files));
-      input.value = '';
-    }
-  }
-
-  private handleFiles(files: File[]): void {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
-    const maxSizeBytes = 20 * 1024 * 1024; // 20 MB
-
-    for (const file of files) {
-      if (!allowedTypes.includes(file.type)) {
-        this.feedback.set({
-          type: 'error',
-          title: 'Unsupported File Format',
-          message: `"${file.name}" has an unsupported format. Please upload JPEG, PNG, WEBP, GIF, or PDF.`
-        });
-        continue;
-      }
-
-      if (file.size > maxSizeBytes) {
-        this.feedback.set({
-          type: 'error',
-          title: 'File Too Large',
-          message: `"${file.name}" exceeds the 20MB limit.`
-        });
-        continue;
-      }
-
-      const isPdf = file.type === 'application/pdf';
-      const id = 'new-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
-
-      if (isPdf) {
-        this.businessCardItems.update(items => [
-          ...items,
-          {
-            id,
-            name: file.name,
-            isPdf: true,
-            isExisting: false,
-            file,
-            size: file.size
-          }
-        ]);
-      } else {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.businessCardItems.update(items => [
-            ...items,
-            {
-              id,
-              name: file.name,
-              url: e.target?.result as string,
-              isPdf: false,
-              isExisting: false,
-              file,
-              size: file.size
-            }
-          ]);
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  }
-
-  removeCardItem(item: BusinessCardItem, event?: Event): void {
-    if (event) event.stopPropagation();
-    this.businessCardItems.update(items => items.filter(c => c.id !== item.id));
-  }
-
-  clearAllCards(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.businessCardItems.set([]);
+  // --- File Upload & OCR Helper Handlers ---
+  onOcrFileSelectedFromUpload(file: File): void {
+    this.ocrInitialFile.set(file);
+    this.isOcrModalOpen.set(true);
   }
 
   removeFile(event?: Event): void {
-    this.clearAllCards(event);
+    if (event) event.stopPropagation();
+    this.businessCardItems.set([]);
   }
 
   getCompanyCards(company: CompanyResponse): string[] {
@@ -1217,7 +464,6 @@ export class CompanyRegisterComponent implements OnInit {
       ? company.brandIds
       : (company.brands?.map(b => b.id) || []);
     this.selectedBrandIds.set(brandIds);
-    this.manuallySelectedBrandIds.set(new Set(brandIds));
 
     // Populate selected products
     const productIds = (company.productIds && company.productIds.length > 0)
@@ -1243,11 +489,6 @@ export class CompanyRegisterComponent implements OnInit {
       });
     });
     this.businessCardItems.set(items);
-
-    if (this.selectedCompany()) {
-      this.closeCompanyDetail();
-    }
-
     this.activeTab.set('register');
   }
 
@@ -1261,56 +502,9 @@ export class CompanyRegisterComponent implements OnInit {
     this.activeTab.set('register');
   }
 
-  // --- Delete Actions ---
-  promptDelete(company: CompanyResponse, event?: Event): void {
-    if (event) event.stopPropagation();
-    if (!this.canDeleteCompany()) {
-      this.feedback.set({
-        type: 'error',
-        title: 'Access Restricted',
-        message: 'Only SUPER_ADMIN is authorized to delete company records.'
-      });
-      return;
-    }
-    this.companyToDelete.set(company);
-  }
-
-  cancelDelete(): void {
-    this.companyToDelete.set(null);
-  }
-
-  confirmDelete(): void {
-    const toDelete = this.companyToDelete();
-    if (!toDelete) return;
-
-    this.isDeleting.set(true);
-    this.companyService.deleteCompany(toDelete.id).subscribe({
-      next: () => {
-        this.isDeleting.set(false);
-        this.feedback.set({
-          type: 'success',
-          title: 'Company Deleted',
-          message: `"${toDelete.companyName}" has been successfully deleted.`
-        });
-        if (this.selectedCompany()?.id === toDelete.id) {
-          this.closeCompanyDetail();
-        }
-        if (this.editingCompanyId() === toDelete.id) {
-          this.cancelEdit();
-        }
-        this.companyToDelete.set(null);
-        this.fetchCompanies();
-      },
-      error: (err) => {
-        this.isDeleting.set(false);
-        console.error('Delete failed:', err);
-        this.feedback.set({
-          type: 'error',
-          title: 'Delete Failed',
-          message: 'Could not delete the company record. Please verify server connection.'
-        });
-      }
-    });
+  viewCompanyInDirectory(company: CompanyResponse): void {
+    this.directorySelectedCompany.set(company);
+    this.activeTab.set('directory');
   }
 
   // --- Form Reset & Navigation ---
@@ -1331,122 +525,12 @@ export class CompanyRegisterComponent implements OnInit {
       contactMobileNumber: ''
     });
     this.selectedBrandIds.set([]);
-    this.manuallySelectedBrandIds.set(new Set());
     this.selectedProductIds.set([]);
-    this.brandSearchQuery.set('');
-    this.productSearchQuery.set('');
-    this.activeProductBrandFilter.set('all');
-    this.activeProductCategoryFilter.set('all');
-    this.activeProductSubCategoryFilter.set('all');
     this.removeFile();
   }
 
   closeFeedback(): void {
     this.feedback.set(null);
-  }
-
-  // --- View Detail Modal ---
-  openCompanyDetail(comp: CompanyResponse): void {
-    this.selectedCompany.set(comp);
-  }
-
-  closeCompanyDetail(): void {
-    this.selectedCompany.set(null);
-  }
-
-  // Filtered companies based on search
-  get filteredCompanies(): CompanyResponse[] {
-    const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return this.companies();
-    return this.companies().filter(c =>
-      c.companyName?.toLowerCase().includes(query) ||
-      c.contactName?.toLowerCase().includes(query) ||
-      c.contactEmail?.toLowerCase().includes(query) ||
-      c.email?.toLowerCase().includes(query) ||
-      c.city?.toLowerCase().includes(query) ||
-      c.country?.toLowerCase().includes(query) ||
-      c.brands?.some(b => b.brandName?.toLowerCase().includes(query)) ||
-      c.products?.some(p => p.name?.toLowerCase().includes(query))
-    );
-  }
-
-  onSearchChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery.set(input.value);
-    this.isSearchFocused.set(true);
-    this.activeAutofillIndex.set(-1);
-  }
-
-  onSearchFocus(): void {
-    this.isSearchFocused.set(true);
-    this.activeAutofillIndex.set(-1);
-  }
-
-  onSearchBlur(): void {
-    // Timeout gives user enough time to click on suggestion items
-    setTimeout(() => {
-      this.isSearchFocused.set(false);
-      this.activeAutofillIndex.set(-1);
-    }, 220);
-  }
-
-  clearSearch(): void {
-    this.searchQuery.set('');
-    this.activeAutofillIndex.set(-1);
-  }
-
-  selectSuggestion(company: CompanyResponse): void {
-    this.searchQuery.set(company.companyName);
-    this.isSearchFocused.set(false);
-    this.activeAutofillIndex.set(-1);
-  }
-
-  selectSuggestionAndOpen(company: CompanyResponse, event?: Event): void {
-    if (event) event.stopPropagation();
-    this.searchQuery.set(company.companyName);
-    this.isSearchFocused.set(false);
-    this.activeAutofillIndex.set(-1);
-    this.openCompanyDetail(company);
-  }
-
-  onSearchKeyDown(event: KeyboardEvent): void {
-    const suggestions = this.searchSuggestions();
-    if (!this.isSearchFocused() || suggestions.length === 0) return;
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      const current = this.activeAutofillIndex();
-      const next = current + 1 >= suggestions.length ? 0 : current + 1;
-      this.activeAutofillIndex.set(next);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      const current = this.activeAutofillIndex();
-      const prev = current <= 0 ? suggestions.length - 1 : current - 1;
-      this.activeAutofillIndex.set(prev);
-    } else if (event.key === 'Enter') {
-      const idx = this.activeAutofillIndex();
-      if (idx >= 0 && idx < suggestions.length) {
-        event.preventDefault();
-        this.selectSuggestion(suggestions[idx]);
-      }
-    } else if (event.key === 'Escape') {
-      this.isSearchFocused.set(false);
-      this.activeAutofillIndex.set(-1);
-    }
-  }
-
-  getHighlightSegments(text: string | null | undefined, query: string): { text: string; isMatch: boolean }[] {
-    if (!text) return [];
-    if (!query || !query.trim()) return [{ text, isMatch: false }];
-    const q = query.trim().toLowerCase();
-    const lower = text.toLowerCase();
-    const index = lower.indexOf(q);
-    if (index === -1) return [{ text, isMatch: false }];
-    return [
-      { text: text.substring(0, index), isMatch: false },
-      { text: text.substring(index, index + q.length), isMatch: true },
-      { text: text.substring(index + q.length), isMatch: false }
-    ];
   }
 
   // --- Registration Form Quick Autofill ---
@@ -1491,7 +575,6 @@ export class CompanyRegisterComponent implements OnInit {
       ? company.brandIds
       : (company.brands?.map(b => b.id) || []);
     this.selectedBrandIds.set(brandIds);
-    this.manuallySelectedBrandIds.set(new Set(brandIds));
 
     const productIds = (company.productIds && company.productIds.length > 0)
       ? company.productIds
@@ -1557,192 +640,26 @@ export class CompanyRegisterComponent implements OnInit {
 
   // Auto-scrolls and highlights the first invalid or empty required field
   private scrollToFirstInvalidControl(): void {
-    const fieldLabels: Record<string, string> = {
-      companyName: 'Company Legal Name',
-      email: 'Corporate Email',
-      country: 'Country Jurisdiction',
-      status: 'Operational Status',
-      contactEmail: 'Direct Executive Email',
-      contactMobileNumber: 'Mobile Number',
-      landline: 'Landline Number',
-      address: 'Street Address',
-      city: 'City',
-      website: 'Official Website',
-      description: 'Company Overview & Scope',
-      contactName: 'Contact Person Name',
-      contactDesignation: 'Designation / Role'
-    };
-
-    const controlOrder = [
-      'companyName',
-      'status',
-      'description',
-      'contactName',
-      'contactDesignation',
-      'contactEmail',
-      'contactMobileNumber',
-      'email',
-      'landline',
-      'website',
-      'address',
-      'city',
-      'country'
-    ];
-
-    const selectorMap: Record<string, string> = {
-      companyName: '#companyName',
-      email: '#email',
-      country: '#country-trigger-btn',
-      contactEmail: '#contactEmail',
-      contactMobileNumber: '#contactMobileNumber',
-      landline: '#landline',
-      status: '.status-segmented-control',
-      address: '#address',
-      city: '#city',
-      website: '#website',
-      description: '#description',
-      contactName: '#contactName',
-      contactDesignation: '#contactDesignation'
-    };
-
-    const invalidControls: string[] = [];
-    for (const name of controlOrder) {
-      const ctrl = this.companyForm.get(name);
-      if (ctrl && ctrl.invalid) {
-        invalidControls.push(name);
-      }
-    }
-    for (const name in this.companyForm.controls) {
-      if (!controlOrder.includes(name)) {
-        const ctrl = this.companyForm.get(name);
-        if (ctrl && ctrl.invalid) {
-          invalidControls.push(name);
-        }
-      }
-    }
-
-    if (invalidControls.length > 0) {
-      const missingLabels = invalidControls.map(k => fieldLabels[k] || k);
-      const firstName = missingLabels[0];
-      const message = missingLabels.length === 1
-        ? `Please fill in or correct "${firstName}". We've automatically scrolled to it.`
-        : `Required fields incomplete (${missingLabels.slice(0, 3).join(', ')}${missingLabels.length > 3 ? '...' : ''}). Scrolled to "${firstName}".`;
-
-      this.feedback.set({
-        type: 'error',
-        title: 'Form Incomplete',
-        message: message
-      });
-
-      setTimeout(() => {
-        let targetEl: HTMLElement | null = null;
-        const firstKey = invalidControls[0];
-
-        if (firstKey && selectorMap[firstKey]) {
-          targetEl = document.querySelector<HTMLElement>(selectorMap[firstKey]);
-        }
-
-        if (!targetEl) {
-          targetEl = document.querySelector<HTMLElement>(
-            '.registration-form .ng-invalid:not(form), .registration-form .has-error, .registration-form .is-invalid'
-          );
-        }
-
-        if (targetEl) {
-          const containerToHighlight = targetEl.closest(
-            '.form-group, .company-autocomplete-group, .asym-col-main, .country-form-group, .country-dropdown-container'
-          ) || targetEl;
-
-          // Smoothly scroll the element to the center of the viewport
-          targetEl.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-          });
-
-          // Apply animated attention pulse glow
-          containerToHighlight.classList.remove('invalid-field-pulse');
-          void (containerToHighlight as HTMLElement).offsetWidth;
-          containerToHighlight.classList.add('invalid-field-pulse');
-
-          // Focus input or action button
-          if (
-            targetEl instanceof HTMLInputElement ||
-            targetEl instanceof HTMLTextAreaElement ||
-            targetEl instanceof HTMLSelectElement ||
-            targetEl instanceof HTMLButtonElement
-          ) {
-            targetEl.focus({ preventScroll: true });
-          } else {
-            const innerFocusable = targetEl.querySelector<HTMLElement>('input, textarea, select, button');
-            if (innerFocusable) {
-              innerFocusable.focus({ preventScroll: true });
-            }
-          }
-
-          // Remove pulse animation after 3 seconds
-          setTimeout(() => {
-            containerToHighlight.classList.remove('invalid-field-pulse');
-          }, 3000);
-        }
-      }, 50);
-    }
+    scrollToFirstInvalidControl(this.companyForm, fb => this.feedback.set(fb));
   }
 
   // Helpers for validation styling
   isInvalid(controlName: string): boolean {
-    const control = this.companyForm.get(controlName);
-    return !!(control && control.invalid && (control.dirty || control.touched));
+    return isFormControlInvalid(this.companyForm, controlName);
   }
 
   // --- Phone Number Input Restriction & Sanitization ---
   allowOnlyPhoneChars(event: KeyboardEvent): void {
-    // Allow navigational and control shortcut keys (Backspace, Delete, Tab, Arrow keys, etc.)
-    if (
-      event.key === 'Backspace' ||
-      event.key === 'Delete' ||
-      event.key === 'Tab' ||
-      event.key === 'Escape' ||
-      event.key === 'Enter' ||
-      event.key === 'ArrowLeft' ||
-      event.key === 'ArrowRight' ||
-      event.key === 'Home' ||
-      event.key === 'End' ||
-      event.ctrlKey ||
-      event.metaKey
-    ) {
-      return;
-    }
-
-    // Block any key that is not a numeric digit or standard phone symbol (+, -, (, ), spaces, .)
-    if (!/^[0-9+\-\s().]$/.test(event.key)) {
-      event.preventDefault();
-    }
+    allowOnlyPhoneChars(event);
   }
 
   sanitizePhoneInput(event: Event, controlName: 'contactMobileNumber' | 'landline'): void {
-    const input = event.target as HTMLInputElement;
-    const original = input.value;
-    // Strip any letters or disallowed characters immediately (handles pastes & autocomplete)
-    const sanitized = original.replace(/[^0-9+\-\s().]/g, '');
-    if (original !== sanitized) {
-      input.value = sanitized;
-      this.companyForm.get(controlName)?.setValue(sanitized);
-      this.companyForm.get(controlName)?.markAsDirty();
-      this.companyForm.get(controlName)?.updateValueAndValidity();
-    }
+    sanitizePhoneInput(event, this.companyForm, controlName);
   }
 
-  sanitizeOcrPhoneInput(event: Event, field: 'contactMobileNumber' | 'landline'): void {
-    const input = event.target as HTMLInputElement;
-    const original = input.value;
-    const sanitized = original.replace(/[^0-9+\-\s().]/g, '');
-    if (original !== sanitized) {
-      input.value = sanitized;
-    }
-    const res = this.scannedCardResult();
-    if (res) {
-      res[field] = sanitized;
-    }
+  // --- Keyboard Navigation: Advance to next field on Enter ---
+  onFormKeydown(event: KeyboardEvent): void {
+    handleFormEnterKey(event);
   }
 
   // ==========================================
@@ -1751,131 +668,10 @@ export class CompanyRegisterComponent implements OnInit {
   openShareModal(company: CompanyResponse, event?: Event): void {
     if (event) event.stopPropagation();
     this.companyToShare.set(company);
-    this.isCopied.set(false);
   }
 
   closeShareModal(): void {
     this.companyToShare.set(null);
-    this.isCopied.set(false);
-  }
-
-  formatCompanyContactText(company: CompanyResponse): string {
-    const lines: string[] = [];
-    lines.push(`🏢 *${company.companyName.toUpperCase()}*`);
-    if (company.contactName) {
-      const desig = company.contactDesignation ? ` (${company.contactDesignation})` : '';
-      lines.push(`👤 Contact: ${company.contactName}${desig}`);
-    }
-    if (company.contactMobileNumber) {
-      lines.push(`📱 Mobile: ${company.contactMobileNumber}`);
-    }
-    if (company.landline) {
-      lines.push(`☎️ Landline: ${company.landline}`);
-    }
-    if (company.email) {
-      lines.push(`✉️ Email: ${company.email}`);
-    }
-    if (company.contactEmail && company.contactEmail !== company.email) {
-      lines.push(`✉️ Direct Email: ${company.contactEmail}`);
-    }
-    if (company.address || company.city || company.country) {
-      const loc = [company.address, company.city, company.country].filter(Boolean).join(', ');
-      lines.push(`📍 Location: ${loc}`);
-    }
-    if (company.website) {
-      lines.push(`🌐 Website: ${company.website}`);
-    }
-    if (company.brands && company.brands.length > 0) {
-      const brandNames = company.brands.map(b => b.brandName).join(', ');
-      lines.push(`🏷️ Brands Dealt: ${brandNames}`);
-    }
-    if (company.description) {
-      lines.push(`📝 Overview: ${company.description}`);
-    }
-    return lines.join('\n');
-  }
-
-  async copyContactDetails(company: CompanyResponse): Promise<void> {
-    const text = this.formatCompanyContactText(company);
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
-      this.isCopied.set(true);
-      setTimeout(() => this.isCopied.set(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy contact details: ', err);
-    }
-  }
-
-  shareViaWhatsApp(company: CompanyResponse): void {
-    const text = this.formatCompanyContactText(company);
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-
-  shareViaEmail(company: CompanyResponse): void {
-    const subject = encodeURIComponent(`Contact Details: ${company.companyName}`);
-    const body = encodeURIComponent(this.formatCompanyContactText(company));
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  }
-
-  downloadVCard(company: CompanyResponse): void {
-    const contactName = company.contactName || company.companyName;
-    const vCardLines = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `FN:${contactName}`,
-      `ORG:${company.companyName}`,
-      company.contactDesignation ? `TITLE:${company.contactDesignation}` : '',
-      company.contactMobileNumber ? `TEL;TYPE=CELL:${company.contactMobileNumber}` : '',
-      company.landline ? `TEL;TYPE=WORK:${company.landline}` : '',
-      company.contactEmail ? `EMAIL;TYPE=PREF,INTERNET:${company.contactEmail}` : '',
-      company.email ? `EMAIL;TYPE=WORK,INTERNET:${company.email}` : '',
-      (company.address || company.city || company.country)
-        ? `ADR;TYPE=WORK:;;${company.address || ''};${company.city || ''};;;${company.country || ''}`
-        : '',
-      company.website ? `URL:${company.website}` : '',
-      company.description ? `NOTE:${company.description.replace(/\r?\n/g, ' ')}` : '',
-      'END:VCARD'
-    ].filter(Boolean).join('\r\n');
-
-    const blob = new Blob([vCardLines], { type: 'text/vcard;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const safeName = company.companyName.replace(/[^a-zA-Z0-9_-]/g, '_');
-    link.href = url;
-    link.setAttribute('download', `${safeName}_contact.vcf`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
-  async shareNative(company: CompanyResponse): Promise<void> {
-    if (this.canNativeShare()) {
-      try {
-        await navigator.share({
-          title: `${company.companyName} Contact Details`,
-          text: this.formatCompanyContactText(company)
-        });
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          await this.copyContactDetails(company);
-        }
-      }
-    } else {
-      await this.copyContactDetails(company);
-    }
   }
 
   shareCurrentPreview(): void {
@@ -1944,125 +740,37 @@ export class CompanyRegisterComponent implements OnInit {
   // OCR BUSINESS CARD SCANNER HANDLERS
   // ==========================================
   openOcrModal(): void {
+    this.ocrInitialFile.set(null);
     this.isOcrModalOpen.set(true);
   }
 
   closeOcrModal(): void {
-    if (this.isScanningCard()) return;
     this.isOcrModalOpen.set(false);
-  }
-
-  resetOcrScan(): void {
-    this.scannedCardResult.set(null);
-    this.scannedCardPreview.set(null);
-    this.scannedCardFile.set(null);
+    this.ocrInitialFile.set(null);
   }
 
   onOcrFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.processCardOcr(input.files[0]);
+      this.ocrInitialFile.set(input.files[0]);
+      this.isOcrModalOpen.set(true);
       input.value = '';
     }
-  }
-
-  onOcrDrop(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.ocrDragOver.set(false);
-    if (event.dataTransfer && event.dataTransfer.files.length > 0) {
-      this.processCardOcr(event.dataTransfer.files[0]);
-    }
-  }
-
-  onOcrDragOver(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.ocrDragOver.set(true);
-  }
-
-  onOcrDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.ocrDragOver.set(false);
-  }
-
-  processCardOcr(file: File): void {
-    const isPdf = this.ocrService.isPdfFile(file);
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!allowed.includes(file.type) && !isPdf) {
-      this.feedback.set({
-        type: 'error',
-        title: 'Unsupported File Format',
-        message: 'Please upload a JPG, PNG, WEBP, or PDF file of the business card for OCR processing.'
-      });
-      return;
-    }
-
-    this.scannedCardFile.set(file);
-    this.isScanningCard.set(true);
-    this.isOcrModalOpen.set(true);
-
-    if (isPdf) {
-      // Render Page 1 to high-res canvas image for immediate visual preview in review modal
-      this.ocrService.renderPdfPageToImage(file, 1)
-        .then(res => {
-          this.scannedCardPreview.set(res.imageUrl);
-        })
-        .catch(err => {
-          console.warn('PDF preview render warning:', err);
-        });
-    } else {
-      // Read and create preview for images
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.scannedCardPreview.set(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-
-    this.ocrService.scanBusinessCard(file).subscribe({
-      next: (result) => {
-        if (result && result.country) {
-          result.country = normalizeToCountryCode(result.country);
-          this.ocrSelectedCountry.set(result.country);
-        } else {
-          this.ocrSelectedCountry.set('');
-        }
-        this.scannedCardResult.set(result);
-        this.isScanningCard.set(false);
-        if (result.confidenceScore === 0) {
-          this.feedback.set({
-            type: 'error',
-            title: 'Unrecognized Document',
-            message: 'No contact or corporate details could be recognized on this file. Please review or try a clearer business card.'
-          });
-        }
-      },
-      error: (err) => {
-        console.error('OCR scanning error:', err);
-        this.isScanningCard.set(false);
-        this.closeOcrModal();
-        this.feedback.set({
-          type: 'error',
-          title: 'Scanning Failed',
-          message: err?.message || 'Could not extract text from the file. Please upload a clear photo or PDF of a business card.'
-        });
-      }
-    });
   }
 
   scanExistingCard(item: BusinessCardItem, event?: Event): void {
     if (event) event.stopPropagation();
     if (item.file) {
-      this.processCardOcr(item.file);
+      this.ocrInitialFile.set(item.file);
+      this.isOcrModalOpen.set(true);
     } else if (item.url) {
       fetch(item.url)
         .then(res => res.blob())
         .then(blob => {
           const mimeType = item.isPdf ? 'application/pdf' : (blob.type || 'image/jpeg');
           const file = new File([blob], item.name, { type: mimeType });
-          this.processCardOcr(file);
+          this.ocrInitialFile.set(file);
+          this.isOcrModalOpen.set(true);
         })
         .catch(err => {
           console.error('Failed to load card for OCR:', err);
@@ -2075,14 +783,9 @@ export class CompanyRegisterComponent implements OnInit {
     }
   }
 
-  applyOcrResult(): void {
-    const res = this.scannedCardResult();
-    if (!res) return;
-
-    const chosenCountry = this.ocrSelectedCountry() || res.country;
-    const finalCountry = normalizeToCountryCode(chosenCountry) || '';
-
-    // Apply values to reactive form
+  handleOcrApply(data: { result: BusinessCardScanResult; file: File | null; autoAttach: boolean }): void {
+    const { result: res, file, autoAttach } = data;
+    const finalCountry = normalizeToCountryCode(res.country) || '';
     const currentValues = this.companyForm.value;
 
     const rawMobile = res.contactMobileNumber || currentValues.contactMobileNumber || '';
@@ -2090,6 +793,7 @@ export class CompanyRegisterComponent implements OnInit {
 
     const rawLandline = res.landline || currentValues.landline || '';
     const cleanLandline = rawLandline ? rawLandline.replace(/[^0-9+\-\s().]/g, '').trim() : '';
+
     this.companyForm.patchValue({
       companyName: res.companyName || currentValues.companyName,
       contactName: res.contactName || currentValues.contactName,
@@ -2107,20 +811,27 @@ export class CompanyRegisterComponent implements OnInit {
     this.companyForm.get('country')?.markAsTouched();
     this.selectedCountryCode.set(finalCountry);
 
-    // Automatically attach the card file to Section 07 if selected
-    const file = this.scannedCardFile();
-    if (this.autoAttachScannedCard() && file) {
+    if (autoAttach && file) {
       const alreadyAdded = this.businessCardItems().some(c => c.name === file.name && c.size === file.size);
       if (!alreadyAdded) {
-        this.handleFiles([file]);
+        this.assetUploadComponent?.addFiles([file]);
       }
     }
 
     this.isOcrModalOpen.set(false);
+    this.ocrInitialFile.set(null);
     this.feedback.set({
       type: 'success',
       title: 'Business Card Details Applied! 🎉',
       message: `Extracted company "${res.companyName || 'Detected'}", contact "${res.contactName || 'Detected'}" and related details have auto-filled into the form.`
+    });
+  }
+
+  handleOcrError(msg: string): void {
+    this.feedback.set({
+      type: 'error',
+      title: 'Scanning Failed',
+      message: msg
     });
   }
 }

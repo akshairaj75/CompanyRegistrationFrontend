@@ -1,0 +1,312 @@
+<!-- MODULE 03: PARTNER BRANDS & AUTHORIZED CATALOG -->
+<section id="sec-catalog" class="form-module-card">
+  <div class="module-card-header flex-header">
+    <div class="header-info-group">
+      <span class="module-badge">03</span>
+      <div>
+        <h2 class="module-title">Partner Brands & Authorized Catalog</h2>
+        <p class="module-subtitle">Link manufacturer dealerships and specific product portfolios</p>
+      </div>
+    </div>
+    <div class="header-action-links">
+      <a routerLink="/brands" class="btn-quick-create">
+        <i class="bi bi-plus-lg"></i> Quick-Create Brand
+      </a>
+      <a routerLink="/products" class="btn-quick-create">
+        <i class="bi bi-plus-lg"></i> Quick-Create Product
+      </a>
+    </div>
+  </div>
+
+  <div class="module-card-body space-y-6">
+    <!-- Brands Selector -->
+    <div class="catalog-subgroup">
+      <div class="subgroup-header-flex">
+        <label class="subgroup-label">1. Authorized Brands Dealt With</label>
+        <span class="badge-count-pill">{{ selectedBrandIds().length }} Selected</span>
+      </div>
+
+      <!-- Selected brand pills bar -->
+      <div class="selected-tags-box">
+        @for (b of selectedBrandsList(); track b.id) {
+        <span class="selected-brand-pill">
+          @if (b.brandLogo) {
+          <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="brand-pill-img" />
+          }
+          <span>{{ b.brandName }}</span>
+          <button type="button" class="btn-remove-pill" (click)="toggleBrand(b.id)" title="Remove brand">×</button>
+        </span>
+        }
+        <input type="text" class="tags-filter-input" placeholder="Type to filter or link more brands..."
+          [value]="brandSearchQuery()" (input)="brandSearchQuery.set($any($event.target).value)" />
+        @if (brandSearchQuery()) {
+        <button type="button" class="btn-clear-brand-search" (click)="brandSearchQuery.set('')">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+        }
+      </div>
+
+      <!-- Brands selection quick actions -->
+      <div class="subgroup-actions-row">
+        <span class="subgroup-meta-text">
+          <strong>{{ selectedBrandIds().length }}</strong> of {{ availableBrands().length }} brands linked
+        </span>
+        <div class="btn-group-mini">
+          <button type="button" class="btn-mini-action" (click)="selectAllBrands()" [disabled]="availableBrands().length === 0">
+            Select All
+          </button>
+          <button type="button" class="btn-mini-action" (click)="clearSelectedBrands()" [disabled]="selectedBrandIds().length === 0">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Brands Grid -->
+      @if (isLoadingBrands()) {
+      <div class="brands-status-box">
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        <span>Loading available brands directory...</span>
+      </div>
+      } @else if (availableBrands().length === 0) {
+      <div class="brands-empty-alert">
+        <i class="bi bi-award"></i>
+        <div>
+          <h4>No Brands Available Yet</h4>
+          <p>Register brands in the system first so companies can select the brands they deal with.</p>
+        </div>
+      </div>
+      } @else {
+      <div class="brands-grid-selector">
+        @for (brand of filteredAvailableBrands(); track brand.id) {
+        <div class="brand-choice-card" [class.is-selected]="isBrandSelected(brand.id)"
+          (click)="toggleBrand(brand.id)">
+          <div class="brand-check-box">
+            <i class="bi bi-check-lg check-icon"></i>
+          </div>
+          <div class="brand-choice-logo">
+            @if (brand.brandLogo) {
+            <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
+            } @else {
+            <div class="brand-choice-fallback">
+              {{ brand.brandName.substring(0, 2).toUpperCase() }}
+            </div>
+            }
+          </div>
+          <div class="brand-choice-info">
+            <span class="brand-choice-name" [title]="brand.brandName">{{ brand.brandName }}</span>
+            @if (brand.isFeatured || brand.featured) {
+            <span class="brand-featured-badge"><i class="bi bi-star-fill"></i> Featured</span>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Products Catalog Selector -->
+    <div class="catalog-subgroup">
+      <div class="subgroup-header-flex">
+        <label class="subgroup-label">2. Authorized Products Catalog</label>
+        <div class="quick-helpers-inline">
+          <button type="button" class="btn-link-action" (click)="selectAllFilteredProducts()"
+            [disabled]="filteredAvailableProducts().length === 0">Select All Filtered</button>
+          <span>•</span>
+          <button type="button" class="btn-link-action btn-danger-action" (click)="clearSelectedProducts()"
+            [disabled]="selectedProductIds().length === 0">Clear</button>
+        </div>
+      </div>
+
+      <!-- 3/4-Column Filter Bar -->
+      <div class="product-filters-compact-bar">
+        <select class="filter-compact-select" [value]="activeProductBrandFilter()"
+          (change)="setProductBrandFilter($any($event.target).value)">
+          <option value="all">Filter by Brand: All ({{ availableProducts().length }})</option>
+          @for (brand of brandsWithProducts(); track brand.id) {
+          <option [value]="brand.id">{{ brand.brandName }} ({{ brand.productCount }} prods)</option>
+          }
+        </select>
+
+        <select class="filter-compact-select" [value]="activeProductCategoryFilter()"
+          (change)="setProductCategoryFilter($any($event.target).value)">
+          <option value="all">Filter by Category: All</option>
+          @for (cat of availableCategoriesForBrand(); track cat.id) {
+          <option [value]="cat.id">{{ cat.name }}</option>
+          }
+        </select>
+
+        <select class="filter-compact-select" [value]="activeProductSubCategoryFilter()"
+          (change)="activeProductSubCategoryFilter.set($any($event.target).value)">
+          <option value="all">Filter by Subcategory: All</option>
+          @for (sub of availableSubCategoriesForSelection(); track sub.id) {
+          <option [value]="sub.id">{{ sub.name }}</option>
+          }
+        </select>
+
+        <div class="filter-compact-search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search product name or SKU..." [value]="productSearchQuery()"
+            (input)="productSearchQuery.set($any($event.target).value)" />
+          @if (productSearchQuery()) {
+          <button type="button" class="btn-clear-prod-search" (click)="productSearchQuery.set('')">
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- Selected Products Pills -->
+      @if (selectedProductIds().length > 0) {
+      <div class="selected-products-pills">
+        <span class="selected-pills-label">Selected ({{ selectedProductIds().length }}):</span>
+        <div class="pills-scroll-wrap">
+          @for (p of selectedProductsList(); track p.id) {
+          <span class="prod-pill">
+            @if (p.image) {
+            <img [src]="productService.getFileUrl(p.image)" alt="" class="prod-pill-img" />
+            }
+            <span class="prod-pill-name">{{ p.name }}</span>
+            <span class="prod-pill-brand">{{ p.brandName }}</span>
+            <button type="button" class="prod-pill-remove" (click)="removeSelectedProduct(p.id)" title="Remove product">
+              <i class="bi bi-x"></i>
+            </button>
+          </span>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Scraped Products Drawer / Panel -->
+      @if (isScrapedDrawerOpen()) {
+      <div id="scrapedProductsDrawer" class="scraped-products-drawer">
+        <div class="scraped-drawer-header">
+          <div class="scraped-drawer-title-group">
+            <div class="scraped-icon-badge">
+              <i class="bi bi-globe2"></i>
+            </div>
+            <div>
+              <h4 class="scraped-drawer-heading">Discovered Products from Website</h4>
+              <p class="scraped-drawer-sub">Scanned: {{ scrapedWebsiteUrl() }}</p>
+            </div>
+          </div>
+          <div class="scraped-drawer-actions">
+            <button type="button" class="btn-scraped-helper" (click)="selectAllScrapedProducts()"
+              [disabled]="scrapedProducts().length === 0">
+              Select All ({{ scrapedProducts().length }})
+            </button>
+            <button type="button" class="btn-scraped-helper" (click)="deselectAllScrapedProducts()"
+              [disabled]="selectedScrapedIndices().size === 0">
+              Clear
+            </button>
+            <button type="button" class="btn-close-drawer" (click)="closeScrapedDrawer()">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+
+        @if (isScrapingWebsite()) {
+        <div class="scraped-loading-state">
+          <div class="crawler-loading-circle-wrap">
+            <div class="crawler-loading-circle">
+              <div class="crawler-ring-pulse"></div>
+              <div class="crawler-ring-outer"></div>
+              <div class="crawler-ring-inner"></div>
+              <i class="bi bi-globe2 crawler-center-icon"></i>
+            </div>
+          </div>
+          <div class="crawler-loading-text-group">
+            <h5 class="crawler-loading-title">Crawling Website for Products</h5>
+            <p class="crawler-loading-sub">Connecting to <strong>{{ scrapedWebsiteUrl() || websiteUrl() }}</strong> and analyzing catalog pages...</p>
+            <div class="crawler-loading-badges">
+              <span class="crawler-badge active">
+                <span class="crawler-radar-dot"></span> Active Crawl in Progress
+              </span>
+              <span class="crawler-badge"><i class="bi bi-cpu-fill"></i> Auto-detecting Images & Prices</span>
+            </div>
+          </div>
+        </div>
+        } @else if (scrapedProducts().length === 0) {
+        <div class="scraped-empty-state">
+          <p>No products could be extracted from this domain.</p>
+        </div>
+        } @else {
+        <div class="scraped-products-grid">
+          @for (item of scrapedProducts(); track $index) {
+          <div class="scraped-product-card" [class.is-selected]="selectedScrapedIndices().has($index)"
+            (click)="toggleScrapedProduct($index)">
+            <div class="scraped-checkbox-wrap">
+              <input type="checkbox" [checked]="selectedScrapedIndices().has($index)" (click)="$event.stopPropagation()" />
+            </div>
+            <div class="scraped-card-img-wrap">
+              @if (item.imageUrl) {
+              <img [src]="item.imageUrl" alt="" class="scraped-img" (error)="item.imageUrl = ''" />
+              } @else {
+              <div class="scraped-placeholder-icon"><i class="bi bi-box"></i></div>
+              }
+            </div>
+            <div class="scraped-card-info">
+              <span class="scraped-name">{{ item.name }}</span>
+              @if (item.price) { <span class="scraped-price">{{ item.price }}</span> }
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+      }
+
+      <!-- Calm Refined Empty State / Products Cards Grid -->
+      @if (isLoadingProducts() || isLoadingCategories()) {
+      <div class="brands-status-box">
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        <span>Loading products catalog and categories...</span>
+      </div>
+      } @else if (availableProducts().length === 0) {
+      <div class="calm-empty-state">
+        <div class="empty-state-icon">📦</div>
+        <h4 class="empty-state-title">No products available in catalog yet</h4>
+        <p class="empty-state-desc">Register products associated with brands and categories so companies can choose their portfolio.</p>
+        <a routerLink="/products" class="btn-empty-state-action">+ Register First Product</a>
+      </div>
+      } @else if (filteredAvailableProducts().length === 0) {
+      <div class="calm-empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <h4 class="empty-state-title">No products match the selected filters</h4>
+        <p class="empty-state-desc">Try clearing the brand or search filters to view more products.</p>
+        <button type="button" class="btn-empty-state-action"
+          (click)="setProductBrandFilter('all'); activeProductCategoryFilter.set('all'); productSearchQuery.set('')">
+          Reset Product Filters
+        </button>
+      </div>
+      } @else {
+      <div class="products-grid-selector">
+        @for (prod of filteredAvailableProducts(); track prod.id) {
+        <div class="product-choice-card" [class.is-selected]="isProductSelected(prod.id)"
+          (click)="toggleProduct(prod)">
+          <div class="product-check-box">
+            <i class="bi bi-check-lg check-icon"></i>
+          </div>
+          <div class="product-choice-thumb">
+            @if (prod.image) {
+            <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
+            } @else {
+            <div class="product-thumb-fallback"><i class="bi bi-box"></i></div>
+            }
+            @if (prod.isFeatured || prod.featured) {
+            <span class="prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
+            }
+          </div>
+          <div class="product-choice-info">
+            <span class="product-choice-name" [title]="prod.name">{{ prod.name }}</span>
+            <div class="product-choice-meta">
+              <span class="product-brand-chip">{{ prod.brandName }}</span>
+              <span class="product-category-chip">{{ prod.categoryName }}</span>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+</section>

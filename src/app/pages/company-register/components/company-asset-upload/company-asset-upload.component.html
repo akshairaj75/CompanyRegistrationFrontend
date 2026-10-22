@@ -1,0 +1,98 @@
+<section id="sec-assets" class="form-module-card">
+  <div class="module-card-header">
+    <span class="module-badge">04</span>
+    <div>
+      <h2 class="module-title">Brand Assets, Logos & Legal Certificates</h2>
+      <p class="module-subtitle">Upload official logos, ISO certificates, visiting cards, or brochures (PNG, JPG, WEBP, PDF up to 20MB)</p>
+    </div>
+  </div>
+
+  <div class="module-card-body">
+    <div class="file-dropzone-modern" [class.drag-over]="isDragOver()" (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (click)="fileInput.click()">
+      <input #fileInput type="file" multiple class="hidden-file-input" (change)="onFileSelected($event)"
+        accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
+
+      @if (items().length === 0) {
+      <div class="dropzone-empty-content">
+        <div class="dropzone-icon-circle">↑</div>
+        <p class="dropzone-main-text">Drag & drop company logos, brochures, or trade licenses</p>
+        <p class="dropzone-sub-text">or <span class="browse-highlight">browse computer files</span> (Multiple files supported)</p>
+        <div class="dropzone-quick-ocr" (click)="$event.stopPropagation()">
+          <button type="button" class="btn-dropzone-ocr" (click)="ocrCardInputDropzone.click()">
+            <i class="bi bi-camera-fill"></i> Scan Visiting Card with AI OCR
+          </button>
+          <input #ocrCardInputDropzone type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
+            accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
+        </div>
+      </div>
+      } @else {
+      <div class="multi-cards-container" (click)="$event.stopPropagation()">
+        <div class="multi-cards-toolbar">
+          <div class="toolbar-info">
+            <i class="bi bi-images"></i>
+            <span class="toolbar-count">
+              <strong>{{ items().length }}</strong> {{ items().length === 1 ? 'file' : 'files' }} attached
+            </span>
+          </div>
+          <div class="toolbar-actions">
+            <button type="button" class="btn-toolbar-ocr" (click)="ocrCardInputToolbar.click()"
+              title="Scan visiting card to extract and auto-fill details">
+              <i class="bi bi-camera-fill"></i> Scan with OCR
+            </button>
+            <input #ocrCardInputToolbar type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
+              accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
+            <button type="button" class="btn-toolbar-add" (click)="fileInput.click()">
+              <i class="bi bi-plus-lg"></i> Add More
+            </button>
+            <button type="button" class="btn-toolbar-clear" (click)="clearAllCards($event)">
+              <i class="bi bi-trash3"></i> Clear All
+            </button>
+          </div>
+        </div>
+
+        <div class="cards-preview-grid">
+          @for (item of items(); track item.id; let idx = $index) {
+          <div class="card-preview-item" [class.is-pdf]="item.isPdf">
+            <div class="card-thumb-wrap">
+              @if (!item.isPdf && item.url) {
+              <img [src]="item.url" [alt]="item.name" class="card-thumb-img" />
+              } @else {
+              <div class="card-thumb-pdf">
+                <i class="bi bi-file-earmark-pdf-fill"></i>
+                <span class="pdf-badge">PDF</span>
+              </div>
+              }
+              <button type="button" class="card-remove-btn" (click)="removeCardItem(item, $event)" title="Remove file">
+                <i class="bi bi-x-lg"></i>
+              </button>
+              <button type="button" class="card-ocr-quick-btn" (click)="triggerScanExisting(item, $event)"
+                [title]="item.isPdf ? 'Auto-fill form by scanning this PDF document' : 'Auto-fill form using this visiting card'">
+                <i class="bi bi-magic"></i>
+              </button>
+              @if (idx === 0) {
+              <span class="primary-badge" title="Primary display card">Primary</span>
+              }
+            </div>
+
+            <div class="card-item-meta">
+              <span class="card-file-name" [title]="item.name">{{ item.name }}</span>
+              <div class="card-file-sub">
+                @if (item.size) {
+                <span class="card-file-size">{{ (item.size / 1024) | number:'1.0-1' }} KB</span>
+                }
+                @if (item.isExisting) {
+                <span class="card-status-chip saved"><i class="bi bi-cloud-check-fill"></i> Saved</span>
+                } @else {
+                <span class="card-status-chip new"><i class="bi bi-arrow-up-circle-fill"></i> New</span>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+</section>

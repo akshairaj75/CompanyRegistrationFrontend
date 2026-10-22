@@ -1,0 +1,69 @@
+<div class="country-dropdown-container" [class.is-open]="isOpen()">
+  <!-- Trigger Button -->
+  <button
+    type="button"
+    class="country-select-trigger form-control"
+    [id]="triggerId()"
+    (click)="toggleDropdown($event)"
+    [class.has-value]="!!value()"
+    [class.is-invalid]="isInvalid()">
+    <div class="country-trigger-content">
+      @if (selectedOption(); as opt) {
+      <span class="country-code-pill">{{ opt.code }}</span>
+      <span class="country-name-text">{{ opt.name }}</span>
+      } @else {
+      <span class="country-placeholder">{{ placeholder() }}</span>
+      }
+    </div>
+    <div class="country-trigger-actions">
+      @if (value()) {
+      <span class="country-clear-btn" (click)="clearSelection($event)" title="Clear country">
+        <i class="bi bi-x-lg"></i>
+      </span>
+      }
+      <i class="bi bi-chevron-down country-chevron" [class.rotate]="isOpen()"></i>
+    </div>
+  </button>
+
+  <!-- Dropdown Search Menu Panel -->
+  @if (isOpen()) {
+  <div class="country-dropdown-menu animate-fade-in" (click)="$event.stopPropagation()">
+    <div class="country-search-bar">
+      <i class="bi bi-search country-search-icon"></i>
+      <input
+        type="text"
+        [id]="triggerId() + '-search-input'"
+        class="country-search-input"
+        placeholder="Search country by code or name..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        (keydown.escape)="closeDropdown()" />
+      @if (searchQuery()) {
+      <button type="button" class="search-clear-mini" (click)="searchQuery.set('')">
+        <i class="bi bi-x"></i>
+      </button>
+      }
+    </div>
+
+    <div class="country-options-list custom-scrollbar">
+      @for (c of filteredOptions(); track c.code) {
+      <div
+        class="country-option-item"
+        [class.is-selected]="value().toUpperCase() === c.code.toUpperCase()"
+        (click)="selectCountry(c.code)">
+        <span class="country-code-pill">{{ c.code }}</span>
+        <span class="country-full-name">{{ c.name }}</span>
+        @if (value().toUpperCase() === c.code.toUpperCase()) {
+        <i class="bi bi-check2 country-check-icon"></i>
+        }
+      </div>
+      } @empty {
+      <div class="country-no-results">
+        <i class="bi bi-geo-alt"></i>
+        <span>No country found matching "{{ searchQuery() }}"</span>
+      </div>
+      }
+    </div>
+  </div>
+  }
+</div>

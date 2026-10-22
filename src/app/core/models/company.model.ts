@@ -49,3 +49,14 @@ export interface CompanyResponse {
   userEmail?: string;
   userFullName?: string;
 }
+
+export interface BusinessCardItem {
+  id: string;
+  name: string;
+  url?: string;
+  path?: string;
+  isPdf: boolean;
+  isExisting: boolean;
+  file?: File;
+  size?: number;
+}

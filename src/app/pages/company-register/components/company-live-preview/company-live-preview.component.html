@@ -1,0 +1,175 @@
+<aside class="preview-sidebar-modern">
+  <div class="preview-sidebar-sticky">
+
+    <!-- LIVE DIGITAL ENTERPRISE CARD WRAPPER -->
+    <div class="live-preview-box">
+      <div class="preview-card-top-bar">
+        <div class="preview-status-indicator">
+          <span class="pulse-indicator-dot"></span>
+          <span class="preview-box-title">Live Directory Preview</span>
+        </div>
+        <div class="preview-top-actions">
+          <span class="realtime-sync-pill">Real-time sync</span>
+          <button type="button" class="btn-preview-share-mini" (click)="shareCard.emit()" title="Share Contact Details">
+            <i class="bi bi-share-fill"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dark Executive Enterprise Card -->
+      <div class="dark-executive-card">
+        <div class="card-executive-top">
+          @if (filePreviewUrl()) {
+          <img [src]="filePreviewUrl()" alt="Company Logo" class="executive-avatar-img" />
+          } @else if (companyInitials()) {
+          <div class="executive-avatar-placeholder">
+            {{ companyInitials() }}
+          </div>
+          } @else {
+          <div class="executive-avatar-placeholder is-empty" title="Company logo / initials will appear here">
+            <i class="bi bi-buildings"></i>
+          </div>
+          }
+          <span class="executive-status-badge" [ngClass]="(formValue()?.status || 'ACTIVE').toLowerCase()">
+            ● {{ formValue()?.status || 'ACTIVE' }}
+          </span>
+        </div>
+
+        @if (formValue()?.companyName?.trim()) {
+        <h3 class="executive-company-title">
+          {{ formValue()?.companyName }}
+        </h3>
+        } @else {
+        <h3 class="executive-company-title is-placeholder">
+          <span class="placeholder-required-badge"><i class="bi bi-exclamation-circle-fill"></i> Name Pending</span>
+          <span class="placeholder-company-text">Company Legal Name Required</span>
+        </h3>
+        }
+
+        @if (formValue()?.description?.trim()) {
+        <p class="executive-company-desc">
+          {{ formValue()?.description }}
+        </p>
+        } @else {
+        <p class="executive-company-desc is-placeholder">
+          <i class="bi bi-card-text me-1"></i> No enterprise description added yet.
+        </p>
+        }
+
+        <div class="executive-meta-rows">
+          <div class="meta-row-item">
+            <span class="meta-icon">👤</span>
+            @if (formValue()?.contactName?.trim()) {
+            <span class="meta-text">
+              {{ formValue()?.contactName }}
+              @if (formValue()?.contactDesignation?.trim()) {
+              <span class="meta-sub">({{ formValue()?.contactDesignation }})</span>
+              }
+            </span>
+            } @else {
+            <span class="meta-text is-placeholder">Contact person not specified</span>
+            }
+          </div>
+          <div class="meta-row-item">
+            <span class="meta-icon">✉</span>
+            @if (formValue()?.email?.trim()) {
+            <span class="meta-text text-truncate">{{ formValue()?.email }}</span>
+            } @else {
+            <span class="meta-text is-placeholder">Official email not specified</span>
+            }
+          </div>
+          <div class="meta-row-item">
+            <span class="meta-icon">📍</span>
+            @if (formValue()?.city?.trim() || selectedCountryName() || formValue()?.country?.trim()) {
+            <span class="meta-text text-truncate">
+              {{ formValue()?.city ? formValue()?.city + ', ' : '' }}{{ selectedCountryName() || formValue()?.country }}
+            </span>
+            } @else {
+            <span class="meta-text is-placeholder">Headquarters location not specified</span>
+            }
+          </div>
+        </div>
+
+        <!-- Dynamic Brand Badges & Verified Pill -->
+        <div class="executive-bottom-bar">
+          <div class="executive-brands-strip">
+            @for (b of selectedBrands().slice(0, 3); track b.id) {
+            <span class="exec-brand-pill">{{ b.brandName }}</span>
+            }
+            @if (selectedBrands().length > 3) {
+            <span class="exec-brand-pill more">+{{ selectedBrands().length - 3 }}</span>
+            }
+            @if (selectedBrands().length === 0) {
+            <span class="exec-brand-pill muted">No brands linked</span>
+            }
+          </div>
+          @if (hasIdentityComplete() && hasContactComplete()) {
+          <span class="exec-verified-pill">✓ Ready</span>
+          } @else {
+          <span class="exec-draft-pill">✎ Draft Profile</span>
+          }
+        </div>
+      </div>
+
+      <!-- Form Readiness Checklist & Completeness -->
+      <div class="readiness-checklist-box">
+        <div class="checklist-header">
+          <span class="checklist-title">Profile Completeness</span>
+          <span class="checklist-percent">{{ profileCompleteness() }}%</span>
+        </div>
+        <div class="readiness-progress-track">
+          <div class="readiness-progress-fill" [style.width.%]="profileCompleteness()"></div>
+        </div>
+
+        <ul class="readiness-checklist-list">
+          <li class="checklist-item" [class.complete]="hasIdentityComplete()">
+            <span class="item-icon">{{ hasIdentityComplete() ? '✓' : '○' }}</span>
+            <span>Legal Identity & Operational Status</span>
+          </li>
+          <li class="checklist-item" [class.complete]="hasContactComplete()">
+            <span class="item-icon">{{ hasContactComplete() ? '✓' : '○' }}</span>
+            <span>Executive Contact & Headquarters Location</span>
+          </li>
+          <li class="checklist-item" [class.complete]="hasBrandsComplete()">
+            <span class="item-icon">{{ hasBrandsComplete() ? '✓' : '○' }}</span>
+            <span>Partner Dealership Brands Linked ({{ selectedBrandCount() }})</span>
+          </li>
+          <li class="checklist-item" [class.complete]="hasProductsComplete()" [class.optional]="!hasProductsComplete()">
+            <span class="item-icon">{{ hasProductsComplete() ? '✓' : '○' }}</span>
+            <span>Authorized Products Catalog ({{ selectedProductCount() }})</span>
+          </li>
+          <li class="checklist-item" [class.complete]="hasAssetsComplete()" [class.optional]="!hasAssetsComplete()">
+            <span class="item-icon">{{ hasAssetsComplete() ? '✓' : '○' }}</span>
+            <span>Brand Assets & Visiting Cards ({{ businessCardCount() }})</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STICKY ACTION CARD -->
+    <div class="sticky-action-card">
+      <button type="button" class="btn-sticky-primary" (click)="submitForm.emit()" [disabled]="isSubmitting()">
+        @if (isSubmitting()) {
+        <span class="spinner-border spinner-border-sm" role="status"></span> Saving...
+        } @else {
+        ✓ {{ editingCompanyId() ? 'Update Company Details' : 'Complete Company Registration' }}
+        }
+      </button>
+      <div class="sticky-action-grid">
+        <button type="button" class="btn-sticky-secondary" (click)="shareCard.emit()">
+          <i class="bi bi-share"></i> Share Card
+        </button>
+        @if (editingCompanyId()) {
+        <button type="button" class="btn-sticky-secondary btn-danger-hover" (click)="cancelEdit.emit()">
+          Cancel Edit
+        </button>
+        } @else {
+        <button type="button" class="btn-sticky-secondary btn-danger-hover" (click)="resetForm.emit()">
+          Reset Form
+        </button>
+        }
+      </div>
+    </div>
+
+  </div>
+</aside>

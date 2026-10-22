@@ -269,3 +269,28 @@ button, input, select, textarea {
   scroll-margin-top: 110px;
 }
 
+/* Global Loading Spinners */
+.spinner-border {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  vertical-align: -0.125em;
+  border: 0.2em solid currentColor;
+  border-right-color: transparent !important;
+  border-radius: 50%;
+  animation: globalSpinnerBorder 0.75s linear infinite;
+}
+
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+@keyframes globalSpinnerBorder {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+

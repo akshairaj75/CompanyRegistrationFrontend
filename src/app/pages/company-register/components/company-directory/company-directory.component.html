@@ -1,0 +1,540 @@
+<section class="directory-section">
+  <div class="directory-header">
+    <div>
+      <h2 class="section-title">Registered Companies Directory</h2>
+      <p class="section-desc">Manage, view, edit, and delete company records in the system.</p>
+    </div>
+    <div class="directory-actions">
+      <div class="search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" class="search-input" placeholder="Search by company name, contact, city..."
+          [value]="searchQuery()" (input)="onSearchChange($event)" (focus)="onSearchFocus()" (blur)="onSearchBlur()"
+          (keydown)="onSearchKeyDown($event)" autocomplete="off" spellcheck="false" aria-autocomplete="list"
+          [attr.aria-expanded]="isSearchFocused()" />
+
+        @if (searchQuery().trim().length > 0) {
+        <button type="button" class="btn-clear-search" (click)="clearSearch()" title="Clear search query"
+          aria-label="Clear search">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+        }
+
+        <!-- Live Autofill / Autocomplete Dropdown -->
+        @if (isSearchFocused()) {
+        <div class="search-autofill-dropdown" (mousedown)="$event.preventDefault()" role="listbox">
+          <div class="autofill-header">
+            <div class="autofill-header-title">
+              <i class="bi bi-stars"></i>
+              <span>{{ searchQuery().trim() ? 'Matching Companies' : 'Popular / Recent Entities' }}</span>
+              <span class="autofill-badge">{{ searchSuggestions().length }}</span>
+            </div>
+            <div class="autofill-kbd-hints">
+              <span class="kbd-pill"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+              <span class="kbd-pill"><kbd>↵</kbd> select</span>
+              <span class="kbd-pill"><kbd>esc</kbd> close</span>
+            </div>
+          </div>
+
+          @if (searchSuggestions().length > 0) {
+          <div class="autofill-list">
+            @for (suggestion of searchSuggestions(); track suggestion.id; let idx = $index) {
+            <div class="autofill-item" [class.is-active]="activeAutofillIndex() === idx"
+              (mouseenter)="activeAutofillIndex.set(idx)" (click)="selectSuggestion(suggestion)" role="option"
+              [attr.aria-selected]="activeAutofillIndex() === idx">
+              <div class="autofill-avatar">
+                @if (getCompanyCards(suggestion).length > 0 && !getCompanyCards(suggestion)[0].endsWith('.pdf')) {
+                <img [src]="companyService.getFileUrl(getCompanyCards(suggestion)[0])"
+                  alt="{{ suggestion.companyName }}" />
+                } @else {
+                <div class="autofill-avatar-fallback">
+                  {{ suggestion.companyName.charAt(0).toUpperCase() }}
+                </div>
+                }
+              </div>
+
+              <div class="autofill-content">
+                <div class="autofill-name">
+                  @for (segment of getHighlightSegments(suggestion.companyName, searchQuery()); track $index) {
+                  @if (segment.isMatch) {
+                  <mark class="autofill-mark">{{ segment.text }}</mark>
+                  } @else {
+                  <span>{{ segment.text }}</span>
+                  }
+                  }
+                </div>
+                <div class="autofill-meta">
+                  @if (suggestion.contactName) {
+                  <span class="meta-tag"><i class="bi bi-person"></i> {{ suggestion.contactName }}</span>
+                  }
+                  @if (suggestion.city || suggestion.country) {
+                  <span class="meta-tag"><i class="bi bi-geo-alt"></i> {{ suggestion.city || suggestion.country
+                    }}</span>
+                  }
+                  @if (suggestion.brands && suggestion.brands.length > 0) {
+                  <span class="meta-tag brands-tag"><i class="bi bi-tags"></i> {{ suggestion.brands.length }}
+                    brands</span>
+                  }
+                </div>
+              </div>
+
+              <div class="autofill-actions">
+                <span class="card-status-badge mini" [ngClass]="suggestion.status.toLowerCase()">
+                  {{ suggestion.status }}
+                </span>
+                <button type="button" class="btn-suggestion-preview"
+                  (click)="selectSuggestionAndOpen(suggestion, $event)" title="View Company Details">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+            }
+          </div>
+          } @else {
+          <div class="autofill-no-results">
+            <i class="bi bi-search"></i>
+            <div class="no-results-text">
+              <p>No companies found matching "<strong>{{ searchQuery() }}</strong>"</p>
+              <small>Try searching by contact person, city, or brand name</small>
+            </div>
+          </div>
+          }
+
+          <div class="autofill-footer">
+            <span><i class="bi bi-info-circle"></i> Click suggestion to filter directory or press <kbd>↵</kbd></span>
+          </div>
+        </div>
+        }
+      </div>
+      <button type="button" class="btn-refresh" (click)="refreshCompanies.emit()" title="Refresh database records">
+        <i class="bi bi-arrow-clockwise" [class.spin]="isLoadingList()"></i>
+      </button>
+      <button type="button" class="btn-excel-export" (click)="exportToExcel()"
+        [disabled]="isExportingExcel() || companies().length === 0"
+        title="Export all registered companies to Excel (.xlsx)">
+        @if (isExportingExcel()) {
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        <span>Exporting...</span>
+        } @else {
+        <i class="bi bi-file-earmark-excel-fill"></i>
+        <span>Export Excel</span>
+        }
+      </button>
+      <button type="button" class="btn-pdf-export" (click)="exportToPdf()"
+        [disabled]="isExportingPdf() || companies().length === 0"
+        title="Export all registered companies to official PDF document (.pdf)">
+        @if (isExportingPdf()) {
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        <span>Generating...</span>
+        } @else {
+        <i class="bi bi-file-earmark-pdf-fill"></i>
+        <span>Export PDF</span>
+        }
+      </button>
+      <button type="button" class="btn-primary-sm" (click)="onNewRegistration()">
+        <i class="bi bi-plus-lg"></i> New Company
+      </button>
+    </div>
+  </div>
+
+  <!-- Companies Grid / List -->
+  @if (isLoadingList()) {
+  <div class="loading-state">
+    <div class="spinner-border large-spinner"></div>
+    <p>Loading registered companies...</p>
+  </div>
+  } @else if (filteredCompanies().length === 0) {
+  <div class="empty-state">
+    <div class="empty-icon-wrap">
+      <i class="bi bi-buildings"></i>
+    </div>
+    <h3>No Companies Found</h3>
+    <p>No records match your criteria or none have been registered yet.</p>
+    <button type="button" class="btn-primary mt-3" (click)="onNewRegistration()">
+      <i class="bi bi-plus-lg"></i> Register New Company
+    </button>
+  </div>
+  } @else {
+  <div class="companies-grid">
+    @for (company of filteredCompanies(); track company.id) {
+    <div class="company-card-item" (click)="openCompanyDetail(company)">
+      <div class="card-item-header">
+        <div class="card-avatar">
+          @if (getCompanyCards(company).length > 0 && !getCompanyCards(company)[0].endsWith('.pdf')) {
+          <img [src]="companyService.getFileUrl(getCompanyCards(company)[0])" alt="{{ company.companyName }}" />
+          } @else {
+          <div class="avatar-fallback">
+            {{ company.companyName.charAt(0).toUpperCase() }}
+          </div>
+          }
+          @if (getCompanyCards(company).length > 1) {
+          <span class="avatar-multi-badge" [title]="getCompanyCards(company).length + ' visiting cards'">
+            <i class="bi bi-images"></i> {{ getCompanyCards(company).length }}
+          </span>
+          }
+        </div>
+        <div class="card-header-titles">
+          <h3 class="card-item-title">{{ company.companyName }}</h3>
+          @if (company.contactName) {
+          <span class="card-item-contact">
+            <i class="bi bi-person"></i> {{ company.contactName }}
+          </span>
+          }
+        </div>
+        <span class="card-status-badge mini" [ngClass]="company.status.toLowerCase()">
+          {{ company.status }}
+        </span>
+      </div>
+
+      <p class="card-item-desc">
+        {{ company.description ? company.description : 'No corporate summary provided.' }}
+      </p>
+
+      <div class="card-item-details">
+        <div class="detail-chip">
+          <i class="bi bi-envelope"></i>
+          <span>{{ company.email || 'N/A' }}</span>
+        </div>
+        @if (company.landline) {
+        <div class="detail-chip">
+          <i class="bi bi-telephone-inbound"></i>
+          <span>{{ company.landline }}</span>
+        </div>
+        }
+        <div class="detail-chip">
+          <i class="bi bi-geo-alt"></i>
+          <span>{{ company.city ? company.city + ', ' : '' }}{{ company.country || 'Global' }}</span>
+        </div>
+      </div>
+
+      <!-- Brands Dealt With in Directory Card -->
+      @if (company.brands && company.brands.length > 0) {
+      <div class="card-brands-row">
+        <span class="card-brands-label">
+          <i class="bi bi-award-fill"></i> Brands ({{ company.brands.length }}):
+        </span>
+        <div class="card-brands-list">
+          @for (b of company.brands; track b.id) {
+          <span class="card-brand-badge" [title]="b.brandName">
+            @if (b.brandLogo) {
+            <img [src]="brandService.getFileUrl(b.brandLogo)" alt="" class="card-brand-badge-img" />
+            }
+            <span>{{ b.brandName }}</span>
+          </span>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Products in Directory Card -->
+      @if (company.products && company.products.length > 0) {
+      <div class="card-products-row">
+        <span class="card-products-label">
+          <i class="bi bi-box-seam-fill"></i> Products ({{ company.products.length }}):
+        </span>
+        <div class="card-products-list">
+          @for (p of company.products.slice(0, 3); track p.id) {
+          <span class="card-prod-badge" [title]="p.name + ' (' + (p.brandName || '') + ')'">
+            {{ p.name }}
+          </span>
+          }
+          @if (company.products.length > 3) {
+          <span class="card-more-badge">+{{ company.products.length - 3 }} more</span>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Action Bar on each card: View, Edit, Delete -->
+      <div class="card-item-footer" (click)="$event.stopPropagation()">
+        <span class="card-created-date">
+          <i class="bi bi-hash"></i> ID: {{ company.id }}
+        </span>
+
+        <div class="card-actions-group">
+          <!-- View Button -->
+          <button type="button" class="btn-action-view" (click)="openCompanyDetail(company)"
+            title="View Company Details">
+            <i class="bi bi-eye"></i> View
+          </button>
+
+          <!-- Share Button -->
+          <button type="button" class="btn-action-share" (click)="onOpenShare(company, $event)"
+            title="Share Contact Profile (WhatsApp, Email, vCard, Copy)">
+            <i class="bi bi-share-fill"></i> Share
+          </button>
+
+          <!-- PDF Download Button with Business Cards -->
+          <button type="button" class="btn-action-pdf" (click)="downloadCompanyPdf(company, $event)"
+            [disabled]="isExportingCompanyPdf() === company.id"
+            title="Download Executive PDF Profile with Business Cards">
+            @if (isExportingCompanyPdf() === company.id) {
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            } @else {
+            <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+            }
+          </button>
+
+          <!-- Edit Button -->
+          @if (canEditCompany(company)) {
+          <button type="button" class="btn-action-edit" (click)="onStartEdit(company, $event)"
+            title="Edit Company Record">
+            <i class="bi bi-pencil"></i> Edit
+          </button>
+          }
+
+          <!-- Delete Button -->
+          @if (canDeleteCompany()) {
+          <button type="button" class="btn-action-delete" (click)="promptDelete(company, $event)"
+            title="Delete Company">
+            <i class="bi bi-trash3"></i>
+          </button>
+          }
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+  }
+</section>
+
+<!-- View Company Detail Modal -->
+@if (selectedCompany()) {
+<div class="modal-backdrop" (click)="closeCompanyDetail()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <span class="modal-pretitle">Enterprise Profile &bull; ID #{{ selectedCompany()?.id }}</span>
+        <h3 class="modal-title">{{ selectedCompany()?.companyName }}</h3>
+      </div>
+      <button type="button" class="modal-close-btn" (click)="closeCompanyDetail()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-meta-bar">
+        <div class="meta-item">
+          <span class="meta-label">Status</span>
+          <span class="card-status-badge mini" [ngClass]="selectedCompany()?.status?.toLowerCase()">
+            {{ selectedCompany()?.status }}
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Corporate Email</span>
+          <span class="meta-value">{{ selectedCompany()?.email }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Landline</span>
+          <span class="meta-value">{{ selectedCompany()?.landline || 'Not Specified' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Contact Person</span>
+          <span class="meta-value">
+            {{ selectedCompany()?.contactName || 'N/A' }}
+            @if (selectedCompany()?.contactDesignation) {
+            ({{ selectedCompany()?.contactDesignation }})
+            }
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Contact Mobile</span>
+          <span class="meta-value">{{ selectedCompany()?.contactMobileNumber || 'N/A' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Contact Email</span>
+          <span class="meta-value">{{ selectedCompany()?.contactEmail || 'N/A' }}</span>
+        </div>
+      </div>
+
+      <div class="modal-info-grid">
+        <div class="info-block">
+          <label class="info-label"><i class="bi bi-geo-alt-fill"></i> Registered Address</label>
+          <p class="info-text">{{ selectedCompany()?.address || 'N/A' }}</p>
+          <p class="info-subtext">
+            {{ selectedCompany()?.city ? selectedCompany()?.city + ', ' : '' }}
+            {{ selectedCompany()?.country }}
+          </p>
+        </div>
+
+        <div class="info-block">
+          <label class="info-label"><i class="bi bi-globe"></i> Online Presence</label>
+          @if (selectedCompany()?.website) {
+          <a [href]="selectedCompany()?.website" target="_blank" class="web-link">
+            {{ selectedCompany()?.website }} <i class="bi bi-box-arrow-up-right"></i>
+          </a>
+          } @else {
+          <p class="info-text text-muted">No website provided</p>
+          }
+        </div>
+      </div>
+
+      <!-- Brands Dealt With Modal Section -->
+      @if (selectedCompany()?.brands && selectedCompany()!.brands!.length > 0) {
+      <div class="info-block mt-3">
+        <label class="info-label">
+          <i class="bi bi-award-fill"></i> Brands Dealt With ({{ selectedCompany()!.brands!.length }})
+        </label>
+        <div class="modal-brands-grid">
+          @for (brand of selectedCompany()!.brands!; track brand.id) {
+          <div class="modal-brand-card">
+            <div class="modal-brand-logo">
+              @if (brand.brandLogo) {
+              <img [src]="brandService.getFileUrl(brand.brandLogo)" alt="{{ brand.brandName }}" />
+              } @else {
+              <div class="modal-brand-fallback">{{ brand.brandName.substring(0, 2).toUpperCase() }}</div>
+              }
+            </div>
+            <div class="modal-brand-details">
+              <span class="modal-brand-name">{{ brand.brandName }}</span>
+              @if (brand.isFeatured || brand.featured) {
+              <span class="modal-brand-featured-tag"><i class="bi bi-star-fill"></i> Featured Brand</span>
+              }
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      <!-- Chosen Products Portfolio Modal Section -->
+      @if (selectedCompany()?.products && selectedCompany()!.products!.length > 0) {
+      <div class="info-block mt-3">
+        <label class="info-label">
+          <i class="bi bi-box-seam-fill"></i> Products Portfolio ({{ selectedCompany()!.products!.length }})
+        </label>
+        <div class="modal-products-grid">
+          @for (prod of selectedCompany()!.products!; track prod.id) {
+          <div class="modal-product-card">
+            <div class="modal-product-thumb">
+              @if (prod.image) {
+              <img [src]="productService.getFileUrl(prod.image)" alt="{{ prod.name }}" />
+              } @else {
+              <div class="modal-product-fallback"><i class="bi bi-box"></i></div>
+              }
+            </div>
+            <div class="modal-product-details">
+              <div class="modal-prod-top">
+                <span class="modal-prod-brand"><i class="bi bi-award"></i> {{ prod.brandName }}</span>
+                @if (prod.isFeatured || prod.featured) {
+                <span class="modal-prod-featured-tag"><i class="bi bi-star-fill"></i> Featured</span>
+                }
+              </div>
+              <span class="modal-product-name">{{ prod.name }}</span>
+              <div class="modal-prod-cat-path">
+                <span>{{ prod.categoryName }}</span>
+                @if (prod.subCategoryName) {
+                <span> &rsaquo; {{ prod.subCategoryName }}</span>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+      }
+
+      @if (selectedCompany()?.description) {
+      <div class="info-block mt-3">
+        <label class="info-label"><i class="bi bi-card-text"></i> Description</label>
+        <p class="info-text">{{ selectedCompany()?.description }}</p>
+      </div>
+      }
+
+      @if (getCompanyCards(selectedCompany()!).length > 0) {
+      <div class="info-block mt-3">
+        <label class="info-label">
+          <i class="bi bi-collection"></i> Visiting Cards & Brand Documents ({{
+          getCompanyCards(selectedCompany()!).length }})
+        </label>
+        <div class="modal-cards-grid">
+          @for (card of getCompanyCards(selectedCompany()!); track card) {
+          @if (card.endsWith('.pdf')) {
+          <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-pdf-card"
+            title="Click to view full PDF document">
+            <div class="modal-pdf-icon-wrap">
+              <i class="bi bi-file-earmark-pdf-fill"></i>
+            </div>
+            <div class="modal-pdf-details">
+              <span class="modal-pdf-title">Visiting Card (PDF)</span>
+              <span class="modal-pdf-sub">Open document &rsaquo;</span>
+            </div>
+          </a>
+          } @else {
+          <a [href]="companyService.getFileUrl(card)" target="_blank" class="modal-img-card"
+            title="Click to view full size image">
+            <img [src]="companyService.getFileUrl(card)" alt="Business Card" class="modal-card-thumbnail" />
+            <div class="modal-img-overlay">
+              <i class="bi bi-arrows-fullscreen"></i>
+            </div>
+          </a>
+          }
+          }
+        </div>
+      </div>
+      }
+    </div>
+
+    <div class="modal-footer modal-footer-actions">
+      <div class="modal-left-actions">
+        @if (canDeleteCompany()) {
+        <button type="button" class="btn-danger-outline" (click)="promptDelete(selectedCompany()!)">
+          <i class="bi bi-trash3"></i> Delete
+        </button>
+        }
+        @if (canEditCompany(selectedCompany())) {
+        <button type="button" class="btn-edit-action" (click)="onStartEdit(selectedCompany()!)">
+          <i class="bi bi-pencil-square"></i> Edit
+        </button>
+        }
+        <button type="button" class="btn-share-modal-action" (click)="onOpenShare(selectedCompany()!)"
+          title="Share Contact Profile (WhatsApp, Email, vCard, Copy)">
+          <i class="bi bi-share-fill"></i> Share Contact
+        </button>
+        <button type="button" class="btn-pdf-modal-action" (click)="downloadCompanyPdf(selectedCompany()!)"
+          [disabled]="isExportingCompanyPdf() === selectedCompany()?.id"
+          title="Download Executive PDF Profile with Business Card Images">
+          @if (isExportingCompanyPdf() === selectedCompany()?.id) {
+          <span class="spinner-border spinner-border-sm" role="status"></span>
+          <span>Generating...</span>
+          } @else {
+          <i class="bi bi-file-earmark-pdf-fill"></i>
+          <span>PDF Profile</span>
+          }
+        </button>
+      </div>
+      <button type="button" class="btn-secondary" (click)="closeCompanyDetail()">Close</button>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Delete Confirmation Modal Dialog -->
+@if (companyToDelete()) {
+<div class="modal-backdrop" (click)="cancelDelete()">
+  <div class="modal-card delete-dialog-card" (click)="$event.stopPropagation()">
+    <div class="delete-icon-wrapper">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <h3 class="delete-dialog-title">Delete Company Record?</h3>
+    <p class="delete-dialog-text">
+      Are you sure you want to permanently delete <strong>"{{ companyToDelete()?.companyName }}"</strong> (ID #{{
+      companyToDelete()?.id }})? This action cannot be undone.
+    </p>
+
+    <div class="delete-dialog-actions">
+      <button type="button" class="btn-secondary" (click)="cancelDelete()" [disabled]="isDeleting()">
+        Cancel
+      </button>
+      <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="isDeleting()">
+        @if (isDeleting()) {
+        <span class="spinner-border" role="status" aria-hidden="true"></span>
+        <span>Deleting...</span>
+        } @else {
+        <i class="bi bi-trash3-fill"></i>
+        <span>Yes, Delete Company</span>
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}

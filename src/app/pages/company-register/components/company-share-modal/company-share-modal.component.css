@@ -1,0 +1,472 @@
+/* ==========================================================================
+   ENTERPRISE SHARE MODAL COMPONENT STYLES
+   ========================================================================== */
+
+:host {
+  display: contents;
+}
+
+.modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10000 !important;
+  padding: 1rem !important;
+  overflow-y: auto !important;
+  animation: shareFadeIn 0.2s ease-out;
+}
+
+@keyframes shareFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card.share-dialog-card {
+  max-width: 530px !important;
+  width: 100% !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35) !important;
+  overflow: hidden !important;
+  background: white !important;
+  margin: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 92vh !important;
+  max-height: 92dvh !important;
+  animation: shareSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes shareSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header.share-modal-header {
+  padding: 1.15rem 1.5rem !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-shrink: 0 !important;
+}
+
+.modal-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-pretitle {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #4f46e5;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0.15rem 0 0;
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.85rem;
+}
+
+.modal-close-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.modal-body.share-modal-body {
+  padding: 1.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.35rem !important;
+  max-height: calc(85vh - 140px) !important;
+  overflow-y: auto !important;
+  flex: 1 1 auto !important;
+}
+
+/* Business Card Preview Box */
+.share-preview-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  border-radius: 14px;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.share-preview-card::after {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 130px;
+  height: 130px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.share-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.share-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.share-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
+  flex-shrink: 0;
+}
+
+.share-card-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.share-comp-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: white;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.share-comp-loc {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+.share-status-pill {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.share-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.share-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.82rem;
+}
+
+.share-detail-label {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.share-detail-label i {
+  color: #10b981;
+}
+
+.share-detail-val {
+  color: #f1f5f9;
+  text-align: right;
+  word-break: break-word;
+}
+
+.share-detail-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.share-detail-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+.desig-text {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* Sharing Actions Section */
+.share-actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.share-section-title {
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+  margin: 0;
+}
+
+.share-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.share-channel-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.share-channel-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.share-icon-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.share-btn-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.channel-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-sub {
+  font-size: 0.7rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Channel Variants */
+.btn-copy .share-icon-circle {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.btn-copy:hover {
+  border-color: #16a34a;
+}
+
+.btn-copy.copied {
+  background: #ecfdf5;
+  border-color: #10b981;
+}
+
+.btn-copy.copied .share-icon-circle {
+  background: #10b981;
+  color: white;
+}
+
+.btn-copy.copied .channel-title {
+  color: #047857;
+}
+
+.btn-whatsapp .whatsapp-circle {
+  background: #ecfdf5;
+  color: #25d366;
+}
+
+.btn-whatsapp:hover {
+  border-color: #25d366;
+  background: #f0fdf4;
+}
+
+.btn-whatsapp:hover .whatsapp-circle {
+  background: #25d366;
+  color: white;
+}
+
+.btn-email .email-circle {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.btn-email:hover {
+  border-color: #2563eb;
+  background: #f0f9ff;
+}
+
+.btn-email:hover .email-circle {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-vcard .vcard-circle {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.btn-vcard:hover {
+  border-color: #d97706;
+  background: #fffdf5;
+}
+
+.btn-vcard:hover .vcard-circle {
+  background: #d97706;
+  color: white;
+}
+
+.btn-pdf-profile .pdf-profile-circle {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.btn-pdf-profile:hover {
+  border-color: #dc2626;
+  background: #fffaf0;
+}
+
+.btn-pdf-profile:hover .pdf-profile-circle {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-native .native-circle {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-native:hover {
+  border-color: #475569;
+  background: #f8fafc;
+}
+
+.btn-native:hover .native-circle {
+  background: #475569;
+  color: white;
+}
+
+.modal-footer.share-modal-footer {
+  padding: 1rem 1.5rem !important;
+  background: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  flex-shrink: 0 !important;
+}
+
+.btn-secondary {
+  padding: 0.65rem 1.15rem;
+  border-radius: 10px;
+  background: white;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+@media (max-width: 580px) {
+  .share-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+}
