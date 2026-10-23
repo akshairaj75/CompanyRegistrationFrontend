@@ -17,6 +17,7 @@ import { RouterLink } from '@angular/router';
 import { COUNTRY_OPTIONS, normalizeToCountryCode } from '../../core/models/country.model';
 import { phoneValidator } from '../../core/validators/phone.validator';
 import { scrollToFirstInvalidControl, isFormControlInvalid, allowOnlyPhoneChars, sanitizePhoneInput, handleFormEnterKey } from '../../core/utils/company-form.util';
+import { isSaudiCity, SAUDI_MAJOR_CITIES } from '../../core/utils/saudi-cities.util';
 
 import { CompanyShareModalComponent } from './components/company-share-modal/company-share-modal.component';
 import { CompanyOcrModalComponent } from './components/company-ocr-modal/company-ocr-modal.component';
@@ -57,9 +58,11 @@ export class CompanyRegisterComponent implements OnInit {
   readonly environment = environment;
   readonly countryOptions = COUNTRY_OPTIONS;
   readonly normalizeToCountryCode = normalizeToCountryCode;
+  readonly saudiMajorCities = SAUDI_MAJOR_CITIES;
 
   // Selected country tracking for preview & validation
   readonly selectedCountryCode = signal<string>('');
+  readonly isAutoCountrySelected = signal<boolean>(false);
 
   readonly selectedCountryOption = computed(() => {
     const code = this.selectedCountryCode();
@@ -72,6 +75,9 @@ export class CompanyRegisterComponent implements OnInit {
     this.companyForm.patchValue({ country: code });
     this.companyForm.get('country')?.markAsDirty();
     this.companyForm.get('country')?.markAsTouched();
+    if (code !== 'KSA') {
+      this.isAutoCountrySelected.set(false);
+    }
   }
 
   // Business Card Scanner State
@@ -229,6 +235,20 @@ export class CompanyRegisterComponent implements OnInit {
     // Synchronize selectedCountryCode signal with reactive form control value changes
     this.companyForm.get('country')?.valueChanges.subscribe(val => {
       this.selectedCountryCode.set(val || '');
+    });
+
+    // Auto-detect Saudi Arabia when a major Saudi city is typed
+    this.companyForm.get('city')?.valueChanges.subscribe(val => {
+      if (val && isSaudiCity(val)) {
+        const currentCountry = this.companyForm.get('country')?.value;
+        if (currentCountry !== 'KSA') {
+          this.companyForm.patchValue({ country: 'KSA' });
+          this.selectedCountryCode.set('KSA');
+          this.isAutoCountrySelected.set(true);
+        }
+      } else if (!val) {
+        this.isAutoCountrySelected.set(false);
+      }
     });
   }
 
@@ -526,6 +546,8 @@ export class CompanyRegisterComponent implements OnInit {
     });
     this.selectedBrandIds.set([]);
     this.selectedProductIds.set([]);
+    this.selectedCountryCode.set('');
+    this.isAutoCountrySelected.set(false);
     this.removeFile();
   }
 
@@ -785,7 +807,11 @@ export class CompanyRegisterComponent implements OnInit {
 
   handleOcrApply(data: { result: BusinessCardScanResult; file: File | null; autoAttach: boolean }): void {
     const { result: res, file, autoAttach } = data;
-    const finalCountry = normalizeToCountryCode(res.country) || '';
+    let finalCountry = normalizeToCountryCode(res.country) || '';
+    if (!finalCountry && res.city && isSaudiCity(res.city)) {
+      finalCountry = 'KSA';
+      this.isAutoCountrySelected.set(true);
+    }
     const currentValues = this.companyForm.value;
 
     const rawMobile = res.contactMobileNumber || currentValues.contactMobileNumber || '';

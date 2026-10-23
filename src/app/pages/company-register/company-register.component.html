@@ -505,7 +505,13 @@
 
                   <div class="form-group hq-city-col">
                     <label for="city" class="form-label">City</label>
-                    <input type="text" id="city" formControlName="city" class="form-control" placeholder="San Francisco" />
+                    <input type="text" id="city" formControlName="city" class="form-control"
+                      placeholder="e.g. Riyadh, Jeddah..." list="saudiCitiesDatalist" />
+                    <datalist id="saudiCitiesDatalist">
+                      @for (cityName of saudiMajorCities; track cityName) {
+                      <option [value]="cityName"></option>
+                      }
+                    </datalist>
                   </div>
 
                   <!-- Country Searchable Dropdown -->
@@ -518,6 +524,12 @@
                       [isInvalid]="isInvalid('country')"
                       triggerId="country-trigger-btn"
                       (valueChange)="onCountryChange($event)" />
+                    @if (isAutoCountrySelected()) {
+                    <div class="auto-country-badge" title="Automatically set to Saudi Arabia based on typed city">
+                      <i class="bi bi-geo-alt-fill"></i>
+                      <span>Auto-selected Saudi Arabia based on city</span>
+                    </div>
+                    }
                     @if (isInvalid('country')) {
                     <span class="field-error">
                       <i class="bi bi-info-circle"></i> Country jurisdiction is required

@@ -7102,3 +7102,36 @@ select.ocr-input {
   color: #0f172a;
 }
 
+/* Auto-Country Selection Badge */
+.auto-country-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 0.73rem;
+  font-weight: 600;
+  animation: fadeInBadge 0.25s ease-out;
+}
+
+.auto-country-badge i {
+  color: #059669;
+  font-size: 0.78rem;
+}
+
+@keyframes fadeInBadge {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
