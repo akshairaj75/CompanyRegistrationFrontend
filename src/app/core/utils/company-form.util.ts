@@ -238,3 +238,66 @@ export function handleFormEnterKey(event: KeyboardEvent): void {
   }
 }
 
+/**
+ * Translates backend HTTP errors and network failures into clear,
+ * human-readable explanations with actionable recovery advice.
+ */
+export function getHumanReadableHttpError(err: any, fallbackMessage: string): string {
+  if (!err) return fallbackMessage;
+
+  // Status 0: Backend server is offline or network disconnected
+  if (err.status === 0) {
+    return 'Unable to connect to the server. Please verify your internet connection or check that the backend service is running.';
+  }
+
+  // Session / Authentication errors
+  if (err.status === 401) {
+    return 'Your login session has expired. Please sign in again to continue.';
+  }
+
+  // Authorization / Permission errors
+  if (err.status === 403) {
+    return 'Access denied. You do not have permission to modify this company record.';
+  }
+
+  // Not found errors
+  if (err.status === 404) {
+    return 'The requested record was not found. It may have already been removed.';
+  }
+
+  // Conflict / Duplicate errors
+  if (err.status === 409) {
+    if (typeof err.error === 'string' && err.error.trim()) return err.error;
+    if (err.error?.message) return err.error.message;
+    return 'A company with this name or email already exists. Please choose a unique legal name.';
+  }
+
+  // Payload too large
+  if (err.status === 413) {
+    return 'The uploaded file(s) exceed the server size limit. Please upload smaller attachments.';
+  }
+
+  // Client validation error (400)
+  if (err.status === 400) {
+    if (typeof err.error === 'string' && err.error.trim()) return err.error;
+    if (err.error?.message && typeof err.error.message === 'string') return err.error.message;
+    return 'The submitted data was incomplete or invalid. Please check your form entries.';
+  }
+
+  // Server errors (500, 502, 503)
+  if (err.status >= 500) {
+    if (err.error?.message && typeof err.error.message === 'string' && !err.error.message.includes('Exception')) {
+      return err.error.message;
+    }
+    return 'The server encountered an unexpected error while processing your request. Please try again shortly.';
+  }
+
+  // Generic message extractor if clean
+  if (err.error?.message && typeof err.error.message === 'string') {
+    return err.error.message;
+  }
+
+  return fallbackMessage;
+}
+
+

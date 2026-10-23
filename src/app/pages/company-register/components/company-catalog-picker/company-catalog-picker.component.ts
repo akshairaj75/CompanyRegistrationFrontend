@@ -8,6 +8,7 @@ import { CategoryResponse } from '../../../../core/models/category.model';
 import { BrandService } from '../../../../core/services/brand';
 import { ProductService } from '../../../../core/services/product';
 import { CompanyService } from '../../../../core/services/company';
+import { getHumanReadableHttpError } from '../../../../core/utils/company-form.util';
 
 @Component({
   selector: 'app-company-catalog-picker',
@@ -326,7 +327,7 @@ export class CompanyCatalogPickerComponent {
         this.feedbackMessage.emit({
           type: 'error',
           title: 'Website Scan Failed',
-          message: err?.error?.message || 'Could not fetch or scan the website. Please ensure the domain is publicly accessible.'
+          message: getHumanReadableHttpError(err, 'Could not fetch or scan the website. Please ensure the domain is publicly accessible.')
         });
       }
     });

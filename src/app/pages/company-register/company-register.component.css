@@ -186,20 +186,36 @@
   }
 }
 
-/* Feedback Alert Banner */
+/* Floating Viewport Feedback Notification Toast (Always in visible spot of the user) */
 .feedback-toast {
-  position: sticky;
-  top: 76px;
-  z-index: 105;
-  margin: 1.25rem 2.5rem 0;
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 100050;
+  max-width: 440px;
+  min-width: 320px;
+  margin: 0;
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border-radius: var(--radius-md);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  animation: slideDown 0.3s ease-out;
-  backdrop-filter: blur(8px);
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.32), 0 0 0 1px rgba(15, 23, 42, 0.08);
+  animation: toastFloatUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+@keyframes toastFloatUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Auto-scroll Invalid Field Highlight & Attention Pulse */
@@ -260,51 +276,101 @@
   }
 }
 
-.feedback-success {
-  background: var(--success-bg);
-  border: 1px solid var(--success-border);
-  color: #065f46;
+.feedback-toast.feedback-success {
+  background: #ffffff;
+  border-left: 5px solid #10b981;
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
+  border-right: 1px solid rgba(16, 185, 129, 0.15);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.feedback-error {
-  background: var(--error-bg);
-  border: 1px solid var(--error-border);
-  color: #991b1b;
-}
-
-.feedback-icon {
-  font-size: 1.35rem;
+.feedback-toast.feedback-success .feedback-icon {
+  background: #d1fae5;
+  color: #059669;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
 }
 
-.feedback-content {
-  flex: 1;
-}
-
-.feedback-title {
-  font-size: 0.92rem;
+.feedback-toast.feedback-success .feedback-title {
+  color: #065f46;
+  font-size: 0.9rem;
+  font-weight: 700;
   display: block;
 }
 
-.feedback-msg {
-  font-size: 0.83rem;
-  margin-top: 0.15rem;
-  opacity: 0.9;
+.feedback-toast.feedback-success .feedback-msg {
+  color: #334155;
+  font-size: 0.82rem;
+  margin: 0.2rem 0 0;
+  line-height: 1.45;
 }
 
-.feedback-close {
-  background: none;
+.feedback-toast.feedback-error {
+  background: #ffffff;
+  border-left: 5px solid #ef4444;
+  border-top: 1px solid rgba(239, 68, 68, 0.2);
+  border-right: 1px solid rgba(239, 68, 68, 0.15);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.feedback-toast.feedback-error .feedback-icon {
+  background: #fee2e2;
+  color: #dc2626;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.feedback-toast.feedback-error .feedback-title {
+  color: #991b1b;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: block;
+}
+
+.feedback-toast.feedback-error .feedback-msg {
+  color: #334155;
+  font-size: 0.82rem;
+  margin: 0.2rem 0 0;
+  line-height: 1.45;
+}
+
+.feedback-toast .feedback-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.feedback-toast .feedback-close {
+  background: transparent;
   border: none;
-  color: currentColor;
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
   cursor: pointer;
-  opacity: 0.7;
-  font-size: 1rem;
-  transition: opacity var(--transition-fast);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-left: 0.25rem;
 }
 
-.feedback-close:hover {
-  opacity: 1;
+.feedback-toast .feedback-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 /* Main Content Layout (Full-Width Page Container) */
@@ -1940,8 +2006,12 @@ select.ocr-input {
   }
 
   .feedback-toast {
-    margin: 0.75rem 0.75rem 0;
-    padding: 0.75rem 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
   }
 }
 

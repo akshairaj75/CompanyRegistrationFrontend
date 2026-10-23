@@ -7,6 +7,7 @@ import { CompanyService } from '../../../../core/services/company';
 import { BrandService } from '../../../../core/services/brand';
 import { ProductService } from '../../../../core/services/product';
 import { AuthService } from '../../../../core/services/auth.service';
+import { getHumanReadableHttpError } from '../../../../core/utils/company-form.util';
 
 @Component({
   selector: 'app-company-directory',
@@ -255,7 +256,7 @@ export class CompanyDirectoryComponent {
         this.feedbackMessage.emit({
           type: 'error',
           title: 'Delete Failed',
-          message: 'Could not delete the company record. Please verify server connection.'
+          message: getHumanReadableHttpError(err, 'Could not delete the company record. Please verify server connection.')
         });
       }
     });
@@ -307,7 +308,7 @@ export class CompanyDirectoryComponent {
         this.feedbackMessage.emit({
           type: 'error',
           title: 'Export Failed',
-          message: 'Could not generate the Excel file. Please ensure the backend server is reachable.'
+          message: getHumanReadableHttpError(err, 'Could not generate the Excel file. Please ensure the backend server is reachable.')
         });
       }
     });
@@ -341,7 +342,7 @@ export class CompanyDirectoryComponent {
         this.feedbackMessage.emit({
           type: 'error',
           title: 'Export Failed',
-          message: 'Could not generate the PDF file. Please ensure the backend server is reachable.'
+          message: getHumanReadableHttpError(err, 'Could not generate the PDF file. Please ensure the backend server is reachable.')
         });
       }
     });
@@ -380,7 +381,7 @@ export class CompanyDirectoryComponent {
         this.feedbackMessage.emit({
           type: 'error',
           title: 'Export Failed',
-          message: 'Could not generate company PDF profile with business cards. Please try again.'
+          message: getHumanReadableHttpError(err, 'Could not generate company PDF profile with business cards. Please try again.')
         });
       }
     });

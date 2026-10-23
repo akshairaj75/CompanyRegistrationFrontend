@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, HostListener, ViewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CompanyService } from '../../core/services/company';
@@ -16,7 +16,7 @@ import { environment } from '../../../environments/environment';
 import { RouterLink } from '@angular/router';
 import { COUNTRY_OPTIONS, normalizeToCountryCode } from '../../core/models/country.model';
 import { phoneValidator } from '../../core/validators/phone.validator';
-import { scrollToFirstInvalidControl, isFormControlInvalid, allowOnlyPhoneChars, sanitizePhoneInput, handleFormEnterKey } from '../../core/utils/company-form.util';
+import { scrollToFirstInvalidControl, isFormControlInvalid, allowOnlyPhoneChars, sanitizePhoneInput, handleFormEnterKey, getHumanReadableHttpError } from '../../core/utils/company-form.util';
 import { isSaudiCity, SAUDI_MAJOR_CITIES } from '../../core/utils/saudi-cities.util';
 
 import { CompanyShareModalComponent } from './components/company-share-modal/company-share-modal.component';
@@ -96,11 +96,26 @@ export class CompanyRegisterComponent implements OnInit {
   readonly isLoadingList = signal<boolean>(false);
   readonly isExportingCompanyPdf = signal<number | null>(null);
   readonly activeTab = signal<'register' | 'directory'>('register');
-  readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
-
-  // Edit State
   readonly editingCompanyId = signal<number | null>(null);
   readonly directorySelectedCompany = signal<CompanyResponse | null>(null);
+  readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
+  private feedbackTimer?: any;
+
+  constructor() {
+    effect(() => {
+      const fb = this.feedback();
+      if (this.feedbackTimer) {
+        clearTimeout(this.feedbackTimer);
+      }
+      if (fb) {
+        // Auto-dismiss errors after 9 seconds, success after 5 seconds
+        const timeout = fb.type === 'error' ? 9000 : 5000;
+        this.feedbackTimer = setTimeout(() => {
+          this.feedback.set(null);
+        }, timeout);
+      }
+    });
+  }
 
   // Share Modal State
   readonly companyToShare = signal<CompanyResponse | null>(null);
@@ -390,7 +405,7 @@ export class CompanyRegisterComponent implements OnInit {
         error: (err) => {
           this.isSubmitting.set(false);
           console.error('Update failed:', err);
-          const errMsg = err?.error?.message || err?.message || 'Server error occurred during company update.';
+          const errMsg = getHumanReadableHttpError(err, 'Unable to update company record. Please try again.');
           this.feedback.set({
             type: 'error',
             title: 'Update Failed',
@@ -415,11 +430,11 @@ export class CompanyRegisterComponent implements OnInit {
         error: (err) => {
           this.isSubmitting.set(false);
           console.error('Registration failed:', err);
-          const errMsg = err?.error?.message || err?.message || 'Server error occurred during company creation.';
+          const errMsg = getHumanReadableHttpError(err, 'Unable to establish company record. Please try again.');
           this.feedback.set({
             type: 'error',
             title: 'Registration Failed',
-            message: `${errMsg}. Please ensure the server is reachable and try again.`
+            message: errMsg
           });
         }
       });
@@ -752,7 +767,7 @@ export class CompanyRegisterComponent implements OnInit {
         this.feedback.set({
           type: 'error',
           title: 'Export Failed',
-          message: 'Could not generate company PDF profile with business cards. Please try again.'
+          message: getHumanReadableHttpError(err, 'Could not generate company PDF profile with business cards. Please try again.')
         });
       }
     });
