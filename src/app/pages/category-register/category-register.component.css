@@ -1765,6 +1765,10 @@
   flex-wrap: wrap;
 }
 
+.parent-filter-control app-custom-select {
+  min-width: 250px;
+}
+
 .parent-filter-label {
   font-size: 0.82rem;
   font-weight: 700;

@@ -10,11 +10,13 @@ import { CategoryResponse } from '../../core/models/category.model';
 import { BrandResponse } from '../../core/models/brand.model';
 import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
+import { CustomSelectComponent } from '../../core/components/custom-select/custom-select.component';
+import { CustomSelectOption } from '../../core/components/custom-select/custom-select.model';
 
 @Component({
   selector: 'app-product-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, CustomSelectComponent],
   templateUrl: './product-register.component.html',
   styleUrl: './product-register.component.css'
 })
@@ -96,6 +98,57 @@ export class ProductRegisterComponent implements OnInit {
     const catId = Number(catFilter);
     return this.subCategories().filter(s => s.parentId === catId);
   });
+
+  // Custom Select Options for Form Controls
+  readonly categorySelectOptions = computed<CustomSelectOption[]>(() =>
+    this.parentCategories().map(cat => ({
+      value: cat.id,
+      label: cat.name,
+      badge: `ID #${cat.id}`
+    }))
+  );
+
+  readonly subCategorySelectOptions = computed<CustomSelectOption[]>(() => [
+    { value: '', label: 'None (Direct Category)' },
+    ...this.availableSubCategories().map(sub => ({
+      value: sub.id,
+      label: sub.name,
+      badge: `ID #${sub.id}`
+    }))
+  ]);
+
+  readonly brandSelectOptions = computed<CustomSelectOption[]>(() =>
+    this.brands().map(b => ({
+      value: b.id,
+      label: b.brandName,
+      badge: `ID #${b.id}`
+    }))
+  );
+
+  // Custom Select Options for Directory Filters
+  readonly filterCategoryOptions = computed<CustomSelectOption[]>(() => [
+    { value: 'all', label: 'All Categories' },
+    ...this.parentCategories().map(c => ({
+      value: String(c.id),
+      label: c.name
+    }))
+  ]);
+
+  readonly filterSubCategoryOptions = computed<CustomSelectOption[]>(() => [
+    { value: 'all', label: 'All Subcategories' },
+    ...this.filterSubCategoriesList().map(sub => ({
+      value: String(sub.id),
+      label: sub.name
+    }))
+  ]);
+
+  readonly filterBrandOptions = computed<CustomSelectOption[]>(() => [
+    { value: 'all', label: 'All Brands' },
+    ...this.brands().map(b => ({
+      value: String(b.id),
+      label: b.brandName
+    }))
+  ]);
 
   // Selected Product for View Modal
   readonly selectedProduct = signal<ProductResponse | null>(null);

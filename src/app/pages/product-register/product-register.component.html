@@ -240,16 +240,16 @@
                   <label for="categoryId" class="form-label">
                     Main Category <span class="required-star">*</span>
                   </label>
-                  <div class="input-wrapper select-wrapper">
-                    <i class="bi bi-folder2-open input-icon"></i>
-                    <select id="categoryId" class="form-control select-control" formControlName="categoryId">
-                      <option value="" disabled>-- Select Main Category --</option>
-                      @for (cat of parentCategories(); track cat.id) {
-                        <option [value]="cat.id">{{ cat.name }} (ID #{{ cat.id }})</option>
-                      }
-                    </select>
-                    <i class="bi bi-chevron-down select-chevron"></i>
-                  </div>
+                  <app-custom-select
+                    triggerId="categoryId"
+                    formControlName="categoryId"
+                    leadingIcon="bi bi-folder2-open"
+                    placeholder="-- Select Main Category --"
+                    [searchable]="true"
+                    searchPlaceholder="Search category..."
+                    [options]="categorySelectOptions()"
+                    [isInvalid]="isInvalid('categoryId')">
+                  </app-custom-select>
                   @if (isInvalid('categoryId')) {
                     <span class="field-error">
                       <i class="bi bi-exclamation-circle"></i> Please select a valid category.
@@ -262,21 +262,17 @@
                   <label for="subCategoryId" class="form-label">
                     Subcategory <span class="optional-pill">Optional</span>
                   </label>
-                  <div class="input-wrapper select-wrapper" [class.disabled-select-wrap]="!productForm.get('categoryId')?.value">
-                    <i class="bi bi-diagram-2 input-icon"></i>
-                    <select 
-                      id="subCategoryId" 
-                      class="form-control select-control" 
-                      formControlName="subCategoryId"
-                      [disabled]="!productForm.get('categoryId')?.value"
-                    >
-                      <option value="">-- None (Direct Category) --</option>
-                      @for (sub of availableSubCategories(); track sub.id) {
-                        <option [value]="sub.id">{{ sub.name }} (ID #{{ sub.id }})</option>
-                      }
-                    </select>
-                    <i class="bi bi-chevron-down select-chevron"></i>
-                  </div>
+                  <app-custom-select
+                    triggerId="subCategoryId"
+                    formControlName="subCategoryId"
+                    leadingIcon="bi bi-diagram-2"
+                    placeholder="-- None (Direct Category) --"
+                    [searchable]="availableSubCategories().length > 5"
+                    searchPlaceholder="Search subcategory..."
+                    [disabled]="!productForm.get('categoryId')?.value"
+                    [options]="subCategorySelectOptions()"
+                    [isInvalid]="isInvalid('subCategoryId')">
+                  </app-custom-select>
                   <span class="field-hint">
                     @if (!productForm.get('categoryId')?.value) {
                       Select a Main Category first to load subcategories.
@@ -294,16 +290,16 @@
                 <label for="brandId" class="form-label">
                   Brand <span class="required-star">*</span>
                 </label>
-                <div class="input-wrapper select-wrapper">
-                  <i class="bi bi-patch-check input-icon"></i>
-                  <select id="brandId" class="form-control select-control" formControlName="brandId">
-                    <option value="" disabled>-- Select Brand --</option>
-                    @for (b of brands(); track b.id) {
-                      <option [value]="b.id">{{ b.brandName }} (ID #{{ b.id }})</option>
-                    }
-                  </select>
-                  <i class="bi bi-chevron-down select-chevron"></i>
-                </div>
+                <app-custom-select
+                  triggerId="brandId"
+                  formControlName="brandId"
+                  leadingIcon="bi bi-patch-check"
+                  placeholder="-- Select Brand --"
+                  [searchable]="true"
+                  searchPlaceholder="Search brand..."
+                  [options]="brandSelectOptions()"
+                  [isInvalid]="isInvalid('brandId')">
+                </app-custom-select>
                 @if (isInvalid('brandId')) {
                   <span class="field-error">
                     <i class="bi bi-exclamation-circle"></i> Please select a valid brand.
@@ -582,34 +578,40 @@
 
             <!-- Category Filter Dropdown -->
             <div class="filter-dropdown-wrap">
-              <select class="filter-select" [value]="filterCategory()" (change)="filterCategory.set($any($event.target).value); filterSubCategory.set('all')">
-                <option value="all">All Categories</option>
-                @for (c of parentCategories(); track c.id) {
-                  <option [value]="c.id">{{ c.name }}</option>
-                }
-              </select>
+              <app-custom-select
+                variant="filter"
+                [searchable]="true"
+                searchPlaceholder="Filter category..."
+                [options]="filterCategoryOptions()"
+                [value]="filterCategory()"
+                (valueChange)="filterCategory.set($event); filterSubCategory.set('all')">
+              </app-custom-select>
             </div>
 
             <!-- Subcategory Filter Dropdown -->
             @if (subCategories().length > 0) {
               <div class="filter-dropdown-wrap">
-                <select class="filter-select" [value]="filterSubCategory()" (change)="filterSubCategory.set($any($event.target).value)">
-                  <option value="all">All Subcategories</option>
-                  @for (sub of filterSubCategoriesList(); track sub.id) {
-                    <option [value]="sub.id">{{ sub.name }}</option>
-                  }
-                </select>
+                <app-custom-select
+                  variant="filter"
+                  [searchable]="filterSubCategoriesList().length > 5"
+                  searchPlaceholder="Filter subcategory..."
+                  [options]="filterSubCategoryOptions()"
+                  [value]="filterSubCategory()"
+                  (valueChange)="filterSubCategory.set($event)">
+                </app-custom-select>
               </div>
             }
 
             <!-- Brand Filter Dropdown -->
             <div class="filter-dropdown-wrap">
-              <select class="filter-select" [value]="filterBrand()" (change)="filterBrand.set($any($event.target).value)">
-                <option value="all">All Brands</option>
-                @for (b of brands(); track b.id) {
-                  <option [value]="b.id">{{ b.brandName }}</option>
-                }
-              </select>
+              <app-custom-select
+                variant="filter"
+                [searchable]="true"
+                searchPlaceholder="Filter brand..."
+                [options]="filterBrandOptions()"
+                [value]="filterBrand()"
+                (valueChange)="filterBrand.set($event)">
+              </app-custom-select>
             </div>
 
             <!-- Featured Mode Chips -->

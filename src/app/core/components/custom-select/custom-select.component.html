@@ -1,0 +1,115 @@
+<div
+  class="custom-select-container"
+  [class.is-open]="isOpen()"
+  [class.is-disabled]="effectiveDisabled()"
+  [class.is-invalid]="isInvalid()"
+  [class.variant-default]="variant() === 'default'"
+  [class.variant-filter]="variant() === 'filter'"
+  [class.variant-compact]="variant() === 'compact'"
+  [class.size-sm]="size() === 'sm'"
+  [class.size-md]="size() === 'md'"
+  [class.size-lg]="size() === 'lg'">
+
+  <!-- Select Trigger Button -->
+  <button
+    type="button"
+    class="custom-select-trigger"
+    [id]="triggerId()"
+    [attr.aria-label]="ariaLabel() || placeholder()"
+    [attr.aria-expanded]="isOpen()"
+    [disabled]="effectiveDisabled()"
+    (click)="toggleDropdown($event)"
+    (keydown)="onKeyDown($event)">
+
+    <!-- Leading Icon -->
+    @if (leadingIcon()) {
+    <i [class]="'custom-select-lead-icon ' + leadingIcon()"></i>
+    }
+
+    <!-- Content / Selected Value -->
+    <div class="custom-select-content">
+      @if (selectedOption(); as opt) {
+        <span class="custom-select-label" [title]="opt.label">{{ opt.label }}</span>
+        @if (opt.badge !== undefined && opt.badge !== null) {
+          <span class="custom-select-badge">{{ opt.badge }}</span>
+        }
+      } @else {
+        <span class="custom-select-placeholder">{{ placeholder() }}</span>
+      }
+    </div>
+
+    <!-- Actions: Optional Clear + Chevron -->
+    <div class="custom-select-actions">
+      @if (clearable() && currentValue() && !effectiveDisabled()) {
+        <span class="custom-select-clear-btn" (click)="clearSelection($event)" title="Clear selection">
+          <i class="bi bi-x-lg"></i>
+        </span>
+      }
+      <i class="bi bi-chevron-down custom-select-chevron" [class.rotate]="isOpen()"></i>
+    </div>
+  </button>
+
+  <!-- Angular Dropdown Menu Panel -->
+  @if (isOpen()) {
+  <div class="custom-select-dropdown animate-dropdown" (click)="$event.stopPropagation()">
+    <!-- Optional Search Input -->
+    @if (searchable()) {
+    <div class="custom-select-search-wrap">
+      <i class="bi bi-search custom-select-search-icon"></i>
+      <input
+        type="text"
+        class="custom-select-search-input"
+        [placeholder]="searchPlaceholder()"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        (keydown)="onKeyDown($event)" />
+      @if (searchQuery()) {
+      <button type="button" class="custom-select-search-clear" (click)="searchQuery.set('')">
+        <i class="bi bi-x"></i>
+      </button>
+      }
+    </div>
+    }
+
+    <!-- Options List -->
+    <div class="custom-select-options-list custom-scrollbar" role="listbox">
+      @for (opt of filteredOptions(); track opt.value; let idx = $index) {
+      <div
+        class="custom-select-option"
+        role="option"
+        [attr.aria-selected]="areValuesEqual(currentValue(), opt.value)"
+        [class.is-selected]="areValuesEqual(currentValue(), opt.value)"
+        [class.is-highlighted]="highlightedIndex() === idx"
+        [class.is-disabled]="opt.disabled"
+        (mouseenter)="highlightedIndex.set(idx)"
+        (click)="selectOption(opt, $event)">
+
+        @if (opt.icon) {
+          <i [class]="'option-icon ' + opt.icon"></i>
+        }
+
+        <div class="option-text-wrap">
+          <span class="option-label">{{ opt.label }}</span>
+          @if (opt.sublabel) {
+            <span class="option-sublabel">{{ opt.sublabel }}</span>
+          }
+        </div>
+
+        @if (opt.badge !== undefined && opt.badge !== null) {
+          <span class="option-badge">{{ opt.badge }}</span>
+        }
+
+        @if (areValuesEqual(currentValue(), opt.value)) {
+          <i class="bi bi-check2 option-check-icon"></i>
+        }
+      </div>
+      } @empty {
+      <div class="custom-select-empty-state">
+        <i class="bi bi-inbox"></i>
+        <span>No matching options found</span>
+      </div>
+      }
+    </div>
+  </div>
+  }
+</div>

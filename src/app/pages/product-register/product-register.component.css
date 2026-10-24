@@ -1358,7 +1358,7 @@ input:checked + .slider:before {
 }
 
 .filter-dropdown-wrap {
-  min-width: 140px;
+  min-width: 175px;
 }
 
 .filter-select {

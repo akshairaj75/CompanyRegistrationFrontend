@@ -119,29 +119,29 @@
 
       <!-- 3/4-Column Filter Bar -->
       <div class="product-filters-compact-bar">
-        <select class="filter-compact-select" [value]="activeProductBrandFilter()"
-          (change)="setProductBrandFilter($any($event.target).value)">
-          <option value="all">Filter by Brand: All ({{ availableProducts().length }})</option>
-          @for (brand of brandsWithProducts(); track brand.id) {
-          <option [value]="brand.id">{{ brand.brandName }} ({{ brand.productCount }} prods)</option>
-          }
-        </select>
+        <app-custom-select
+          variant="compact"
+          size="sm"
+          [options]="brandFilterOptions()"
+          [value]="activeProductBrandFilter()"
+          (valueChange)="setProductBrandFilter($event)">
+        </app-custom-select>
 
-        <select class="filter-compact-select" [value]="activeProductCategoryFilter()"
-          (change)="setProductCategoryFilter($any($event.target).value)">
-          <option value="all">Filter by Category: All</option>
-          @for (cat of availableCategoriesForBrand(); track cat.id) {
-          <option [value]="cat.id">{{ cat.name }}</option>
-          }
-        </select>
+        <app-custom-select
+          variant="compact"
+          size="sm"
+          [options]="categoryFilterOptions()"
+          [value]="activeProductCategoryFilter()"
+          (valueChange)="setProductCategoryFilter($event)">
+        </app-custom-select>
 
-        <select class="filter-compact-select" [value]="activeProductSubCategoryFilter()"
-          (change)="activeProductSubCategoryFilter.set($any($event.target).value)">
-          <option value="all">Filter by Subcategory: All</option>
-          @for (sub of availableSubCategoriesForSelection(); track sub.id) {
-          <option [value]="sub.id">{{ sub.name }}</option>
-          }
-        </select>
+        <app-custom-select
+          variant="compact"
+          size="sm"
+          [options]="subCategoryFilterOptions()"
+          [value]="activeProductSubCategoryFilter()"
+          (valueChange)="activeProductSubCategoryFilter.set($event)">
+        </app-custom-select>
 
         <div class="filter-compact-search">
           <i class="bi bi-search"></i>

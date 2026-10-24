@@ -9,11 +9,13 @@ import { BrandService } from '../../../../core/services/brand';
 import { ProductService } from '../../../../core/services/product';
 import { CompanyService } from '../../../../core/services/company';
 import { getHumanReadableHttpError } from '../../../../core/utils/company-form.util';
+import { CustomSelectComponent } from '../../../../core/components/custom-select/custom-select.component';
+import { CustomSelectOption } from '../../../../core/components/custom-select/custom-select.model';
 
 @Component({
   selector: 'app-company-catalog-picker',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, CustomSelectComponent],
   templateUrl: './company-catalog-picker.component.html',
   styleUrl: './company-catalog-picker.component.css'
 })
@@ -104,6 +106,32 @@ export class CompanyCatalogPickerComponent {
     const subCatIds = new Set(prods.filter(p => p.subCategoryId).map(p => p.subCategoryId as number));
     return this.subCategories().filter(s => subCatIds.has(s.id));
   });
+
+  // Custom Select Option Lists
+  readonly brandFilterOptions = computed<CustomSelectOption[]>(() => [
+    { value: 'all', label: `Filter by Brand: All (${this.availableProducts().length})` },
+    ...this.brandsWithProducts().map(b => ({
+      value: String(b.id),
+      label: b.brandName,
+      badge: `${b.productCount} prods`
+    }))
+  ]);
+
+  readonly categoryFilterOptions = computed<CustomSelectOption[]>(() => [
+    { value: 'all', label: 'Filter by Category: All' },
+    ...this.availableCategoriesForBrand().map(c => ({
+      value: String(c.id),
+      label: c.name
+    }))
+  ]);
+
+  readonly subCategoryFilterOptions = computed<CustomSelectOption[]>(() => [
+    { value: 'all', label: 'Filter by Subcategory: All' },
+    ...this.availableSubCategoriesForSelection().map(s => ({
+      value: String(s.id),
+      label: s.name
+    }))
+  ]);
 
   // Filtered Products for selection
   readonly filteredAvailableProducts = computed(() => {

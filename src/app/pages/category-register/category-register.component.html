@@ -191,22 +191,15 @@
               <label for="parentCategorySelect" class="form-label">
                 Parent Category <span class="optional-mark">(Optional)</span>
               </label>
-              <div class="input-wrap select-wrap">
-                <i class="bi bi-diagram-3 input-icon"></i>
-                <select 
-                  id="parentCategorySelect" 
-                  formControlName="parentId" 
-                  class="form-control select-control"
-                >
-                  <option value="">None (Root / Main Category)</option>
-                  @for (parent of availableParents(); track parent.id) {
-                    <option [value]="parent.id">
-                      {{ parent.name }} (ID #{{ parent.id }})
-                    </option>
-                  }
-                </select>
-                <i class="bi bi-chevron-down select-caret"></i>
-              </div>
+              <app-custom-select
+                triggerId="parentCategorySelect"
+                formControlName="parentId"
+                leadingIcon="bi bi-diagram-3"
+                placeholder="None (Root / Main Category)"
+                [searchable]="true"
+                searchPlaceholder="Search parent category..."
+                [options]="parentSelectOptions()">
+              </app-custom-select>
               <span class="field-hint">
                 Select a parent category to create a <strong>Subcategory</strong>, or leave as <strong>None</strong> for a top-level Main Category.
               </span>
@@ -492,19 +485,15 @@
             <label for="subcatParentFilter" class="parent-filter-label">
               <i class="bi bi-funnel-fill"></i> Filter by Main Category:
             </label>
-            <select 
-              id="subcatParentFilter" 
-              class="parent-filter-select"
+            <app-custom-select
+              variant="filter"
+              triggerId="subcatParentFilter"
+              [searchable]="true"
+              searchPlaceholder="Filter main category..."
+              [options]="parentFilterOptions()"
               [value]="selectedParentFilter()"
-              (change)="selectedParentFilter.set($any($event.target).value)"
-            >
-              <option value="all">All Main Categories ({{ subCategories().length }})</option>
-              @for (p of parentCategories(); track p.id) {
-                <option [value]="p.id">
-                  {{ p.name }} ({{ getSubCount(p.id) }})
-                </option>
-              }
-            </select>
+              (valueChange)="selectedParentFilter.set($event)">
+            </app-custom-select>
           </div>
         }
       </div>

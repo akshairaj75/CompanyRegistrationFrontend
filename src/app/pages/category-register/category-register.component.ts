@@ -6,11 +6,13 @@ import { CategoryService } from '../../core/services/category';
 import { CategoryRequest, CategoryResponse } from '../../core/models/category.model';
 import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
+import { CustomSelectComponent } from '../../core/components/custom-select/custom-select.component';
+import { CustomSelectOption } from '../../core/components/custom-select/custom-select.model';
 
 @Component({
   selector: 'app-category-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, CustomSelectComponent],
   templateUrl: './category-register.component.html',
   styleUrl: './category-register.component.css'
 })
@@ -76,6 +78,25 @@ export class CategoryRegisterComponent implements OnInit {
     if (!editId) return this.parentCategories();
     return this.parentCategories().filter(p => p.id !== editId);
   });
+
+  // Custom Select Option Lists
+  readonly parentSelectOptions = computed<CustomSelectOption[]>(() => [
+    { value: '', label: 'None (Root / Main Category)' },
+    ...this.availableParents().map(parent => ({
+      value: parent.id,
+      label: parent.name,
+      badge: `ID #${parent.id}`
+    }))
+  ]);
+
+  readonly parentFilterOptions = computed<CustomSelectOption[]>(() => [
+    { value: 'all', label: `All Main Categories (${this.subCategories().length})` },
+    ...this.parentCategories().map(p => ({
+      value: String(p.id),
+      label: p.name,
+      badge: `${this.getSubCount(p.id)} subcats`
+    }))
+  ]);
 
   // Filtered Main Categories for Directory
   readonly filteredParentCategories = computed(() => {
