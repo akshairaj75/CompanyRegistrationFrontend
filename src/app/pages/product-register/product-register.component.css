@@ -2272,3 +2272,20 @@ input:checked + .slider:before {
     border-radius: var(--radius-lg);
   }
 }
+
+/* Voice input field wrapper adjustments */
+.input-wrapper .form-control.has-voice-btn {
+  padding-right: 2.75rem;
+}
+
+.search-input-wrapper .search-input.has-voice-btn {
+  padding-right: 4.5rem;
+}
+
+.field-label-with-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+

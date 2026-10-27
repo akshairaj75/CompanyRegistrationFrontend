@@ -434,5 +434,15 @@ button, input, select, textarea {
   }
 }
 
+/* ==========================================================================
+   GLOBAL VOICE INPUT UTILITIES
+   ========================================================================== */
+.form-control.has-voice-btn,
+input.has-voice-btn,
+textarea.has-voice-btn {
+  padding-right: 2.65rem !important;
+}
+
+
 
 

@@ -239,9 +239,10 @@
                   </label>
                   <div class="input-wrap">
                     <i class="bi bi-building input-icon"></i>
-                    <input type="text" id="companyName" formControlName="companyName" class="form-control"
+                    <input type="text" id="companyName" formControlName="companyName" class="form-control has-voice-btn"
                       placeholder="e.g. Apex Global Technologies Inc." autocomplete="off" (focus)="onCompanyNameFocus()"
                       (blur)="onCompanyNameBlur()" (keydown)="onCompanyNameKeydown($event)" />
+                    <app-voice-mic-button [control]="companyForm.get('companyName')" fieldId="companyName" label="Company Legal Name"></app-voice-mic-button>
                   </div>
 
                   <!-- Live Search Suggestions Dropdown -->
@@ -334,11 +335,16 @@
               <!-- Row 2: Company Summary (Moved up from old section 08) -->
               <div class="form-group mt-3">
                 <div class="field-label-row">
-                  <label for="description" class="form-label">Company Overview & Scope</label>
+                  <div class="field-label-with-voice">
+                    <label for="description" class="form-label">Company Overview & Scope</label>
+                    <app-voice-mic-button variant="pill" [control]="companyForm.get('description')" fieldId="description" label="Company Overview & Scope"></app-voice-mic-button>
+                  </div>
                   <span class="char-count-pill">{{ companyForm.get('description')?.value?.length || 0 }} / 1000 chars</span>
                 </div>
-                <textarea id="description" formControlName="description" rows="3" class="form-control textarea-control"
-                  placeholder="Briefly describe your company's core business, distribution reach, and mission..."></textarea>
+                <div class="textarea-voice-wrap">
+                  <textarea id="description" formControlName="description" rows="3" class="form-control textarea-control"
+                    placeholder="Briefly describe your company's core business, distribution reach, and mission..."></textarea>
+                </div>
               </div>
             </div>
           </section>
@@ -362,8 +368,9 @@
                     <label for="contactName" class="form-label">Contact Person Name</label>
                     <div class="input-wrap">
                       <i class="bi bi-person input-icon"></i>
-                      <input type="text" id="contactName" formControlName="contactName" class="form-control"
+                      <input type="text" id="contactName" formControlName="contactName" class="form-control has-voice-btn"
                         placeholder="e.g. Sarah Jenkins" />
+                      <app-voice-mic-button [control]="companyForm.get('contactName')" fieldId="contactName" label="Contact Person Name"></app-voice-mic-button>
                     </div>
                   </div>
 
@@ -498,15 +505,19 @@
                     <label for="address" class="form-label">Street Address</label>
                     <div class="input-wrap">
                       <i class="bi bi-geo-alt input-icon"></i>
-                      <input type="text" id="address" formControlName="address" class="form-control"
+                      <input type="text" id="address" formControlName="address" class="form-control has-voice-btn"
                         placeholder="Suite 500, 100 Innovation Way" />
+                      <app-voice-mic-button [control]="companyForm.get('address')" fieldId="address" label="Street Address"></app-voice-mic-button>
                     </div>
                   </div>
 
                   <div class="form-group hq-city-col">
                     <label for="city" class="form-label">City</label>
-                    <input type="text" id="city" formControlName="city" class="form-control"
-                      placeholder="e.g. Riyadh, Jeddah..." list="saudiCitiesDatalist" />
+                    <div class="input-wrap input-wrap-plain">
+                      <input type="text" id="city" formControlName="city" class="form-control has-voice-btn"
+                        placeholder="e.g. Riyadh, Jeddah..." list="saudiCitiesDatalist" />
+                      <app-voice-mic-button [control]="companyForm.get('city')" fieldId="city" label="City"></app-voice-mic-button>
+                    </div>
                     <datalist id="saudiCitiesDatalist">
                       @for (cityName of saudiMajorCities; track cityName) {
                       <option [value]="cityName"></option>
@@ -643,4 +654,5 @@
     (closeModal)="closeOcrModal()"
     (applyResult)="handleOcrApply($event)"
     (scanError)="handleOcrError($event)" />
+
 </div>

@@ -1,0 +1,22 @@
+@if (speechService.isSupported()) {
+  @if (variant === 'icon') {
+    <button
+      type="button"
+      class="btn-voice-input"
+      [class.listening]="isListening()"
+      (click)="toggleVoice($event)"
+      [title]="isListening() ? 'Stop listening' : ('Dictate ' + label)">
+      <i class="bi" [class.bi-mic-fill]="isListening()" [class.bi-mic]="!isListening()"></i>
+    </button>
+  } @else {
+    <button
+      type="button"
+      class="btn-voice-inline-pill"
+      [class.listening]="isListening()"
+      (click)="toggleVoice($event)"
+      [title]="isListening() ? 'Stop dictation' : ('Dictate ' + label)">
+      <i class="bi" [class.bi-mic-fill]="isListening()" [class.bi-mic]="!isListening()"></i>
+      <span>{{ isListening() ? pillListeningLabel : pillLabel }}</span>
+    </button>
+  }
+}

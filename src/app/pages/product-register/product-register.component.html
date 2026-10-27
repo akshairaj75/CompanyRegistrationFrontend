@@ -219,12 +219,13 @@
                   <input
                     id="name"
                     type="text"
-                    class="form-control"
+                    class="form-control has-voice-btn"
                     placeholder="e.g. MacBook Pro M3, Air Max 90, Galaxy S24 Ultra..."
                     formControlName="name"
                     maxlength="200"
                     autocomplete="off"
                   />
+                  <app-voice-mic-button [control]="productForm.get('name')" fieldId="name" label="Product Name"></app-voice-mic-button>
                 </div>
                 @if (isInvalid('name')) {
                   <span class="field-error">
@@ -309,9 +310,14 @@
 
               <!-- Description Textarea -->
               <div class="form-group mt-3">
-                <label for="description" class="form-label">
-                  Description <span class="optional-pill">Optional</span>
-                </label>
+                <div class="field-label-row">
+                  <div class="field-label-with-voice">
+                    <label for="description" class="form-label">
+                      Description <span class="optional-pill">Optional</span>
+                    </label>
+                    <app-voice-mic-button variant="pill" [control]="productForm.get('description')" fieldId="description" label="Product Description"></app-voice-mic-button>
+                  </div>
+                </div>
                 <div class="input-wrapper textarea-wrapper">
                   <i class="bi bi-card-text input-icon-textarea"></i>
                   <textarea
@@ -564,7 +570,7 @@
               <i class="bi bi-search search-icon"></i>
               <input
                 type="text"
-                class="search-input"
+                class="search-input has-voice-btn"
                 placeholder="Search products by title, category, subcategory, brand, or ID..."
                 [value]="searchQuery()"
                 (input)="searchQuery.set($any($event.target).value)"
@@ -574,6 +580,7 @@
                   <i class="bi bi-x"></i>
                 </button>
               }
+              <app-voice-mic-button [value]="searchQuery()" (valueChange)="searchQuery.set($event)" fieldId="productSearch" label="Search Products"></app-voice-mic-button>
             </div>
 
             <!-- Category Filter Dropdown -->

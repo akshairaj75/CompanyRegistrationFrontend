@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, HostListener, ViewChild, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, HostListener, ViewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CompanyService } from '../../core/services/company';
@@ -11,6 +11,7 @@ import { ProductResponse, ScrapedProduct, ScrapeProductsResponse } from '../../c
 import { CategoryResponse } from '../../core/models/category.model';
 import { AuthService } from '../../core/services/auth.service';
 import { OcrService } from '../../core/services/ocr.service';
+import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
 import { BusinessCardScanResult } from '../../core/models/ocr.model';
 import { environment } from '../../../environments/environment';
 import { RouterLink } from '@angular/router';
@@ -27,6 +28,8 @@ import { CompanyCatalogPickerComponent } from './components/company-catalog-pick
 import { CompanyDirectoryComponent } from './components/company-directory/company-directory.component';
 import { CompanyAssetUploadComponent } from './components/company-asset-upload/company-asset-upload.component';
 
+import { VoiceMicButtonComponent } from '../../core/components/voice-mic-button/voice-mic-button.component';
+
 @Component({
   selector: 'app-company-register',
   standalone: true,
@@ -41,12 +44,13 @@ import { CompanyAssetUploadComponent } from './components/company-asset-upload/c
     SearchableCountrySelectComponent,
     CompanyCatalogPickerComponent,
     CompanyDirectoryComponent,
-    CompanyAssetUploadComponent
+    CompanyAssetUploadComponent,
+    VoiceMicButtonComponent
   ],
   templateUrl: './company-register.component.html',
   styleUrl: './company-register.component.css'
 })
-export class CompanyRegisterComponent implements OnInit {
+export class CompanyRegisterComponent implements OnInit, OnDestroy {
   @ViewChild('assetUpload') assetUploadComponent?: CompanyAssetUploadComponent;
   private readonly fb = inject(FormBuilder);
   readonly companyService = inject(CompanyService);
@@ -55,6 +59,7 @@ export class CompanyRegisterComponent implements OnInit {
   readonly categoryService = inject(CategoryService);
   readonly authService = inject(AuthService);
   readonly ocrService = inject(OcrService);
+  readonly speechService = inject(SpeechRecognitionService);
   readonly environment = environment;
   readonly countryOptions = COUNTRY_OPTIONS;
   readonly normalizeToCountryCode = normalizeToCountryCode;
@@ -100,6 +105,7 @@ export class CompanyRegisterComponent implements OnInit {
   readonly directorySelectedCompany = signal<CompanyResponse | null>(null);
   readonly feedback = signal<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
   private feedbackTimer?: any;
+  private isSpeechUpdating = false;
 
   constructor() {
     effect(() => {
@@ -263,6 +269,18 @@ export class CompanyRegisterComponent implements OnInit {
         }
       } else if (!val) {
         this.isAutoCountrySelected.set(false);
+      }
+    });
+
+    // Synchronize speech recognition if user manually clears or edits field while listening
+    this.companyForm.valueChanges.subscribe(formValues => {
+      if (this.isSpeechUpdating) return;
+      if (this.speechService.isListening()) {
+        const activeField = this.speechService.activeFieldId();
+        if (activeField && formValues && activeField in formValues) {
+          const currentVal = formValues[activeField] || '';
+          this.speechService.syncFieldText(currentVal);
+        }
       }
     });
   }
@@ -874,6 +892,66 @@ export class CompanyRegisterComponent implements OnInit {
       title: 'Scanning Failed',
       message: msg
     });
+  }
+
+  // Voice Speech-to-Text Support
+  @HostListener('window:keydown.escape')
+  onEscapeKey(): void {
+    if (this.speechService.isListening()) {
+      this.speechService.stopListening();
+    }
+  }
+
+  toggleVoiceInput(fieldId: string, formControlName: string, label: string): void {
+    if (!this.speechService.isSupported()) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Voice Input Unavailable',
+        message: 'Speech recognition is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Safari.'
+      });
+      return;
+    }
+
+    if (this.speechService.isListening() && this.speechService.activeFieldId() === fieldId) {
+      this.speechService.stopListening();
+      return;
+    }
+
+    const currentVal = this.companyForm.get(formControlName)?.value || '';
+
+    this.speechService.startListening(
+      fieldId,
+      label,
+      currentVal,
+      {
+        onUpdate: (fullText: string) => {
+          this.isSpeechUpdating = true;
+          this.companyForm.patchValue({ [formControlName]: fullText });
+          this.companyForm.get(formControlName)?.markAsDirty();
+          this.companyForm.get(formControlName)?.markAsTouched();
+          this.isSpeechUpdating = false;
+        },
+        onError: (err: string) => {
+          this.feedback.set({
+            type: 'error',
+            title: 'Voice Recognition Error',
+            message: err
+          });
+        }
+      }
+    );
+  }
+
+  stopVoiceInput(): void {
+    this.speechService.stopListening();
+  }
+
+  setVoiceLanguage(langCode: string): void {
+    this.speechService.setLanguage(langCode);
+  }
+
+  ngOnDestroy(): void {
+    this.speechService.stopListening();
   }
 }
 

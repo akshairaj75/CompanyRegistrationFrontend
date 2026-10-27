@@ -7204,4 +7204,20 @@ select.ocr-input {
   }
 }
 
+/* Voice input field wrapper adjustments */
+.input-wrap.input-wrap-plain .form-control {
+  padding-left: 0.9rem;
+}
+
+.input-wrap .form-control.has-voice-btn {
+  padding-right: 2.45rem;
+}
+
+.field-label-with-voice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+
 

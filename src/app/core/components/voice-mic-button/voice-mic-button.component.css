@@ -1,0 +1,108 @@
+/* ==========================================================================
+   REUSABLE VOICE MIC BUTTON COMPONENT
+   ========================================================================== */
+
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:host(.inside-input) {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+/* Icon Button Variant (Inside inputs) */
+.btn-voice-input {
+  width: 1.95rem;
+  height: 1.95rem;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.btn-voice-input:hover {
+  background: #f1f5f9;
+  color: #4f46e5;
+  border-color: #e2e8f0;
+  transform: scale(1.08);
+}
+
+.btn-voice-input.listening {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
+  animation: voiceMicPulse 1.4s infinite ease-in-out;
+}
+
+/* Pill Button Variant (Textarea headers / section labels) */
+.btn-voice-inline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-voice-inline-pill:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.btn-voice-inline-pill.listening {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  animation: voicePillPulse 1.4s infinite ease-in-out;
+}
+
+.btn-voice-inline-pill i {
+  font-size: 0.85rem;
+}
+
+@keyframes voiceMicPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes voicePillPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}

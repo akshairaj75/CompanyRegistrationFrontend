@@ -1,0 +1,43 @@
+@if (speechService.isListening()) {
+  <div class="voice-dictation-hud" role="region" aria-live="polite" aria-label="Voice input active">
+    <div class="hud-left">
+      <div class="hud-recording-indicator">
+        <span class="hud-pulse-ring"></span>
+        <span class="hud-mic-circle">
+          <i class="bi bi-mic-fill"></i>
+        </span>
+      </div>
+      <div class="hud-details">
+        <div class="hud-target-row">
+          <span class="hud-badge">Listening</span>
+          <span class="hud-target-name">{{ speechService.activeFieldLabel() }}</span>
+        </div>
+        <div class="hud-transcript-preview">
+          @if (speechService.interimTranscript()) {
+            <span class="hud-interim">"{{ speechService.interimTranscript() }}"</span>
+          } @else {
+            <span class="hud-waiting">Speak now into your microphone...</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Language Selector & Controls -->
+    <div class="hud-actions">
+      <div class="hud-lang-picker">
+        <i class="bi bi-translate hud-lang-icon"></i>
+        <select class="hud-lang-select" [value]="speechService.selectedLanguage()"
+          (change)="onLanguageChange($any($event.target).value)" title="Change Dictation Language">
+          @for (lang of speechService.availableLanguages; track lang.code) {
+            <option [value]="lang.code">{{ lang.label }}</option>
+          }
+        </select>
+      </div>
+
+      <button type="button" class="btn-hud-stop" (click)="stopListening()" title="Done speaking (or press Esc)">
+        <i class="bi bi-check2-circle"></i>
+        <span>Done</span>
+      </button>
+    </div>
+  </div>
+}

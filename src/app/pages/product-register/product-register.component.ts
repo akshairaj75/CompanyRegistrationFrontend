@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+ import { Component, OnInit, OnDestroy, HostListener, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -9,24 +9,28 @@ import { ProductRequest, ProductResponse } from '../../core/models/product.model
 import { CategoryResponse } from '../../core/models/category.model';
 import { BrandResponse } from '../../core/models/brand.model';
 import { AuthService } from '../../core/services/auth.service';
+import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
 import { environment } from '../../../environments/environment';
 import { CustomSelectComponent } from '../../core/components/custom-select/custom-select.component';
 import { CustomSelectOption } from '../../core/components/custom-select/custom-select.model';
+import { VoiceMicButtonComponent } from '../../core/components/voice-mic-button/voice-mic-button.component';
 
 @Component({
   selector: 'app-product-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, CustomSelectComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, CustomSelectComponent, VoiceMicButtonComponent],
   templateUrl: './product-register.component.html',
   styleUrl: './product-register.component.css'
 })
-export class ProductRegisterComponent implements OnInit {
+export class ProductRegisterComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   readonly productService = inject(ProductService);
   readonly categoryService = inject(CategoryService);
   readonly brandService = inject(BrandService);
   readonly authService = inject(AuthService);
+  readonly speechService = inject(SpeechRecognitionService);
   readonly environment = environment;
+  private isSpeechUpdating = false;
 
   readonly currentUser = this.authService.currentUser;
 
@@ -175,6 +179,18 @@ export class ProductRegisterComponent implements OnInit {
         const validSub = this.availableSubCategories().some(s => s.id === Number(currentSub));
         if (!validSub) {
           this.productForm.patchValue({ subCategoryId: '' }, { emitEvent: false });
+        }
+      }
+    });
+
+    // Synchronize speech recognition if user manually clears or edits field while listening
+    this.productForm.valueChanges.subscribe(formValues => {
+      if (this.isSpeechUpdating) return;
+      if (this.speechService.isListening()) {
+        const activeField = this.speechService.activeFieldId();
+        if (activeField && formValues && activeField in formValues) {
+          const currentVal = formValues[activeField] || '';
+          this.speechService.syncFieldText(currentVal);
         }
       }
     });
@@ -589,5 +605,86 @@ export class ProductRegisterComponent implements OnInit {
   isInvalid(controlName: string): boolean {
     const control = this.productForm.get(controlName);
     return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  // Voice Speech-to-Text Support
+  @HostListener('window:keydown.escape')
+  onEscapeKey(): void {
+    if (this.speechService.isListening()) {
+      this.speechService.stopListening();
+    }
+  }
+
+  toggleVoiceInput(fieldId: string, formControlName: string, label: string): void {
+    if (!this.speechService.isSupported()) {
+      this.feedback.set({
+        type: 'error',
+        title: 'Voice Input Unavailable',
+        message: 'Speech recognition is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Safari.'
+      });
+      return;
+    }
+
+    if (this.speechService.isListening() && this.speechService.activeFieldId() === fieldId) {
+      this.speechService.stopListening();
+      return;
+    }
+
+    const currentVal = this.productForm.get(formControlName)?.value || '';
+
+    this.speechService.startListening(
+      fieldId,
+      label,
+      currentVal,
+      {
+        onUpdate: (fullText: string) => {
+          this.isSpeechUpdating = true;
+          this.productForm.patchValue({ [formControlName]: fullText });
+          this.productForm.get(formControlName)?.markAsDirty();
+          this.productForm.get(formControlName)?.markAsTouched();
+          this.isSpeechUpdating = false;
+        },
+        onError: (err: string) => {
+          this.feedback.set({
+            type: 'error',
+            title: 'Voice Recognition Error',
+            message: err
+          });
+        }
+      }
+    );
+  }
+
+  toggleSearchVoiceInput(): void {
+    if (!this.speechService.isSupported()) return;
+
+    if (this.speechService.isListening() && this.speechService.activeFieldId() === 'productSearch') {
+      this.speechService.stopListening();
+      return;
+    }
+
+    const currentVal = this.searchQuery() || '';
+    this.speechService.startListening(
+      'productSearch',
+      'Search Products',
+      currentVal,
+      {
+        onUpdate: (fullText: string) => {
+          this.searchQuery.set(fullText);
+        }
+      }
+    );
+  }
+
+  stopVoiceInput(): void {
+    this.speechService.stopListening();
+  }
+
+  setVoiceLanguage(langCode: string): void {
+    this.speechService.setLanguage(langCode);
+  }
+
+  ngOnDestroy(): void {
+    this.speechService.stopListening();
   }
 }
