@@ -419,5 +419,66 @@ Phone: +1 415 555 0199
     expect(res.companyName).toBeUndefined();
     expect(res.contactName).toBeUndefined();
   });
+
+  // 22. Exact Aldayfe business card (Saudi Arabia)
+  it('should parse the Aldayfe card with multiple Saudi mobile numbers and office landline with extension', () => {
+    const rawText = `
+الضيف ALDAYFE
+للاستثمار الزراعي For Agricultural Investment
+أ. أحمد محمد عابدين
+Mr. Ahmed Mohamed Abdeen
+منسق المبيعات ومدير مكتب مدير الشركة
+Sales Coordinator and Office Manager of the Company
+mob. 0531170206 - 0503935472
+mob. +966 (0) 16300777 - Ext. 210
+a.abdeen@aldayfe.com
+    `;
+
+    const res = service.parse(rawText);
+
+    // Mobile number must be cleanly extracted without truncation or stitching
+    expect(res.contactMobileNumber).toBe('0531170206');
+    expect(res.contactMobileNumber).not.toContain('0531170206-05039');
+    // Office landline must be captured into landline
+    expect(res.landline).toBeDefined();
+    expect(res.landline).toContain('16300777');
+    expect(res.email).toBe('a.abdeen@aldayfe.com');
+  });
+
+  // 23. Multiple Saudi mobile numbers separated by slash
+  it('should parse two Saudi mobile numbers separated by slash and preserve second mobile in landline when no landline exists', () => {
+    const rawText = `
+Falcon Tech
+Saud Al-Otaibi
+Operations Manager
+Mob: 0551234567 / 0509876543
+saud@falcontech.sa
+Riyadh, Saudi Arabia
+    `;
+
+    const res = service.parse(rawText);
+
+    expect(res.contactMobileNumber).toBe('0551234567');
+    expect(res.landline).toBe('0509876543');
+    expect(res.email).toBe('saud@falcontech.sa');
+  });
+
+  // 24. Saudi Unified (9200) number
+  it('should recognize Saudi 9200 unified number as landline/office', () => {
+    const rawText = `
+Al Rajhi Trading
+Mohammed Saleh
+Sales Director
+Tel: 920012345
+Mob: 0541112233
+Riyadh, KSA
+    `;
+
+    const res = service.parse(rawText);
+
+    expect(res.contactMobileNumber).toBe('0541112233');
+    expect(res.landline).toBe('920012345');
+  });
 });
+
 

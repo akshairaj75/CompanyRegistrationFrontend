@@ -274,7 +274,7 @@ export class CompanyRegisterComponent implements OnInit, OnDestroy {
 
     // Synchronize speech recognition if user manually clears or edits field while listening
     this.companyForm.valueChanges.subscribe(formValues => {
-      if (this.isSpeechUpdating) return;
+      if (this.isSpeechUpdating || this.speechService.isProgrammaticUpdate()) return;
       if (this.speechService.isListening()) {
         const activeField = this.speechService.activeFieldId();
         if (activeField && formValues && activeField in formValues) {

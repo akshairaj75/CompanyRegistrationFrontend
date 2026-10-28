@@ -10,7 +10,7 @@
 
 :host(.inside-input) {
   position: absolute;
-  right: 0.45rem;
+  right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
@@ -18,11 +18,11 @@
 
 /* Icon Button Variant (Inside inputs) */
 .btn-voice-input {
-  width: 1.95rem;
-  height: 1.95rem;
+  width: 2.1rem;
+  height: 2.1rem;
   border-radius: 50%;
   border: 1px solid transparent;
-  background: transparent;
+  background: rgba(241, 245, 249, 0.6);
   color: #64748b;
   display: inline-flex;
   align-items: center;
@@ -34,17 +34,18 @@
 }
 
 .btn-voice-input:hover {
-  background: #f1f5f9;
-  color: #4f46e5;
-  border-color: #e2e8f0;
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
   transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15);
 }
 
 .btn-voice-input.listening {
-  background: #fee2e2;
-  color: #dc2626;
-  border-color: #fca5a5;
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border-color: #059669;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
   animation: voiceMicPulse 1.4s infinite ease-in-out;
 }
 
@@ -52,57 +53,58 @@
 .btn-voice-inline-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.22rem 0.7rem;
+  gap: 0.4rem;
+  padding: 0.25rem 0.8rem;
   border-radius: 9999px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   color: #475569;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-voice-inline-pill:hover {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #4f46e5;
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #059669;
   transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.12);
 }
 
 .btn-voice-inline-pill.listening {
-  background: #fef2f2;
-  border-color: #f87171;
-  color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #059669;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
   animation: voicePillPulse 1.4s infinite ease-in-out;
 }
 
 .btn-voice-inline-pill i {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
 }
 
 @keyframes voiceMicPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }
 
 @keyframes voicePillPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }

@@ -1,43 +1,70 @@
 @if (speechService.isListening()) {
-  <div class="voice-dictation-hud" role="region" aria-live="polite" aria-label="Voice input active">
-    <div class="hud-left">
-      <div class="hud-recording-indicator">
-        <span class="hud-pulse-ring"></span>
-        <span class="hud-mic-circle">
-          <i class="bi bi-mic-fill"></i>
-        </span>
+<aside class="voice-dictation-hud" role="dialog" aria-modal="false" aria-live="polite" aria-label="Voice input active">
+  <div class="hud-main">
+    <div class="hud-status-section">
+      <!-- Live Sound Equalizer Waveform -->
+      <div class="hud-wave-visualizer" title="Microphone volume">
+        @for (height of speechService.waveBars(); track $index) {
+        <span class="wave-bar" [style.height.%]="height"></span>
+        }
       </div>
-      <div class="hud-details">
-        <div class="hud-target-row">
-          <span class="hud-badge">Listening</span>
-          <span class="hud-target-name">{{ speechService.activeFieldLabel() }}</span>
+
+      <div class="hud-info">
+        <div class="hud-header-line">
+          <span class="hud-live-pill">
+            <span class="live-dot"></span>
+            DICTATING
+          </span>
+          <span class="hud-field-name">{{ speechService.activeFieldLabel() }}</span>
+
+          <!-- Prominently displayed active language badge -->
+          <span class="hud-lang-badge" [title]="'Active language: ' + currentLanguage().label">
+            <span class="lang-flag">{{ currentLanguage().flag }}</span>
+            <span class="lang-label">{{ currentLanguage().label }}</span>
+          </span>
         </div>
-        <div class="hud-transcript-preview">
+
+        <!-- Dynamic Live Transcript Stream -->
+        <div class="hud-stream-container">
           @if (speechService.interimTranscript()) {
-            <span class="hud-interim">"{{ speechService.interimTranscript() }}"</span>
+          <span class="hud-stream-active">
+            "{{ speechService.interimTranscript() }}"
+          </span>
           } @else {
-            <span class="hud-waiting">Speak now into your microphone...</span>
+          <span class="hud-stream-waiting">
+            <i class="bi bi-mic"></i> Speak naturally... (auto-stops after 8s without words)
+          </span>
           }
         </div>
       </div>
     </div>
 
-    <!-- Language Selector & Controls -->
-    <div class="hud-actions">
+    <!-- Controls & Language Selector -->
+    <div class="hud-controls">
+      <!-- Styled Language Picker with Flag & Icon -->
       <div class="hud-lang-picker">
         <i class="bi bi-translate hud-lang-icon"></i>
-        <select class="hud-lang-select" [value]="speechService.selectedLanguage()"
-          (change)="onLanguageChange($any($event.target).value)" title="Change Dictation Language">
+        <select class="hud-lang-dropdown" [ngModel]="speechService.selectedLanguage()"
+          (ngModelChange)="onLanguageChange($event)" title="Change Speech Recognition Language">
           @for (lang of speechService.availableLanguages; track lang.code) {
-            <option [value]="lang.code">{{ lang.label }}</option>
+          <option [value]="lang.code" [selected]="lang.code === speechService.selectedLanguage()">
+            {{ lang.flag }} {{ lang.label }}
+          </option>
           }
         </select>
       </div>
 
-      <button type="button" class="btn-hud-stop" (click)="stopListening()" title="Done speaking (or press Esc)">
-        <i class="bi bi-check2-circle"></i>
+      <!-- Done / Finish Button -->
+      <button type="button" class="btn-hud-done" (click)="stopListening()" title="Finish dictation (Esc)">
+        <i class="bi bi-check2"></i>
         <span>Done</span>
+      </button>
+
+      <!-- Close / Cancel Button -->
+      <button type="button" class="btn-hud-close" (click)="stopListening()" title="Cancel and close">
+        <i class="bi bi-x-lg"></i>
       </button>
     </div>
   </div>
+</aside>
 }

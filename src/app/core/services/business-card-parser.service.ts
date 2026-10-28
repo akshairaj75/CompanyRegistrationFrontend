@@ -11,8 +11,9 @@ export class BusinessCardParserService {
   // Website regex: matches https://, http://, www., or bare domain names with common TLDs
   private readonly URL_REGEX = /\b(?:https?:\/\/|www\.)[^\s,;"'<>()]+|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+(?:com|org|net|edu|gov|io|ai|co|in|me|biz|info|store|tech|dev|app|global|ae|uk|ca|de|fr|jp|sa)(?::\d+)?(?:\/[^\s,;"'<>()]*)?/gi;
 
-  // Phone candidate pattern: matches phone strings with optional country code, area code, spaces, hyphens
-  private readonly PHONE_CANDIDATE_REGEX = /(?:\+\d{1,4}[-.\s]*)?(?:\(?\d{1,5}\)?[-.\s]*)?\d{3,5}[-.\s]*\d{3,5}(?:[-.\s]*(?:ext|x|extension)[-.\s]*\d{1,5})?/gi;
+  // Phone candidate pattern: matches phone strings with optional country code (+966, 00966, etc.),
+  // domestic area codes / zero prefixes, 7 to 15 digits total, and optional extension
+  private readonly PHONE_CANDIDATE_REGEX = /(?:(?:\+|00)\d{1,4}[-.\s]*)?(?:\(?\d{1,5}\)?[-.\s]*)?\d{2,5}(?:[-.\s]*\d{2,5}){1,4}(?:[-.\s]*(?:ext|x|extension|extn)[:.\s]*\d{1,5})?/gi;
 
   // Phone type indicators
   private readonly MOBILE_LABEL_REGEX = /\b(?:m|mob|mobile|cell|c)\b[:.\-\s]?/i;
@@ -230,7 +231,7 @@ export class BusinessCardParserService {
   'management trainee', 'graduate management trainee',
   'management consultant', 'management analyst',
   'chief of staff', 'business operations lead',
-  'operations coordinator', 'administrative coordinator',
+  'operations coordinator', 'administrative coordinator', 'sales coordinator', 'project coordinator',
   'management associate', 'management officer',
 
   // =====================================================
@@ -2457,28 +2458,26 @@ private readonly COMPANY_NAME_ENDINGS: string[] = [
     // ==========================================
     const phoneCandidates = this.extractPhoneCandidates(lines, markUsage);
     if (phoneCandidates.length > 0) {
-      const mobileCandidate = phoneCandidates.find(p => p.type === 'mobile');
-      const landlineCandidate = phoneCandidates.find(p => p.type === 'landline');
+      const mobileCandidates = phoneCandidates.filter(p => p.type === 'mobile');
+      const landlineCandidates = phoneCandidates.filter(p => p.type === 'landline');
       const genericCandidates = phoneCandidates.filter(p => p.type === 'generic');
 
-      if (mobileCandidate) {
-        result.contactMobileNumber = mobileCandidate.number;
-        if (landlineCandidate) {
-          result.landline = landlineCandidate.number;
-        } else if (genericCandidates.length > 0) {
-          result.landline = genericCandidates[0].number;
-        }
-      } else if (landlineCandidate) {
-        result.landline = landlineCandidate.number;
-        if (genericCandidates.length > 0) {
-          result.contactMobileNumber = genericCandidates[0].number;
-        }
-      } else {
-        // Only generic numbers available: assign first as mobile, second as landline
+      // 1. Assign Mobile Number
+      if (mobileCandidates.length > 0) {
+        result.contactMobileNumber = mobileCandidates[0].number;
+      } else if (genericCandidates.length > 0) {
         result.contactMobileNumber = genericCandidates[0].number;
-        if (genericCandidates.length > 1) {
-          result.landline = genericCandidates[1].number;
-        }
+      }
+
+      // 2. Assign Landline / Office Number
+      if (landlineCandidates.length > 0) {
+        result.landline = landlineCandidates[0].number;
+      } else if (mobileCandidates.length > 1) {
+        // When multiple mobile numbers are on the card and no landline was specified,
+        // preserve the second mobile number as secondary contact in landline so it's not lost
+        result.landline = mobileCandidates[1].number;
+      } else if (genericCandidates.length > 1 && !result.landline) {
+        result.landline = genericCandidates[1].number;
       }
     }
 
@@ -2665,6 +2664,155 @@ private readonly COMPANY_NAME_ENDINGS: string[] = [
     }
   }
 
+  /**
+   * Pre-splits a phone line when multiple phone numbers or repeated labels exist on the same line.
+   * e.g. "mob. 0531170206 - 0503935472" -> ["mob. 0531170206", "0503935472"]
+   * or "Tel: 011 234 5678 / Mob: 050 123 4567" -> ["Tel: 011 234 5678", "Mob: 050 123 4567"]
+   */
+  private splitPhoneLineSegments(line: string): string[] {
+    // 1. If line has multiple phone labels (e.g. "Tel: ... Mob: ..."), split before subsequent labels
+    const labelSplitRegex = /(?<=[0-9)\s])(?=(?:\b(?:mob|mobile|cell|tel|telephone|phone|fax|office|off|dir)\b[:.\-\s]?))/i;
+    const parts = line.split(labelSplitRegex).map(p => p.trim()).filter(p => p.length > 0);
+
+    // 2. For each part, split by explicit multiple-number separators: /, |, \, ;, or comma
+    const delimiterRegex = /\s*(?:\/|\||\\|;|\s,\s*)\s*/;
+    const subParts: string[] = [];
+    for (const part of parts) {
+      const splitByDelim = part.split(delimiterRegex).map(s => s.trim()).filter(s => s.length > 0);
+      subParts.push(...splitByDelim);
+    }
+
+    // 3. Check for hyphen/dash separators between two distinct numbers
+    // e.g. "0531170206 - 0503935472" or "0531170206-0503935472"
+    const finalSegments: string[] = [];
+    for (const part of subParts) {
+      // Split on dash/hyphen only if both sides have at least 7 digits (excluding extensions)
+      const dashMatch = part.match(/^([\s\S]+?)\s*[-–—]\s*([\s\S]+)$/);
+      if (dashMatch) {
+        const leftDigits = dashMatch[1].replace(/\D/g, '');
+        const rightWithoutExt = dashMatch[2].replace(/\b(?:ext|x|extension|extn)\b.*$/i, '');
+        const rightDigits = rightWithoutExt.replace(/\D/g, '');
+
+        if (leftDigits.length >= 7 && rightDigits.length >= 7) {
+          finalSegments.push(dashMatch[1].trim());
+          finalSegments.push(dashMatch[2].trim());
+          continue;
+        }
+      }
+      finalSegments.push(part);
+    }
+
+    return finalSegments.filter(s => s.length > 0);
+  }
+
+  /**
+   * Refines a phone candidate and classifies it with deep awareness of Saudi (CST/CITC) numbering plans:
+   * - Saudi Mobile: 05xxxxxxxx, +966 5xxxxxxxx (9-10 digits)
+   * - Saudi Landline: 011 (Riyadh), 012 (Makkah/Jeddah), 013 (Eastern), 014 (Madinah/Tabuk), 016 (Qassim/Hail), 017 (South)
+   * - Saudi Unified: 9200xxxxx (9 digits)
+   * - Saudi Toll-Free: 800xxxxxxx (10 digits)
+   * - Extension handling: removes alphabetical words so Angular phoneValidator passes without error
+   */
+  private classifyAndRefinePhone(
+    rawMatch: string,
+    segment: string
+  ): { number: string; type: 'mobile' | 'landline' | 'generic' } | null {
+    // Clean leading/trailing punctuation but preserve internal spaces, parentheses, hyphens, and leading +
+    let cleanNumber = rawMatch.trim().replace(/^[^0-9+]+|[^0-9]+$/g, '');
+
+    // Extract and handle extensions: e.g. " - Ext. 210" or " Ext: 210" or " x210"
+    let extensionDigits = '';
+    const extMatch = segment.match(/\b(?:ext|x|extension|extn)[:.\s]*(\d{1,5})\b/i);
+    if (extMatch) {
+      extensionDigits = extMatch[1];
+      // Remove any alphabetical extension words from cleanNumber so phoneValidator passes without error
+      cleanNumber = cleanNumber.replace(/[-.\s]*(?:ext|x|extension|extn)[:.\s]*\d{1,5}/i, '').trim();
+    }
+
+    // Strip redundant domestic (0) in international formats, e.g. "+966 (0) 16300777" -> "+966 16300777"
+    if (/^(?:\+|00)?966\s*\(0\)/i.test(cleanNumber)) {
+      cleanNumber = cleanNumber.replace(/((?:\+|00)?966)\s*\(0\)\s*/i, '$1 ');
+    }
+
+    const digitsOnly = cleanNumber.replace(/\D/g, '');
+
+    // Valid phone numbers are typically 7 to 15 digits
+    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+      return null;
+    }
+
+    // Discard pure 6-digit postal zip codes
+    if (digitsOnly.length <= 6) {
+      return null;
+    }
+
+    // Format extension cleanly without English letters: e.g. "+966 16 300777 - 210"
+    if (extensionDigits && !cleanNumber.endsWith(extensionDigits)) {
+      cleanNumber = `${cleanNumber} - ${extensionDigits}`;
+    }
+
+    // Context cues on the segment
+    const hasMobileCue = this.MOBILE_LABEL_REGEX.test(segment);
+    const hasLandlineCue = this.LANDLINE_LABEL_REGEX.test(segment);
+    const hasFaxCue = this.FAX_LABEL_REGEX.test(segment);
+    const hasExtension = !!extensionDigits;
+
+    // ========================================================
+    // SAUDI NUMBER CLASSIFICATION (CST / CITC Numbering Plan)
+    // ========================================================
+    let isSaudiMobile = false;
+    let isSaudiLandline = false;
+
+    if (digitsOnly.startsWith('966') || digitsOnly.startsWith('00966')) {
+      const nationalDigits = digitsOnly.replace(/^(?:00)?966/, '');
+      // Saudi Mobile: starts with 5 (9 digits national, e.g. 5xxxxxxxx)
+      if (nationalDigits.startsWith('5') && nationalDigits.length === 9) {
+        isSaudiMobile = true;
+      }
+      // Saudi Geographic Landlines: 11 (Riyadh), 12 (Makkah/Jeddah), 13 (Eastern), 14 (Madinah/Tabuk), 16 (Qassim/Hail), 17 (South)
+      else if (/^1[123467]/.test(nationalDigits) || nationalDigits.startsWith('1')) {
+        isSaudiLandline = true;
+      }
+      // Saudi Unified (9200) or Toll-Free (800)
+      else if (nationalDigits.startsWith('9200') || nationalDigits.startsWith('800')) {
+        isSaudiLandline = true;
+      }
+    } else {
+      // Domestic Saudi formats:
+      // Mobile: starts with 05 (10 digits: 05xxxxxxxx) or 5 (9 digits)
+      if ((digitsOnly.startsWith('05') && digitsOnly.length === 10) || (digitsOnly.startsWith('5') && digitsOnly.length === 9)) {
+        isSaudiMobile = true;
+      }
+      // Geographic landlines: 011, 012, 013, 014, 016, 017 (9-10 digits)
+      else if (/^0?1[123467]/.test(digitsOnly) && digitsOnly.length >= 8 && digitsOnly.length <= 10) {
+        isSaudiLandline = true;
+      }
+      // Unified corporate 9200 (9 digits)
+      else if (digitsOnly.startsWith('9200') && digitsOnly.length === 9) {
+        isSaudiLandline = true;
+      }
+      // Toll-free 800 (10 digits)
+      else if (digitsOnly.startsWith('800') && digitsOnly.length === 10) {
+        isSaudiLandline = true;
+      }
+    }
+
+    // Determine candidate type with Saudi priority
+    let type: 'mobile' | 'landline' | 'generic' = 'generic';
+
+    if (isSaudiMobile) {
+      type = 'mobile';
+    } else if (isSaudiLandline || hasExtension) {
+      type = 'landline';
+    } else if (hasMobileCue) {
+      type = 'mobile';
+    } else if (hasLandlineCue || hasFaxCue) {
+      type = 'landline';
+    }
+
+    return { number: cleanNumber, type };
+  }
+
   private extractPhoneCandidates(
     lines: string[],
     markUsage: (idx: number, field: string) => void
@@ -2687,39 +2835,30 @@ private readonly COMPANY_NAME_ENDINGS: string[] = [
       // Skip dedicated Fax lines unless no other numbers exist
       if (hasFax && !hasMobile && !hasLandline) return;
 
-      // Extract after label if present, or search line
-      let searchTarget = line;
-      if (hasPhoneCue) {
-        searchTarget = line.replace(/^[A-Za-z\s]+[:.\-]/, '').trim();
-      }
+      // Pre-split line if it contains multiple phone numbers or multiple labels
+      const segments = this.splitPhoneLineSegments(line);
 
-      const matches = searchTarget.match(this.PHONE_CANDIDATE_REGEX);
-      if (!matches) return;
-
-      matches.forEach(rawMatch => {
-        // Clean leading/trailing punctuation but preserve internal spaces, parentheses, hyphens, and leading +
-        let cleanNumber = rawMatch.trim().replace(/^[^0-9+]+|[^0-9]+$/g, '');
-        const digitsOnly = cleanNumber.replace(/\D/g, '');
-
-        // Valid phone numbers are typically 7 to 15 digits
-        if (digitsOnly.length < 7 || digitsOnly.length > 15) return;
-
-        // Discard pure 6-digit postal zip codes
-        if (digitsOnly.length <= 6) return;
-
-        // Prevent duplicate numbers
-        if (seenDigits.has(digitsOnly)) return;
-        seenDigits.add(digitsOnly);
-
-        let type: 'mobile' | 'landline' | 'generic' = 'generic';
-        if (hasMobile) {
-          type = 'mobile';
-        } else if (hasLandline) {
-          type = 'landline';
+      segments.forEach(segment => {
+        let searchTarget = segment;
+        if (this.MOBILE_LABEL_REGEX.test(segment) || this.LANDLINE_LABEL_REGEX.test(segment) || this.FAX_LABEL_REGEX.test(segment)) {
+          searchTarget = segment.replace(/^[A-Za-z\s]+[:.\-]/, '').trim();
         }
 
-        results.push({ number: cleanNumber, type });
-        markUsage(idx, 'phone');
+        const matches = searchTarget.match(this.PHONE_CANDIDATE_REGEX);
+        if (!matches) return;
+
+        matches.forEach(rawMatch => {
+          const refined = this.classifyAndRefinePhone(rawMatch, segment);
+          if (!refined) return;
+
+          // Prevent duplicate numbers using core digits key
+          const coreDigits = refined.number.replace(/\D/g, '');
+          if (seenDigits.has(coreDigits)) return;
+          seenDigits.add(coreDigits);
+
+          results.push(refined);
+          markUsage(idx, 'phone');
+        });
       });
     });
 
