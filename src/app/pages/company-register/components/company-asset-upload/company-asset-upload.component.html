@@ -15,12 +15,23 @@
 
       @if (items().length === 0) {
       <div class="dropzone-empty-content">
-        <div class="dropzone-icon-circle">↑</div>
+        <div class="dropzone-icon-circle">
+          <i class="bi bi-cloud-arrow-up"></i>
+        </div>
         <p class="dropzone-main-text">Drag & drop company logos, brochures, or trade licenses</p>
-        <p class="dropzone-sub-text">or <span class="browse-highlight">browse computer files</span> (Multiple files supported)</p>
-        <div class="dropzone-quick-ocr" (click)="$event.stopPropagation()">
-          <button type="button" class="btn-dropzone-ocr" (click)="ocrCardInputDropzone.click()">
-            <i class="bi bi-camera-fill"></i> Scan Visiting Card with AI OCR
+        <p class="dropzone-sub-text">PNG, JPG, WEBP, or PDF up to 20MB &bull; Multi-file upload supported directly</p>
+        
+        <div class="dropzone-actions-group" (click)="$event.stopPropagation()">
+          <button type="button" class="btn-dropzone-browse" (click)="fileInput.click()">
+            <i class="bi bi-folder2-open"></i> Browse Files (Multiple)
+          </button>
+          
+          <div class="dropzone-actions-divider">
+            <span>or auto-fill form</span>
+          </div>
+
+          <button type="button" class="btn-dropzone-ocr" (click)="ocrCardInputDropzone.click()" title="Scan business card to auto-fill form details (optional)">
+            <i class="bi bi-magic"></i> Auto-fill with AI OCR
           </button>
           <input #ocrCardInputDropzone type="file" class="hidden-file-input" (change)="onOcrFileSelected($event)"
             accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" />
